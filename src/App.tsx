@@ -21,6 +21,7 @@ const App = () => (
       <Sonner />
       <AuthProvider>
         <BrowserRouter>
+          <RoleSwitcher />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
