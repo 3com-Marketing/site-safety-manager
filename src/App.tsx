@@ -10,6 +10,7 @@ import SelectObra from "./pages/SelectObra";
 import VisitaActiva from "./pages/VisitaActiva";
 import AdminInformeDetalle from "./pages/AdminInformeDetalle";
 import NotFound from "./pages/NotFound";
+import RoleSwitcher from "./components/RoleSwitcher";
 
 const queryClient = new QueryClient();
 
