@@ -8,9 +8,11 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   role: AppRole | null;
+  roles: AppRole[];
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  switchRole: (role: AppRole) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,15 +21,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
+  const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchRole = async (userId: string) => {
+  const fetchRoles = async (userId: string) => {
     const { data } = await supabase
       .from('user_roles')
       .select('role')
-      .eq('user_id', userId)
-      .maybeSingle();
-    setRole((data?.role as AppRole) ?? null);
+      .eq('user_id', userId);
+    const userRoles = (data?.map(r => r.role) as AppRole[]) ?? [];
+    setRoles(userRoles);
+    setRole(userRoles[0] ?? null);
+  };
+
+  const switchRole = (newRole: AppRole) => {
+    if (roles.includes(newRole)) {
+      setRole(newRole);
+    }
   };
 
   useEffect(() => {
@@ -36,9 +46,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          await fetchRole(session.user.id);
+          await fetchRoles(session.user.id);
         } else {
           setRole(null);
+          setRoles([]);
         }
         setLoading(false);
       }
@@ -48,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchRole(session.user.id);
+        fetchRoles(session.user.id);
       }
       setLoading(false);
     });
@@ -66,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, role, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ session, user, role, roles, loading, signIn, signOut, switchRole }}>
       {children}
     </AuthContext.Provider>
   );

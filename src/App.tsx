@@ -10,6 +10,7 @@ import SelectObra from "./pages/SelectObra";
 import VisitaActiva from "./pages/VisitaActiva";
 import AdminInformeDetalle from "./pages/AdminInformeDetalle";
 import NotFound from "./pages/NotFound";
+import RoleSwitcher from "./components/RoleSwitcher";
 
 const queryClient = new QueryClient();
 
@@ -20,6 +21,7 @@ const App = () => (
       <Sonner />
       <AuthProvider>
         <BrowserRouter>
+          <RoleSwitcher />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
