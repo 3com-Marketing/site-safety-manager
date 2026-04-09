@@ -1,32 +1,55 @@
 
 
-# Plan: Botón de cambio de rol en la app
+# Fix: App stuck on "Cargando..."
 
-## Resumen
-Añadir un `switchRole` al contexto de autenticación y un botón flotante visible en todas las pantallas que permita alternar entre los roles `admin` y `tecnico` sin cerrar sesión.
+## Root Cause
+Race condition in `src/lib/auth.tsx`:
+1. `getSession()` calls `fetchRoles()` without `await`, then immediately sets `loading = false`
+2. The app renders with `role = null` and redirects to login or shows empty state
+3. `await` inside `onAuthStateChange` can block/deadlock auth events
 
-## Cambios
+## Fix in `src/lib/auth.tsx`
+- Remove the `onAuthStateChange` handler from setting loading state and fetching roles (it causes duplicated logic and deadlocks)
+- Use `onAuthStateChange` only to react to sign-in/sign-out events after initial load
+- In `getSession`, properly `await` the role fetch before setting `loading = false`
+- Avoid awaiting Supabase calls inside `onAuthStateChange` — use setTimeout or fire-and-forget pattern
 
-### 1. Modificar `src/lib/auth.tsx`
-- Cambiar `fetchRole` para obtener **todos** los roles del usuario (no solo uno con `maybeSingle`).
-- Guardar la lista de roles disponibles en el estado (`roles: AppRole[]`).
-- Añadir función `switchRole(role: AppRole)` que cambia el rol activo.
-- Exponer `roles` y `switchRole` en el contexto.
+Revised approach:
+```
+useEffect(() => {
+  let mounted = true;
 
-### 2. Crear componente `src/components/RoleSwitcher.tsx`
-- Botón flotante (esquina inferior izquierda) que muestra el rol actual.
-- Al hacer clic, alterna al otro rol disponible.
-- Solo visible si el usuario tiene más de un rol asignado.
-- Estilo: badge/chip con icono, colores distintos para admin (azul) vs tecnico (naranja).
+  // 1. Initial session restore
+  supabase.auth.getSession().then(async ({ data: { session } }) => {
+    if (!mounted) return;
+    setSession(session);
+    setUser(session?.user ?? null);
+    if (session?.user) {
+      await fetchRoles(session.user.id);
+    }
+    setLoading(false);  // Only after roles are loaded
+  });
 
-### 3. Añadir `RoleSwitcher` en `src/App.tsx`
-- Renderizar dentro del `AuthProvider`, visible en todas las rutas autenticadas.
+  // 2. Listen for future changes (sign-in, sign-out, token refresh)
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    (_event, session) => {
+      if (!mounted) return;
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        // Don't await — fire and forget to avoid deadlock
+        fetchRoles(session.user.id);
+      } else {
+        setRole(null);
+        setRoles([]);
+      }
+    }
+  );
 
-### 4. Actualizar `src/pages/Index.tsx`
-- Ya funciona con el `role` del contexto, no requiere cambios.
+  return () => { mounted = false; subscription.unsubscribe(); };
+}, []);
+```
 
-## Detalle técnico
-- `fetchRole` pasará a usar `.select('role').eq('user_id', userId)` sin `maybeSingle` para obtener ambos roles.
-- El primer rol cargado será el primero que devuelva la query.
-- `switchRole` solo actualiza el estado local, no toca la base de datos.
+## No other files need changes
+The `Index.tsx`, `RoleSwitcher.tsx`, and `App.tsx` already work correctly with the auth context — the issue is purely the loading/role race.
 
