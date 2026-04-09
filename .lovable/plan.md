@@ -1,32 +1,32 @@
 
 
-# Plan: Crear cuenta de prueba con ambos roles y datos de ejemplo
+# Plan: Botón de cambio de rol en la app
 
 ## Resumen
+Añadir un `switchRole` al contexto de autenticación y un botón flotante visible en todas las pantallas que permita alternar entre los roles `admin` y `tecnico` sin cerrar sesión.
 
-Crear el usuario `oswaldo.tryvor@gmail.com` en el sistema de autenticación, asignarle ambos roles (admin y tecnico) para pruebas, y añadir datos de ejemplo (cliente + obra) para poder probar el flujo completo.
+## Cambios
 
-## Pasos
+### 1. Modificar `src/lib/auth.tsx`
+- Cambiar `fetchRole` para obtener **todos** los roles del usuario (no solo uno con `maybeSingle`).
+- Guardar la lista de roles disponibles en el estado (`roles: AppRole[]`).
+- Añadir función `switchRole(role: AppRole)` que cambia el rol activo.
+- Exponer `roles` y `switchRole` en el contexto.
 
-### 1. Habilitar auto-confirm temporal
-Activar la confirmación automática de email para que la cuenta se pueda usar inmediatamente sin verificar correo.
+### 2. Crear componente `src/components/RoleSwitcher.tsx`
+- Botón flotante (esquina inferior izquierda) que muestra el rol actual.
+- Al hacer clic, alterna al otro rol disponible.
+- Solo visible si el usuario tiene más de un rol asignado.
+- Estilo: badge/chip con icono, colores distintos para admin (azul) vs tecnico (naranja).
 
-### 2. Añadir registro (signup) en la pantalla de Login
-Actualmente solo hay login. Añadir un modo de registro para crear la cuenta desde la app con email y contraseña.
+### 3. Añadir `RoleSwitcher` en `src/App.tsx`
+- Renderizar dentro del `AuthProvider`, visible en todas las rutas autenticadas.
 
-### 3. Insertar datos de ejemplo en la base de datos
-Usando el insert tool, crear:
-- **1 cliente**: "Constructora Demo S.L."
-- **1 obra**: "Residencial Las Palmas" asociada al cliente
-
-### 4. Flujo para asignar roles
-Después de que te registres con `oswaldo.tryvor@gmail.com`, insertaremos ambos roles (`admin` y `tecnico`) en `user_roles` para esa cuenta. Esto te permitirá probar ambos flujos.
+### 4. Actualizar `src/pages/Index.tsx`
+- Ya funciona con el `role` del contexto, no requiere cambios.
 
 ## Detalle técnico
-
-- Se usará `cloud--configure_auth` para habilitar auto-confirm
-- Se modificará `Login.tsx` para añadir un toggle signup/login
-- Se usará el signup de Supabase Auth (`supabase.auth.signUp`)
-- El trigger `handle_new_user` ya creará el perfil automáticamente
-- Tras el registro, se insertarán los roles con el insert tool
+- `fetchRole` pasará a usar `.select('role').eq('user_id', userId)` sin `maybeSingle` para obtener ambos roles.
+- El primer rol cargado será el primero que devuelva la query.
+- `switchRole` solo actualiza el estado local, no toca la base de datos.
 
