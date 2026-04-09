@@ -31,40 +31,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .eq('user_id', userId);
     const userRoles = (data?.map(r => r.role) as AppRole[]) ?? [];
     setRoles(userRoles);
-    setRole(userRoles[0] ?? null);
+    setRole(prev => (prev && userRoles.includes(prev)) ? prev : userRoles[0] ?? null);
   };
 
   const switchRole = (newRole: AppRole) => {
-    if (roles.includes(newRole)) {
-      setRole(newRole);
-    }
+    if (roles.includes(newRole)) setRole(newRole);
   };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchRoles(session.user.id);
-        } else {
-          setRole(null);
-          setRoles([]);
-        }
-        setLoading(false);
-      }
-    );
+    let mounted = true;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mounted) return;
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchRoles(session.user.id);
+        await fetchRoles(session.user.id);
       }
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (!mounted) return;
+        setSession(session);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          fetchRoles(session.user.id);
+        } else {
+          setRole(null);
+          setRoles([]);
+        }
+      }
+    );
+
+    return () => { mounted = false; subscription.unsubscribe(); };
   }, []);
 
   const signIn = async (email: string, password: string) => {
