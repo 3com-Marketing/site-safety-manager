@@ -121,21 +121,77 @@ export type Database = {
       }
       clientes: {
         Row: {
+          cif: string
+          ciudad: string
           created_at: string
+          email: string
           id: string
           nombre: string
+          notas: string
+          telefono: string
+          tipo_cliente: string
         }
         Insert: {
+          cif?: string
+          ciudad?: string
           created_at?: string
+          email?: string
           id?: string
           nombre: string
+          notas?: string
+          telefono?: string
+          tipo_cliente?: string
         }
         Update: {
+          cif?: string
+          ciudad?: string
           created_at?: string
+          email?: string
           id?: string
           nombre?: string
+          notas?: string
+          telefono?: string
+          tipo_cliente?: string
         }
         Relationships: []
+      }
+      contactos_cliente: {
+        Row: {
+          cargo: string
+          cliente_id: string
+          created_at: string
+          email: string
+          id: string
+          nombre: string
+          telefono: string
+        }
+        Insert: {
+          cargo?: string
+          cliente_id: string
+          created_at?: string
+          email?: string
+          id?: string
+          nombre?: string
+          telefono?: string
+        }
+        Update: {
+          cargo?: string
+          cliente_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          nombre?: string
+          telefono?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contactos_cliente_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fotos: {
         Row: {
