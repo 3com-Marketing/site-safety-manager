@@ -15,17 +15,19 @@ interface Observacion {
   texto: string;
   normativa: string;
   foto_url: string | null;
+  etiqueta?: string;
   created_at: string;
 }
 
 interface Props {
   informeId: string;
   visitaId: string;
+  obraNombre: string;
   onBack: () => void;
   onRefresh: () => void;
 }
 
-export default function SeccionObservaciones({ informeId, visitaId, onBack, onRefresh }: Props) {
+export default function SeccionObservaciones({ informeId, visitaId, obraNombre, onBack, onRefresh }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<Observacion[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -63,10 +65,14 @@ export default function SeccionObservaciones({ informeId, visitaId, onBack, onRe
 
     const { data: urlData } = supabase.storage.from('incidencia-fotos').getPublicUrl(path);
 
+    const fotoCount = items.filter(i => i.foto_url).length;
+    const etiqueta = `Observaciones - Foto ${fotoCount + 1} | ${obraNombre} | ${format(new Date(), "dd MMM yyyy, HH:mm", { locale: es })}`;
+
     const { error } = await supabase.from('observaciones').insert({
       informe_id: informeId,
       texto: '',
       foto_url: urlData.publicUrl,
+      etiqueta,
     });
 
     if (error) toast.error('Error al guardar');
@@ -158,7 +164,10 @@ export default function SeccionObservaciones({ informeId, visitaId, onBack, onRe
                   </div>
                 </div>
                 {item.foto_url && (
-                  <img src={item.foto_url} alt="Foto" className="w-full max-h-[400px] rounded-lg object-contain bg-muted/50 border border-border cursor-pointer" onClick={() => setViewingFoto(item.foto_url)} />
+                  <>
+                    <img src={item.foto_url} alt="Foto" className="w-full max-h-[400px] rounded-lg object-contain bg-muted/50 border border-border cursor-pointer" onClick={() => setViewingFoto(item.foto_url)} />
+                    {item.etiqueta && <p className="text-[11px] text-muted-foreground text-center mt-1 italic">{item.etiqueta}</p>}
+                  </>
                 )}
                 {editingId === item.id ? (
                   <div className="space-y-2">

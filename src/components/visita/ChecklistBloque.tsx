@@ -15,6 +15,7 @@ interface Anotacion {
   texto: string;
   normativa?: string;
   foto_url: string | null;
+  etiqueta?: string;
   created_at: string;
 }
 
@@ -24,6 +25,7 @@ interface Props {
   categoriaLabel: string;
   anotaciones: Anotacion[];
   visitaId: string;
+  obraNombre: string;
   onBack: () => void;
   onRefresh: () => void;
 }
@@ -33,6 +35,7 @@ export default function ChecklistBloque({
   categoriaLabel,
   anotaciones,
   visitaId,
+  obraNombre,
   onBack,
   onRefresh,
 }: Props) {
@@ -59,10 +62,14 @@ export default function ChecklistBloque({
 
     const { data: urlData } = supabase.storage.from('incidencia-fotos').getPublicUrl(path);
 
+    const fotoCount = anotaciones.filter(a => a.foto_url).length;
+    const etiqueta = `${categoriaLabel} - Foto ${fotoCount + 1} | ${obraNombre} | ${format(new Date(), "dd MMM yyyy, HH:mm", { locale: es })}`;
+
     const { error } = await supabase.from('anotaciones').insert({
       bloque_id: bloqueId,
       texto: '',
       foto_url: urlData.publicUrl,
+      etiqueta,
     });
 
     if (error) toast.error('Error al guardar anotación');
@@ -149,7 +156,10 @@ export default function ChecklistBloque({
                   </div>
                 </div>
                 {a.foto_url && (
-                  <img src={a.foto_url} alt="Foto anotación" className="w-full max-h-[400px] rounded-lg object-contain bg-muted/50 border border-border cursor-pointer" onClick={() => setViewingFoto(a.foto_url)} />
+                  <>
+                    <img src={a.foto_url} alt="Foto anotación" className="w-full max-h-[400px] rounded-lg object-contain bg-muted/50 border border-border cursor-pointer" onClick={() => setViewingFoto(a.foto_url)} />
+                    {a.etiqueta && <p className="text-[11px] text-muted-foreground text-center mt-1 italic">{a.etiqueta}</p>}
+                  </>
                 )}
                 {editingId === a.id ? (
                   <div className="space-y-2">

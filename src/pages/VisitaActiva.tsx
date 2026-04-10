@@ -284,21 +284,22 @@ export default function VisitaActiva() {
             categoriaLabel={BLOQUE_LABELS[currentBloque.categoria] || currentBloque.categoria}
             anotaciones={currentBloque.anotaciones}
             visitaId={id!}
+            obraNombre={obraNombre}
             onBack={handleBack}
             onRefresh={fetchData}
           />
         )}
 
         {view.type === 'step' && view.stepId === 'incidencias' && informeId && (
-          <SeccionIncidencias informeId={informeId} visitaId={id!} onBack={handleBack} onRefresh={fetchData} />
+          <SeccionIncidencias informeId={informeId} visitaId={id!} obraNombre={obraNombre} onBack={handleBack} onRefresh={fetchData} />
         )}
 
         {view.type === 'step' && view.stepId === 'amonestaciones' && informeId && (
-          <SeccionAmonestaciones informeId={informeId} visitaId={id!} onBack={handleBack} onRefresh={fetchData} />
+          <SeccionAmonestaciones informeId={informeId} visitaId={id!} obraNombre={obraNombre} onBack={handleBack} onRefresh={fetchData} />
         )}
 
         {view.type === 'step' && view.stepId === 'observaciones' && informeId && (
-          <SeccionObservaciones informeId={informeId} visitaId={id!} onBack={handleBack} onRefresh={fetchData} />
+          <SeccionObservaciones informeId={informeId} visitaId={id!} obraNombre={obraNombre} onBack={handleBack} onRefresh={fetchData} />
         )}
       </div>
 
