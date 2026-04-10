@@ -16,18 +16,19 @@ interface Incidencia {
   descripcion: string;
   categoria: string;
   normativa: string;
-  fotos: { id: string; url: string }[];
+  fotos: { id: string; url: string; etiqueta?: string }[];
   created_at: string;
 }
 
 interface Props {
   informeId: string;
   visitaId: string;
+  obraNombre: string;
   onBack: () => void;
   onRefresh: () => void;
 }
 
-export default function SeccionIncidencias({ informeId, visitaId, onBack, onRefresh }: Props) {
+export default function SeccionIncidencias({ informeId, visitaId, obraNombre, onBack, onRefresh }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [incidencias, setIncidencias] = useState<Incidencia[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -41,7 +42,7 @@ export default function SeccionIncidencias({ informeId, visitaId, onBack, onRefr
   const fetchIncidencias = async () => {
     const { data } = await supabase
       .from('incidencias')
-      .select('id, titulo, descripcion, categoria, normativa, created_at, fotos(id, url)')
+      .select('id, titulo, descripcion, categoria, normativa, created_at, fotos(id, url, etiqueta)')
       .eq('informe_id', informeId)
       .order('created_at', { ascending: false });
 
@@ -66,6 +67,13 @@ export default function SeccionIncidencias({ informeId, visitaId, onBack, onRefr
 
     const { data: urlData } = supabase.storage.from('incidencia-fotos').getPublicUrl(path);
 
+    const { count: fotoCount } = await supabase
+      .from('fotos')
+      .select('id', { count: 'exact', head: true })
+      .in('incidencia_id', (await supabase.from('incidencias').select('id').eq('informe_id', informeId)).data?.map(i => i.id) || []);
+
+    const etiqueta = `Incidencias - Foto ${(fotoCount || 0) + 1} | ${obraNombre} | ${format(new Date(), "dd MMM yyyy, HH:mm", { locale: es })}`;
+
     const { data: inc, error: incError } = await supabase
       .from('incidencias')
       .insert({ informe_id: informeId, titulo: 'Incidencia con foto', categoria: 'general', descripcion: '' })
@@ -74,7 +82,7 @@ export default function SeccionIncidencias({ informeId, visitaId, onBack, onRefr
 
     if (incError || !inc) { toast.error('Error al crear incidencia'); setUploading(false); return; }
 
-    await supabase.from('fotos').insert({ incidencia_id: inc.id, url: urlData.publicUrl });
+    await supabase.from('fotos').insert({ incidencia_id: inc.id, url: urlData.publicUrl, etiqueta });
 
     toast.success('Foto añadida');
     setUploading(false);
@@ -166,7 +174,10 @@ export default function SeccionIncidencias({ informeId, visitaId, onBack, onRefr
                   </div>
                 </div>
                 {inc.fotos?.map((f) => (
-                  <img key={f.id} src={f.url} alt="Foto" className="w-full max-h-[400px] rounded-lg object-contain bg-muted/50 border border-border cursor-pointer" onClick={() => setViewingFoto(f.url)} />
+                  <div key={f.id}>
+                    <img src={f.url} alt="Foto" className="w-full max-h-[400px] rounded-lg object-contain bg-muted/50 border border-border cursor-pointer" onClick={() => setViewingFoto(f.url)} />
+                    {f.etiqueta && <p className="text-[11px] text-muted-foreground text-center mt-1 italic">{f.etiqueta}</p>}
+                  </div>
                 ))}
                 {editingId === inc.id ? (
                   <div className="space-y-2">
