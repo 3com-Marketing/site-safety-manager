@@ -24,7 +24,7 @@ interface Incidencia {
   descripcion: string;
   categoria: string;
   normativa: string;
-  fotos: { id: string; url: string }[];
+  fotos: { id: string; url: string; created_at: string }[];
 }
 
 export default function AdminVisitaDetalle() {
@@ -63,7 +63,7 @@ export default function AdminVisitaDetalle() {
       setInforme(inf);
 
       const [incsRes, checkRes, amonRes, obsRes] = await Promise.all([
-        supabase.from('incidencias').select('id, titulo, descripcion, categoria, normativa, fotos(id, url)').eq('informe_id', inf.id).order('orden'),
+        supabase.from('incidencias').select('id, titulo, descripcion, categoria, normativa, fotos(id, url, created_at)').eq('informe_id', inf.id).order('orden'),
         supabase.from('checklist_bloques').select('categoria, estado, anotaciones(id, texto, normativa, foto_url, created_at)').eq('informe_id', inf.id).order('created_at'),
         supabase.from('amonestaciones').select('*').eq('informe_id', inf.id).order('created_at'),
         supabase.from('observaciones').select('*').eq('informe_id', inf.id).order('created_at'),
@@ -171,12 +171,15 @@ export default function AdminVisitaDetalle() {
                     <div key={a.id} className="rounded-lg border border-border bg-card p-3 space-y-1.5">
                       {a.texto && <p className="text-sm">{a.texto}</p>}
                       {a.foto_url && (
-                        <img
-                          src={a.foto_url}
-                          alt="Foto"
-                          className="h-20 w-20 rounded-lg object-cover border border-border cursor-pointer hover:ring-2 hover:ring-primary"
-                          onClick={() => setFotoUrl(a.foto_url)}
-                        />
+                        <div>
+                          <img
+                            src={a.foto_url}
+                            alt="Foto"
+                            className="h-20 w-20 rounded-lg object-cover border border-border cursor-pointer hover:ring-2 hover:ring-primary"
+                            onClick={() => setFotoUrl(a.foto_url)}
+                          />
+                          <p className="text-[10px] text-muted-foreground mt-1">📅 {format(new Date(a.created_at), "dd MMM yyyy, HH:mm", { locale: es })}</p>
+                        </div>
                       )}
                       {a.normativa && (
                         <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
@@ -214,13 +217,15 @@ export default function AdminVisitaDetalle() {
                 {inc.fotos.length > 0 && (
                   <div className="flex gap-3 flex-wrap">
                     {inc.fotos.map(f => (
-                      <img
-                        key={f.id}
-                        src={f.url}
-                        alt="Foto"
-                        className="h-24 w-24 rounded-lg object-cover border border-border cursor-pointer hover:ring-2 hover:ring-primary transition-all"
-                        onClick={() => setFotoUrl(f.url)}
-                      />
+                      <div key={f.id}>
+                        <img
+                          src={f.url}
+                          alt="Foto"
+                          className="h-24 w-24 rounded-lg object-cover border border-border cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                          onClick={() => setFotoUrl(f.url)}
+                        />
+                        <p className="text-[10px] text-muted-foreground mt-1">📅 {format(new Date(f.created_at), "dd MMM yyyy, HH:mm", { locale: es })}</p>
+                      </div>
                     ))}
                   </div>
                 )}
