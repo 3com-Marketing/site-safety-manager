@@ -163,7 +163,7 @@ export default function SelectObra() {
 
       {/* GPS requesting dialog */}
       <Dialog open={geo.status === 'requesting'}>
-        <DialogContent className="max-w-xs text-center">
+        <DialogContent className="max-w-xl text-center">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-center gap-2">
               <MapPin className="h-5 w-5 text-primary" />
@@ -179,7 +179,7 @@ export default function SelectObra() {
 
       {/* Distance confirmation dialog */}
       <Dialog open={!!confirmState} onOpenChange={(open) => { if (!open) setGeo({ status: 'idle' }); }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Navigation className="h-5 w-5 text-primary" />

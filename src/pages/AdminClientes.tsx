@@ -252,7 +252,7 @@ export default function AdminClientes() {
 
       {/* View Client Dialog */}
       <Dialog open={!!viewCliente} onOpenChange={open => !open && setViewCliente(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5" /> {viewCliente?.nombre}
@@ -311,7 +311,7 @@ export default function AdminClientes() {
 
       {/* Create/Edit Client Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editingCliente ? 'Editar cliente' : 'Nuevo cliente'}</DialogTitle>
           </DialogHeader>
@@ -364,7 +364,7 @@ export default function AdminClientes() {
 
       {/* Contacts Dialog */}
       <Dialog open={contactosDialogOpen} onOpenChange={setContactosDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Contactos — {selectedCliente?.nombre}</DialogTitle>
           </DialogHeader>
