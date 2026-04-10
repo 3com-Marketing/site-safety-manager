@@ -398,6 +398,42 @@ export type Database = {
         }
         Relationships: []
       }
+      tecnicos: {
+        Row: {
+          codigo_tecnico: string
+          created_at: string
+          direccion: string
+          email: string
+          id: string
+          nombre: string
+          notas: string
+          telefono: string
+          user_id: string | null
+        }
+        Insert: {
+          codigo_tecnico?: string
+          created_at?: string
+          direccion?: string
+          email?: string
+          id?: string
+          nombre?: string
+          notas?: string
+          telefono?: string
+          user_id?: string | null
+        }
+        Update: {
+          codigo_tecnico?: string
+          created_at?: string
+          direccion?: string
+          email?: string
+          id?: string
+          nombre?: string
+          notas?: string
+          telefono?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
