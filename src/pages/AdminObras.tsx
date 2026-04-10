@@ -275,6 +275,34 @@ export default function AdminObras() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* View dialog */}
+      <Dialog open={!!viewObra} onOpenChange={open => !open && setViewObra(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Ficha de la obra</DialogTitle>
+          </DialogHeader>
+          {viewObra && (
+            <div className="space-y-3 text-sm">
+              <div><span className="font-semibold">Nombre:</span> {viewObra.nombre}</div>
+              <div><span className="font-semibold">Dirección:</span> {viewObra.direccion || '—'}</div>
+              <div><span className="font-semibold">Cliente:</span> {viewObra.cliente_nombre || '—'}</div>
+              <div>
+                <span className="font-semibold">Técnicos asignados:</span>
+                {viewObra.tecnicoNames && viewObra.tecnicoNames.length > 0 ? (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {viewObra.tecnicoNames.map((name, i) => (
+                      <span key={i} className="inline-flex items-center gap-1 text-xs bg-success/10 text-success px-2 py-0.5 rounded-full">
+                        <Users className="h-3 w-3" />{name}
+                      </span>
+                    ))}
+                  </div>
+                ) : <span className="text-muted-foreground ml-1">Ninguno</span>}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
