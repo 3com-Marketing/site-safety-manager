@@ -163,7 +163,7 @@ export default function SelectObra() {
 
       {/* GPS requesting dialog */}
       <Dialog open={geo.status === 'requesting'}>
-        <DialogContent className="max-w-xs text-center">
+        <DialogContent className="max-w-xl text-center">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-center gap-2">
               <MapPin className="h-5 w-5 text-primary" />
