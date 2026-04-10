@@ -195,7 +195,7 @@ export default function AdminTecnicos() {
 
       {/* Create / Edit dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editId ? 'Editar técnico' : 'Nuevo técnico'}</DialogTitle>
           </DialogHeader>
@@ -254,7 +254,7 @@ export default function AdminTecnicos() {
 
       {/* View dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Ficha del técnico</DialogTitle>
           </DialogHeader>

@@ -327,7 +327,7 @@ export default function AdminObras() {
 
       {/* View dialog */}
       <Dialog open={!!viewObra} onOpenChange={open => !open && setViewObra(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Ficha de la obra</DialogTitle>
           </DialogHeader>
