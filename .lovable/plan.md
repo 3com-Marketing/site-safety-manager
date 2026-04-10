@@ -1,67 +1,67 @@
 
 
-# Plan: Panel de Administración CRUD (Clientes, Obras, Técnicos)
+# Plan: Navegación entre secciones y bloques en Visita Activa
 
-## Resumen
-El panel admin actualmente solo muestra informes. Falta la gestión completa de las entidades base: **Clientes**, **Obras** y **Técnicos** (usuarios con roles). Crearemos un panel con navegación por pestañas y CRUD completo para cada entidad.
+## Problema
+Actualmente, dentro de una visita, al entrar en un bloque (ej: EPIs) o sección (ej: Incidencias), el único botón de acción global es "FINALIZAR VISITA". No hay forma de avanzar al siguiente punto ni volver al menú sin usar la flecha atrás repetidamente.
 
-## Estructura
+## Solución
+Añadir botones de navegación "Siguiente" y "Anterior" en cada bloque del checklist y en cada sección, permitiendo recorrer toda la visita secuencialmente. El botón "FINALIZAR VISITA" se mantiene pero se complementa con la navegación.
 
-### 1. Nuevo layout admin con navegación lateral/pestañas
-Modificar `AdminInformes.tsx` o crear un layout wrapper `AdminLayout.tsx` con tabs:
-- **Informes** (ya existe)
-- **Clientes** (nuevo)
-- **Obras** (nuevo)
-- **Técnicos** (nuevo)
+## Flujo de navegación
 
-### 2. Nueva página `src/pages/AdminClientes.tsx`
-- Lista de clientes con nombre
-- Botón "Nuevo cliente" que abre un diálogo con campo nombre
-- Editar nombre inline o con diálogo
-- Eliminar cliente (con confirmación)
-- Operaciones: `supabase.from('clientes').insert/update/delete`
-
-### 3. Nueva página `src/pages/AdminObras.tsx`
-- Lista de obras con nombre, dirección y cliente asociado
-- Botón "Nueva obra" con formulario: nombre, dirección, selector de cliente
-- Editar y eliminar
-- Operaciones: `supabase.from('obras').insert/update/delete`
-
-### 4. Nueva página `src/pages/AdminTecnicos.tsx`
-- Lista de perfiles con rol `tecnico` (join `profiles` + `user_roles`)
-- Mostrar nombre, email, rol
-- Posibilidad de asignar/quitar roles (insert/delete en `user_roles`)
-- No se crean usuarios desde aquí (se registran solos), pero el admin puede gestionar roles
-
-### 5. Migración DB: RLS para DELETE en clientes/obras
-- Actualmente clientes y obras tienen política `ALL` para admins, que ya cubre DELETE
-- No se necesita migración adicional
-
-### 6. Rutas nuevas en `App.tsx`
-```
-/admin/clientes
-/admin/obras
-/admin/tecnicos
+```text
+Secciones (menú) → Datos generales → Checklist/EPIs → Checklist/Orden → ... → Checklist/Maquinaria → Incidencias → Amonestaciones → Observaciones
 ```
 
-### 7. Modificar `AdminInformes.tsx`
-- Extraer el header a un componente compartido `AdminLayout.tsx` con tabs de navegación
-- Cada tab navega a su ruta
+Orden lineal completo:
+1. Datos generales
+2. EPIs
+3. Orden y limpieza
+4. Trabajo en altura
+5. Señalización
+6. Maquinaria
+7. Incidencias
+8. Amonestaciones
+9. Observaciones
 
-## Archivos
+## Cambios
 
-| Archivo | Acción |
-|---------|--------|
-| `src/components/admin/AdminLayout.tsx` | Crear: layout con header + tabs |
-| `src/pages/AdminClientes.tsx` | Crear: CRUD clientes |
-| `src/pages/AdminObras.tsx` | Crear: CRUD obras |
-| `src/pages/AdminTecnicos.tsx` | Crear: gestión roles |
-| `src/pages/AdminInformes.tsx` | Modificar: usar AdminLayout |
-| `src/App.tsx` | Modificar: añadir rutas admin |
+### 1. `VisitaActiva.tsx`
+- Definir un array con el orden lineal completo de pasos (secciones + bloques del checklist expandidos).
+- Añadir funciones `goNext()` y `goPrev()` que cambien el `view` state al paso siguiente/anterior.
+- Pasar `onNext` y `onPrev` como props a cada componente de sección y bloque.
+- Reemplazar el botón fijo "FINALIZAR VISITA" por una barra inferior con:
+  - Botón "Anterior" (si no es el primer paso)
+  - Botón "Siguiente" (si no es el último paso)
+  - Botón "Finalizar visita" visible siempre (más pequeño si hay siguiente, prominente si es el último paso)
+
+### 2. `ChecklistBloque.tsx`
+- Añadir props opcionales `onNext?: () => void` y `onPrev?: () => void`.
+- Mostrar botones "Siguiente" / "Anterior" al final del contenido o en la barra inferior.
+
+### 3. `SeccionIncidencias.tsx`, `SeccionAmonestaciones.tsx`, `SeccionObservaciones.tsx`, `SeccionDatosGenerales.tsx`
+- Añadir props opcionales `onNext?: () => void` y `onPrev?: () => void`.
+- Misma lógica de botones de navegación.
+
+### 4. Barra inferior rediseñada (en `VisitaActiva.tsx`)
+- Cuando estamos en el menú de secciones: solo "FINALIZAR VISITA" como ahora.
+- Cuando estamos dentro de un paso: barra con "← Anterior", "Siguiente →" y un botón secundario "Finalizar" (siempre accesible).
+- En el último paso (Observaciones): "Siguiente" se reemplaza por "FINALIZAR VISITA" como botón principal.
+
+## Archivos modificados
+| Archivo | Cambio |
+|---|---|
+| `src/pages/VisitaActiva.tsx` | Lógica de navegación lineal, barra inferior con prev/next/finalizar |
+| `src/components/visita/ChecklistBloque.tsx` | Eliminar botón back propio del header (ya está en la barra), aceptar onNext/onPrev |
+| `src/components/visita/SeccionDatosGenerales.tsx` | Aceptar onNext/onPrev |
+| `src/components/visita/SeccionIncidencias.tsx` | Aceptar onNext/onPrev |
+| `src/components/visita/SeccionAmonestaciones.tsx` | Aceptar onNext/onPrev |
+| `src/components/visita/SeccionObservaciones.tsx` | Aceptar onNext/onPrev |
 
 ## UX
-- Mismo estilo visual: rounded-xl, border-border, bg-card
-- Diálogos para crear/editar (no páginas nuevas)
-- Botones grandes, confirmación antes de eliminar
-- Tabs visibles en header para navegar entre secciones
+- Los datos se guardan automáticamente al cambiar de sección (ya se guardan en tiempo real al crear anotaciones/incidencias).
+- Se puede saltar a cualquier sección desde el menú principal (flecha atrás → menú secciones).
+- Se puede navegar linealmente con Siguiente/Anterior sin volver al menú.
+- Finalizar está siempre disponible desde cualquier punto.
 
