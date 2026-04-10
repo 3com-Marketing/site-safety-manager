@@ -8,7 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Users, Plus, Pencil, Trash2, Eye, Phone, Mail, MapPin, Hash } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Users, Plus, Pencil, Trash2, Eye, Phone, Mail, Hash, HardHat } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Tecnico {
@@ -22,54 +23,70 @@ interface Tecnico {
   notas: string;
 }
 
-interface ProfileWithRole {
-  id: string;
+interface ProfileMin {
   user_id: string;
   nombre: string;
   email: string;
-  role: string | null;
-  role_id: string | null;
 }
 
-const emptyTecnico = { nombre: '', direccion: '', telefono: '', email: '', codigo_tecnico: '', notas: '', user_id: '' };
+interface ObraMin {
+  id: string;
+  nombre: string;
+}
+
+const emptyForm = { nombre: '', direccion: '', telefono: '', email: '', codigo_tecnico: '', notas: '', user_id: '' };
 
 export default function AdminTecnicos() {
   const [tecnicos, setTecnicos] = useState<Tecnico[]>([]);
-  const [profiles, setProfiles] = useState<ProfileWithRole[]>([]);
+  const [profiles, setProfiles] = useState<ProfileMin[]>([]);
+  const [obras, setObras] = useState<ObraMin[]>([]);
+  const [tecnicoObras, setTecnicoObras] = useState<Record<string, string[]>>({}); // tecnico_id -> obra_id[]
   const [loading, setLoading] = useState(true);
+
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [form, setForm] = useState(emptyForm);
+  const [selectedObras, setSelectedObras] = useState<string[]>([]);
+
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewTecnico, setViewTecnico] = useState<Tecnico | null>(null);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState(emptyTecnico);
   const [deleteTarget, setDeleteTarget] = useState<Tecnico | null>(null);
 
   const fetchData = async () => {
-    const [{ data: tecs }, { data: profs }, { data: roles }] = await Promise.all([
+    const [{ data: tecs }, { data: profs }, { data: obrasData }, { data: links }] = await Promise.all([
       supabase.from('tecnicos').select('*').order('nombre'),
-      supabase.from('profiles').select('*').order('nombre'),
-      supabase.from('user_roles').select('*'),
+      supabase.from('profiles').select('user_id, nombre, email').order('nombre'),
+      supabase.from('obras').select('id, nombre').order('nombre'),
+      supabase.from('tecnicos_obras').select('tecnico_id, obra_id'),
     ]);
 
     setTecnicos((tecs || []) as Tecnico[]);
+    setProfiles((profs || []) as ProfileMin[]);
+    setObras((obrasData || []) as ObraMin[]);
 
-    const roleMap = new Map<string, { role: string; id: string }>();
-    (roles || []).forEach((r: any) => roleMap.set(r.user_id, { role: r.role, id: r.id }));
-
-    setProfiles(
-      (profs || []).map((p: any) => {
-        const r = roleMap.get(p.user_id);
-        return { id: p.id, user_id: p.user_id, nombre: p.nombre || 'Sin nombre', email: p.email, role: r?.role || null, role_id: r?.id || null };
-      })
-    );
+    const map: Record<string, string[]> = {};
+    (links || []).forEach((l: any) => {
+      if (!map[l.tecnico_id]) map[l.tecnico_id] = [];
+      map[l.tecnico_id].push(l.obra_id);
+    });
+    setTecnicoObras(map);
     setLoading(false);
   };
 
   useEffect(() => { fetchData(); }, []);
 
-  const openCreate = () => { setEditId(null); setForm(emptyTecnico); setDialogOpen(true); };
-  const openEdit = (t: Tecnico) => { setEditId(t.id); setForm({ nombre: t.nombre, direccion: t.direccion, telefono: t.telefono, email: t.email, codigo_tecnico: t.codigo_tecnico, notas: t.notas, user_id: t.user_id || '' }); setDialogOpen(true); };
+  const openCreate = () => { setEditId(null); setForm(emptyForm); setSelectedObras([]); setDialogOpen(true); };
+  const openEdit = (t: Tecnico) => {
+    setEditId(t.id);
+    setForm({ nombre: t.nombre, direccion: t.direccion, telefono: t.telefono, email: t.email, codigo_tecnico: t.codigo_tecnico, notas: t.notas, user_id: t.user_id || '' });
+    setSelectedObras(tecnicoObras[t.id] || []);
+    setDialogOpen(true);
+  };
   const openView = (t: Tecnico) => { setViewTecnico(t); setViewDialogOpen(true); };
+
+  const toggleObra = (obraId: string) => {
+    setSelectedObras(prev => prev.includes(obraId) ? prev.filter(id => id !== obraId) : [...prev, obraId]);
+  };
 
   const handleSave = async () => {
     const payload = {
@@ -82,22 +99,32 @@ export default function AdminTecnicos() {
       user_id: form.user_id || null,
     };
 
+    let tecnicoId = editId;
+
     if (editId) {
       const { error } = await supabase.from('tecnicos').update(payload).eq('id', editId);
       if (error) { toast.error('Error al actualizar'); return; }
-      toast.success('Técnico actualizado');
     } else {
-      const { error } = await supabase.from('tecnicos').insert(payload);
-      if (error) { toast.error('Error al crear'); return; }
-      toast.success('Técnico creado');
+      const { data, error } = await supabase.from('tecnicos').insert(payload).select('id').single();
+      if (error || !data) { toast.error('Error al crear'); return; }
+      tecnicoId = data.id;
     }
 
-    // Also assign tecnico role if user_id is set
+    // Sync obras links
+    await supabase.from('tecnicos_obras').delete().eq('tecnico_id', tecnicoId!);
+    if (selectedObras.length > 0) {
+      await supabase.from('tecnicos_obras').insert(
+        selectedObras.map(obra_id => ({ tecnico_id: tecnicoId!, obra_id }))
+      );
+    }
+
+    // Assign tecnico role if linked to user
     if (form.user_id) {
       await supabase.from('user_roles').delete().eq('user_id', form.user_id);
       await supabase.from('user_roles').insert({ user_id: form.user_id, role: 'tecnico' as any });
     }
 
+    toast.success(editId ? 'Técnico actualizado' : 'Técnico creado');
     setDialogOpen(false);
     fetchData();
   };
@@ -111,8 +138,8 @@ export default function AdminTecnicos() {
     fetchData();
   };
 
-  const linkedProfile = (userId: string | null) => profiles.find(p => p.user_id === userId);
   const unlinkedProfiles = profiles.filter(p => !tecnicos.some(t => t.user_id === p.user_id));
+  const obraNames = (tecId: string) => (tecnicoObras[tecId] || []).map(oid => obras.find(o => o.id === oid)?.nombre).filter(Boolean);
 
   return (
     <AdminLayout>
@@ -129,7 +156,7 @@ export default function AdminTecnicos() {
         ) : (
           <div className="space-y-2">
             {tecnicos.map(t => {
-              const profile = linkedProfile(t.user_id);
+              const linkedObras = obraNames(t.id);
               return (
                 <div key={t.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
                   <div className="flex items-center gap-4">
@@ -143,7 +170,15 @@ export default function AdminTecnicos() {
                         {t.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{t.email}</span>}
                         {t.telefono && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{t.telefono}</span>}
                       </div>
-                      {profile && <p className="text-xs text-primary mt-0.5">Vinculado: {profile.nombre}</p>}
+                      {linkedObras.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {linkedObras.map((name, i) => (
+                            <span key={i} className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                              <HardHat className="h-3 w-3" />{name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -160,7 +195,7 @@ export default function AdminTecnicos() {
 
       {/* Create / Edit dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editId ? 'Editar técnico' : 'Nuevo técnico'}</DialogTitle>
           </DialogHeader>
@@ -175,7 +210,7 @@ export default function AdminTecnicos() {
             <div><Label>Notas</Label><Textarea value={form.notas} onChange={e => setForm({ ...form, notas: e.target.value })} rows={2} /></div>
             <div>
               <Label>Vincular a usuario registrado</Label>
-              <Select value={form.user_id} onValueChange={val => setForm({ ...form, user_id: val === '_none' ? '' : val })}>
+              <Select value={form.user_id || '_none'} onValueChange={val => setForm({ ...form, user_id: val === '_none' ? '' : val })}>
                 <SelectTrigger><SelectValue placeholder="Sin vincular" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="_none">Sin vincular</SelectItem>
@@ -188,6 +223,26 @@ export default function AdminTecnicos() {
                   })()}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Obras assignment */}
+            <div>
+              <Label className="mb-2 block">Obras asignadas</Label>
+              {obras.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No hay obras creadas</p>
+              ) : (
+                <div className="space-y-2 max-h-40 overflow-y-auto rounded-lg border border-border p-3">
+                  {obras.map(o => (
+                    <label key={o.id} className="flex items-center gap-2 cursor-pointer">
+                      <Checkbox
+                        checked={selectedObras.includes(o.id)}
+                        onCheckedChange={() => toggleObra(o.id)}
+                      />
+                      <span className="text-sm">{o.nombre}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>
@@ -211,9 +266,22 @@ export default function AdminTecnicos() {
               <div><span className="font-semibold">Teléfono:</span> {viewTecnico.telefono || '—'}</div>
               <div><span className="font-semibold">Dirección:</span> {viewTecnico.direccion || '—'}</div>
               <div><span className="font-semibold">Notas:</span> {viewTecnico.notas || '—'}</div>
-              {linkedProfile(viewTecnico.user_id) && (
-                <div><span className="font-semibold">Usuario vinculado:</span> {linkedProfile(viewTecnico.user_id)?.nombre} ({linkedProfile(viewTecnico.user_id)?.email})</div>
-              )}
+              {(() => {
+                const linked = profiles.find(p => p.user_id === viewTecnico.user_id);
+                return linked ? <div><span className="font-semibold">Usuario vinculado:</span> {linked.nombre} ({linked.email})</div> : null;
+              })()}
+              <div>
+                <span className="font-semibold">Obras asignadas:</span>
+                {(obraNames(viewTecnico.id).length > 0) ? (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {obraNames(viewTecnico.id).map((name, i) => (
+                      <span key={i} className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                        <HardHat className="h-3 w-3" />{name}
+                      </span>
+                    ))}
+                  </div>
+                ) : <span className="text-muted-foreground ml-1">Ninguna</span>}
+              </div>
             </div>
           )}
         </DialogContent>

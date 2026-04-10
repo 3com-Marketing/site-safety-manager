@@ -434,6 +434,42 @@ export type Database = {
         }
         Relationships: []
       }
+      tecnicos_obras: {
+        Row: {
+          created_at: string
+          id: string
+          obra_id: string
+          tecnico_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          obra_id: string
+          tecnico_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          obra_id?: string
+          tecnico_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tecnicos_obras_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tecnicos_obras_tecnico_id_fkey"
+            columns: ["tecnico_id"]
+            isOneToOne: false
+            referencedRelation: "tecnicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string

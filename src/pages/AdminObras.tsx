@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, HardHat } from 'lucide-react';
+import { Plus, Pencil, Trash2, HardHat, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Obra {
@@ -16,9 +16,15 @@ interface Obra {
   direccion: string;
   cliente_id: string;
   cliente_nombre?: string;
+  tecnicos?: string[];
 }
 
 interface Cliente {
+  id: string;
+  nombre: string;
+}
+
+interface TecnicoMin {
   id: string;
   nombre: string;
 }
@@ -36,10 +42,23 @@ export default function AdminObras() {
   const [deleteTarget, setDeleteTarget] = useState<Obra | null>(null);
 
   const fetchData = async () => {
-    const [obrasRes, clientesRes] = await Promise.all([
+    const [obrasRes, clientesRes, { data: tecData }, { data: links }] = await Promise.all([
       supabase.from('obras').select('id, nombre, direccion, cliente_id, clientes(nombre)').order('nombre'),
       supabase.from('clientes').select('id, nombre').order('nombre'),
+      supabase.from('tecnicos').select('id, nombre').order('nombre'),
+      supabase.from('tecnicos_obras').select('tecnico_id, obra_id'),
     ]);
+
+    const tecMap = new Map<string, string>();
+    (tecData || []).forEach((t: any) => tecMap.set(t.id, t.nombre));
+
+    const obraLinks: Record<string, string[]> = {};
+    (links || []).forEach((l: any) => {
+      if (!obraLinks[l.obra_id]) obraLinks[l.obra_id] = [];
+      const name = tecMap.get(l.tecnico_id);
+      if (name) obraLinks[l.obra_id].push(name);
+    });
+
     setObras(
       (obrasRes.data || []).map((o: any) => ({
         id: o.id,
@@ -47,6 +66,7 @@ export default function AdminObras() {
         direccion: o.direccion,
         cliente_id: o.cliente_id,
         cliente_nombre: o.clientes?.nombre || '',
+        tecnicos: obraLinks[o.id] || [],
       }))
     );
     setClientes(clientesRes.data || []);
@@ -123,6 +143,15 @@ export default function AdminObras() {
                   <div>
                     <p className="font-heading font-semibold">{o.nombre}</p>
                     <p className="text-xs text-muted-foreground">{o.cliente_nombre} · {o.direccion || 'Sin dirección'}</p>
+                    {o.tecnicos && o.tecnicos.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {o.tecnicos.map((name, i) => (
+                          <span key={i} className="inline-flex items-center gap-1 text-xs bg-success/10 text-success px-2 py-0.5 rounded-full">
+                            <Users className="h-3 w-3" />{name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-2">
