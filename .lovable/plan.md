@@ -1,26 +1,37 @@
 
 
-# Plan: Añadir botón "Guardar y salir" en la pantalla de secciones
+# Plan: Mostrar fotos completas sin recortar
 
 ## Problema
-En la pantalla de secciones (menú principal de la visita), el único botón es "FINALIZAR VISITA". No hay forma de salir dejando la visita en progreso para volver más tarde. El botón de flecha atrás en el header tiene un bug: el `onClick` está en el icono `ArrowLeft` dentro del `Button`, lo que causa comportamiento inconsistente.
+Las fotos en anotaciones, incidencias, amonestaciones y observaciones usan `max-h-48 object-cover`, lo que recorta la imagen a 192px de alto. En pantallas grandes (tablet/desktop) la imagen queda cortada y no se ve entera.
 
 ## Solución
-Reemplazar la barra inferior en la vista de secciones para mostrar dos botones:
-- **"Guardar y salir"** (outline) — navega a `/` sin cambiar el estado de la visita (queda "en_progreso")
-- **"FINALIZAR VISITA"** (verde, como ahora) — finaliza la visita
-
-También corregir el header para que la flecha atrás funcione correctamente navegando a `/`.
+Cambiar `object-cover` por `object-contain` y eliminar `max-h-48` (o aumentarlo significativamente) para que la imagen se muestre completa. Además, hacer las fotos clicables para abrirlas a pantalla completa en un modal (preparación para la fase de edición futura).
 
 ## Cambios
 
-### `src/pages/VisitaActiva.tsx`
-1. **Header**: Corregir el botón atrás. Cuando `view === 'secciones'`, el `onClick` del `Button` debe hacer `navigate('/')`. Eliminar el `onClick` duplicado del icono `ArrowLeft`.
-2. **Barra inferior en vista secciones**: Cambiar de un solo botón a dos:
-   - `Guardar y salir` (variant outline, con icono `ArrowLeft`) → `navigate('/')`
-   - `FINALIZAR VISITA` (verde, como ahora)
+### 1. Todas las imágenes: quitar recorte
+En los 4 archivos, cambiar la clase de las fotos de:
+```
+max-h-48 object-cover
+```
+a:
+```
+max-h-[400px] object-contain bg-muted/50
+```
+Esto muestra la foto completa (sin recortar), con un fondo sutil detrás si hay espacio vacío.
+
+### 2. Modal de foto a pantalla completa (nuevo componente)
+Crear `src/components/visita/FotoViewer.tsx`: un Dialog sencillo que muestra la imagen al 100% al hacer clic. Preparado para añadir herramientas de edición en el futuro.
+
+### 3. Integrar el visor en los 4 archivos
+Hacer que cada `<img>` sea clicable y abra el `FotoViewer`.
 
 | Archivo | Cambio |
 |---|---|
-| `src/pages/VisitaActiva.tsx` | Fix header back button, add "Guardar y salir" en barra inferior |
+| `src/components/visita/FotoViewer.tsx` | Nuevo — modal visor de foto |
+| `src/components/visita/ChecklistBloque.tsx` | Foto sin recorte + clic para ampliar |
+| `src/components/visita/SeccionIncidencias.tsx` | Foto sin recorte + clic para ampliar |
+| `src/components/visita/SeccionAmonestaciones.tsx` | Foto sin recorte + clic para ampliar |
+| `src/components/visita/SeccionObservaciones.tsx` | Foto sin recorte + clic para ampliar |
 
