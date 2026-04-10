@@ -220,11 +220,13 @@ export default function AdminClientes() {
                         <span className="font-medium text-foreground/70">Contacto:</span>{' '}
                         {[primaryContacts[c.id].nombre, primaryContacts[c.id].cargo, primaryContacts[c.id].telefono, primaryContacts[c.id].email].filter(Boolean).join(' · ')}
                       </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <Button variant="ghost" size="icon" onClick={() => openContactos(c)} title="Contactos">
                     <Users className="h-4 w-4" />
+                  </Button>
                   <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>
                     <Pencil className="h-4 w-4" />
                   </Button>
