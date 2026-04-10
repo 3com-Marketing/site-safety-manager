@@ -21,6 +21,7 @@ export type Database = {
           foto_url: string | null
           id: string
           informe_id: string
+          normativa: string
           trabajador: string
         }
         Insert: {
@@ -29,6 +30,7 @@ export type Database = {
           foto_url?: string | null
           id?: string
           informe_id: string
+          normativa?: string
           trabajador?: string
         }
         Update: {
@@ -37,6 +39,7 @@ export type Database = {
           foto_url?: string | null
           id?: string
           informe_id?: string
+          normativa?: string
           trabajador?: string
         }
         Relationships: [
@@ -55,6 +58,7 @@ export type Database = {
           created_at: string
           foto_url: string | null
           id: string
+          normativa: string
           texto: string
         }
         Insert: {
@@ -62,6 +66,7 @@ export type Database = {
           created_at?: string
           foto_url?: string | null
           id?: string
+          normativa?: string
           texto?: string
         }
         Update: {
@@ -69,6 +74,7 @@ export type Database = {
           created_at?: string
           foto_url?: string | null
           id?: string
+          normativa?: string
           texto?: string
         }
         Relationships: [
@@ -167,6 +173,7 @@ export type Database = {
           descripcion: string
           id: string
           informe_id: string
+          normativa: string
           orden: number
           titulo: string
         }
@@ -176,6 +183,7 @@ export type Database = {
           descripcion?: string
           id?: string
           informe_id: string
+          normativa?: string
           orden?: number
           titulo: string
         }
@@ -185,6 +193,7 @@ export type Database = {
           descripcion?: string
           id?: string
           informe_id?: string
+          normativa?: string
           orden?: number
           titulo?: string
         }
@@ -280,6 +289,7 @@ export type Database = {
           foto_url: string | null
           id: string
           informe_id: string
+          normativa: string
           texto: string
         }
         Insert: {
@@ -287,6 +297,7 @@ export type Database = {
           foto_url?: string | null
           id?: string
           informe_id: string
+          normativa?: string
           texto?: string
         }
         Update: {
@@ -294,6 +305,7 @@ export type Database = {
           foto_url?: string | null
           id?: string
           informe_id?: string
+          normativa?: string
           texto?: string
         }
         Relationships: [
