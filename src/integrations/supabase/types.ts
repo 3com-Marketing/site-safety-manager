@@ -511,6 +511,7 @@ export type Database = {
           created_at: string
           estado: string
           fecha: string
+          fecha_fin: string | null
           id: string
           lat_fin: number | null
           lat_inicio: number | null
@@ -523,6 +524,7 @@ export type Database = {
           created_at?: string
           estado?: string
           fecha?: string
+          fecha_fin?: string | null
           id?: string
           lat_fin?: number | null
           lat_inicio?: number | null
@@ -535,6 +537,7 @@ export type Database = {
           created_at?: string
           estado?: string
           fecha?: string
+          fecha_fin?: string | null
           id?: string
           lat_fin?: number | null
           lat_inicio?: number | null
