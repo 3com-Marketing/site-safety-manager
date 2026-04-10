@@ -16,7 +16,7 @@ interface Incidencia {
   descripcion: string;
   categoria: string;
   normativa: string;
-  fotos: { id: string; url: string; etiqueta?: string }[];
+  fotos: { id: string; url: string; etiqueta?: string; created_at: string }[];
   created_at: string;
 }
 
@@ -42,7 +42,7 @@ export default function SeccionIncidencias({ informeId, visitaId, obraNombre, on
   const fetchIncidencias = async () => {
     const { data } = await supabase
       .from('incidencias')
-      .select('id, titulo, descripcion, categoria, normativa, created_at, fotos(id, url, etiqueta)')
+      .select('id, titulo, descripcion, categoria, normativa, created_at, fotos(id, url, etiqueta, created_at)')
       .eq('informe_id', informeId)
       .order('created_at', { ascending: false });
 
@@ -176,7 +176,7 @@ export default function SeccionIncidencias({ informeId, visitaId, obraNombre, on
                 {inc.fotos?.map((f) => (
                   <div key={f.id}>
                     <img src={f.url} alt="Foto" className="w-full max-h-[400px] rounded-lg object-contain bg-muted/50 border border-border cursor-pointer" onClick={() => setViewingFoto(f.url)} />
-                    {f.etiqueta && <p className="text-[11px] text-muted-foreground text-center mt-1 italic">{f.etiqueta}</p>}
+                    <p className="text-[11px] text-muted-foreground text-center mt-1">📅 {format(new Date(f.created_at), "dd MMM yyyy, HH:mm", { locale: es })}</p>
                   </div>
                 ))}
                 {editingId === inc.id ? (
