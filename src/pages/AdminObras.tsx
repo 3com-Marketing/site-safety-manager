@@ -8,9 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Pencil, Trash2, HardHat, Users, Eye } from 'lucide-react';
+import { Plus, Pencil, Trash2, HardHat, Users, Eye, Search, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import MapPicker from '@/components/MapPicker';
+import { geocodeAddress } from '@/lib/geo';
 
 interface Obra {
   id: string;
@@ -49,6 +50,7 @@ export default function AdminObras() {
   const [latitud, setLatitud] = useState<number | null>(null);
   const [longitud, setLongitud] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Obra | null>(null);
   const [viewObra, setViewObra] = useState<Obra | null>(null);
 
@@ -226,7 +228,30 @@ export default function AdminObras() {
             </div>
             <div className="space-y-2">
               <Label>Dirección</Label>
-              <Input placeholder="Dirección" value={direccion} onChange={e => setDireccion(e.target.value)} />
+              <div className="flex gap-2">
+                <Input placeholder="Dirección" value={direccion} onChange={e => setDireccion(e.target.value)} className="flex-1" />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  disabled={!direccion.trim() || geocoding}
+                  onClick={async () => {
+                    setGeocoding(true);
+                    const result = await geocodeAddress(direccion.trim());
+                    if (result) {
+                      setLatitud(result.lat);
+                      setLongitud(result.lng);
+                      toast.success('Dirección localizada en el mapa');
+                    } else {
+                      toast.error('No se encontró la dirección');
+                    }
+                    setGeocoding(false);
+                  }}
+                  title="Buscar en mapa"
+                >
+                  {geocoding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Cliente</Label>
