@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, HardHat } from 'lucide-react';
+import { Plus, Pencil, Trash2, HardHat, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Obra {
@@ -143,6 +143,15 @@ export default function AdminObras() {
                   <div>
                     <p className="font-heading font-semibold">{o.nombre}</p>
                     <p className="text-xs text-muted-foreground">{o.cliente_nombre} · {o.direccion || 'Sin dirección'}</p>
+                    {o.tecnicos && o.tecnicos.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {o.tecnicos.map((name, i) => (
+                          <span key={i} className="inline-flex items-center gap-1 text-xs bg-success/10 text-success px-2 py-0.5 rounded-full">
+                            <Users className="h-3 w-3" />{name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-2">
