@@ -14,12 +14,22 @@ interface Props {
   onSelect: (seccion: SeccionId) => void;
   checklistCount?: number;
   incidenciasCount?: number;
+  amonestacionesCount?: number;
+  observacionesCount?: number;
 }
 
-export default function VisitaSecciones({ onSelect, checklistCount = 0, incidenciasCount = 0 }: Props) {
+export default function VisitaSecciones({
+  onSelect,
+  checklistCount = 0,
+  incidenciasCount = 0,
+  amonestacionesCount = 0,
+  observacionesCount = 0,
+}: Props) {
   const getBadge = (id: SeccionId) => {
     if (id === 'checklist' && checklistCount > 0) return checklistCount;
     if (id === 'incidencias' && incidenciasCount > 0) return incidenciasCount;
+    if (id === 'amonestaciones' && amonestacionesCount > 0) return amonestacionesCount;
+    if (id === 'observaciones' && observacionesCount > 0) return observacionesCount;
     return null;
   };
 

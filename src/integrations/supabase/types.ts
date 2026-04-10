@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      amonestaciones: {
+        Row: {
+          created_at: string
+          descripcion: string
+          foto_url: string | null
+          id: string
+          informe_id: string
+          trabajador: string
+        }
+        Insert: {
+          created_at?: string
+          descripcion?: string
+          foto_url?: string | null
+          id?: string
+          informe_id: string
+          trabajador?: string
+        }
+        Update: {
+          created_at?: string
+          descripcion?: string
+          foto_url?: string | null
+          id?: string
+          informe_id?: string
+          trabajador?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "amonestaciones_informe_id_fkey"
+            columns: ["informe_id"]
+            isOneToOne: false
+            referencedRelation: "informes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       anotaciones: {
         Row: {
           bloque_id: string
@@ -165,24 +200,36 @@ export type Database = {
       }
       informes: {
         Row: {
+          condiciones_climaticas: string | null
           created_at: string
+          empresas_presentes: string | null
           estado: string
           fecha: string
           id: string
+          notas_generales: string | null
+          num_trabajadores: number | null
           visita_id: string
         }
         Insert: {
+          condiciones_climaticas?: string | null
           created_at?: string
+          empresas_presentes?: string | null
           estado?: string
           fecha?: string
           id?: string
+          notas_generales?: string | null
+          num_trabajadores?: number | null
           visita_id: string
         }
         Update: {
+          condiciones_climaticas?: string | null
           created_at?: string
+          empresas_presentes?: string | null
           estado?: string
           fecha?: string
           id?: string
+          notas_generales?: string | null
+          num_trabajadores?: number | null
           visita_id?: string
         }
         Relationships: [
@@ -223,6 +270,38 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      observaciones: {
+        Row: {
+          created_at: string
+          foto_url: string | null
+          id: string
+          informe_id: string
+          texto: string
+        }
+        Insert: {
+          created_at?: string
+          foto_url?: string | null
+          id?: string
+          informe_id: string
+          texto?: string
+        }
+        Update: {
+          created_at?: string
+          foto_url?: string | null
+          id?: string
+          informe_id?: string
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "observaciones_informe_id_fkey"
+            columns: ["informe_id"]
+            isOneToOne: false
+            referencedRelation: "informes"
             referencedColumns: ["id"]
           },
         ]
