@@ -46,7 +46,7 @@ export default function AdminVisitaDetalle() {
 
       const { data: vis } = await supabase
         .from('visitas')
-        .select('id, estado, fecha, obras(nombre), profiles:usuario_id(nombre)')
+        .select('id, estado, fecha, obras(nombre), profiles!visitas_usuario_id_profiles_fkey(nombre)')
         .eq('id', id)
         .single();
 

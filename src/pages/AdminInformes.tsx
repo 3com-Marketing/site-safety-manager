@@ -85,11 +85,11 @@ export default function AdminInformes() {
       const [informesRes, visitasRes] = await Promise.all([
         supabase
           .from('informes')
-          .select('id, estado, fecha, visita_id, visitas(obras(nombre), profiles:usuario_id(nombre))')
+          .select('id, estado, fecha, visita_id, visitas(obras(nombre), profiles!visitas_usuario_id_profiles_fkey(nombre))')
           .order('fecha', { ascending: false }),
         supabase
           .from('visitas')
-          .select('id, estado, fecha, obras(nombre), profiles:usuario_id(nombre)')
+          .select('id, estado, fecha, obras(nombre), profiles!visitas_usuario_id_profiles_fkey(nombre)')
           .order('fecha', { ascending: false })
           .limit(100),
       ]);
@@ -130,7 +130,7 @@ export default function AdminInformes() {
 
           const { data: full } = await supabase
             .from('visitas')
-            .select('id, estado, fecha, obras(nombre), profiles:usuario_id(nombre)')
+            .select('id, estado, fecha, obras(nombre), profiles!visitas_usuario_id_profiles_fkey(nombre)')
             .eq('id', newVisita.id)
             .single();
 
