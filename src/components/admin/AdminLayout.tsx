@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Shield, LogOut, FileText, Users, Building2, HardHat } from 'lucide-react';
 
 const TABS = [
-  { path: '/admin', label: 'Informes', icon: FileText },
+  { path: '/admin', label: 'Dashboard', icon: FileText },
   { path: '/admin/clientes', label: 'Clientes', icon: Building2 },
   { path: '/admin/obras', label: 'Obras', icon: HardHat },
   { path: '/admin/tecnicos', label: 'Técnicos', icon: Users },
@@ -53,7 +53,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
         </nav>
       </header>
-      <div className="mx-auto max-w-4xl p-6">
+      <div className="mx-auto max-w-7xl p-6">
         {children}
       </div>
     </div>
