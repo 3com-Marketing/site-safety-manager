@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Pencil, Trash2, HardHat, Users } from 'lucide-react';
+import { Plus, Pencil, Trash2, HardHat, Users, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Obra {
@@ -45,6 +45,7 @@ export default function AdminObras() {
   const [selectedTecnicos, setSelectedTecnicos] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Obra | null>(null);
+  const [viewObra, setViewObra] = useState<Obra | null>(null);
 
   const fetchData = async () => {
     const [obrasRes, clientesRes, { data: tecData }, { data: links }] = await Promise.all([
@@ -186,6 +187,9 @@ export default function AdminObras() {
                   </div>
                 </div>
                 <div className="flex gap-2">
+                  <Button variant="ghost" size="icon" onClick={() => setViewObra(o)}>
+                    <Eye className="h-4 w-4" />
+                  </Button>
                   <Button variant="ghost" size="icon" onClick={() => openEdit(o)}>
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -271,6 +275,34 @@ export default function AdminObras() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* View dialog */}
+      <Dialog open={!!viewObra} onOpenChange={open => !open && setViewObra(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Ficha de la obra</DialogTitle>
+          </DialogHeader>
+          {viewObra && (
+            <div className="space-y-3 text-sm">
+              <div><span className="font-semibold">Nombre:</span> {viewObra.nombre}</div>
+              <div><span className="font-semibold">Dirección:</span> {viewObra.direccion || '—'}</div>
+              <div><span className="font-semibold">Cliente:</span> {viewObra.cliente_nombre || '—'}</div>
+              <div>
+                <span className="font-semibold">Técnicos asignados:</span>
+                {viewObra.tecnicoNames && viewObra.tecnicoNames.length > 0 ? (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {viewObra.tecnicoNames.map((name, i) => (
+                      <span key={i} className="inline-flex items-center gap-1 text-xs bg-success/10 text-success px-2 py-0.5 rounded-full">
+                        <Users className="h-3 w-3" />{name}
+                      </span>
+                    ))}
+                  </div>
+                ) : <span className="text-muted-foreground ml-1">Ninguno</span>}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
