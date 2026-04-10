@@ -1,0 +1,1 @@
+ALTER TABLE public.visitas ADD COLUMN fecha_fin timestamptz;

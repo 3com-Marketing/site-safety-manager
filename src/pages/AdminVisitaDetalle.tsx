@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Scale, ChevronDown, FileText, MapPin } from 'lucide-react';
-import { format } from 'date-fns';
+import { ArrowLeft, Scale, ChevronDown, FileText, MapPin, Clock } from 'lucide-react';
+import { format, differenceInMinutes, differenceInHours } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
 import FotoViewer from '@/components/visita/FotoViewer';
 import MapPicker from '@/components/MapPicker';
+import { haversineDistance, formatDistance } from '@/lib/geo';
 
 const CATEGORIAS: Record<string, string> = {
   EPIs: 'EPIs',
@@ -47,7 +48,7 @@ export default function AdminVisitaDetalle() {
 
       const { data: vis } = await supabase
         .from('visitas')
-        .select('id, estado, fecha, lat_inicio, lng_inicio, lat_fin, lng_fin, obras(nombre), profiles!visitas_usuario_id_profiles_fkey(nombre)')
+        .select('id, estado, fecha, fecha_fin, lat_inicio, lng_inicio, lat_fin, lng_fin, obras(nombre, latitud, longitud), profiles!visitas_usuario_id_profiles_fkey(nombre)')
         .eq('id', id)
         .single();
 
@@ -90,6 +91,14 @@ export default function AdminVisitaDetalle() {
 
   const obraNombre = (visita as any).obras?.nombre || 'Obra';
   const tecnicoNombre = (visita as any).profiles?.nombre || 'Técnico';
+  const obraLat = (visita as any).obras?.latitud;
+  const obraLng = (visita as any).obras?.longitud;
+
+  const formatDuration = (start: string, end: string) => {
+    const hours = differenceInHours(new Date(end), new Date(start));
+    const mins = differenceInMinutes(new Date(end), new Date(start)) % 60;
+    return `${hours}h ${mins}min`;
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -123,37 +132,98 @@ export default function AdminVisitaDetalle() {
           </Button>
         )}
 
-        {/* Mapa de ubicación inicio/fin */}
-        {(visita.lat_inicio || visita.lat_fin) && (
-          <Collapsible defaultOpen>
-            <CollapsibleTrigger className="flex items-center gap-2 w-full text-left">
-              <ChevronDown className="h-4 w-4 transition-transform data-[state=closed]:rotate-[-90deg]" />
-              <h2 className="font-heading text-lg font-semibold flex items-center gap-2">
-                <MapPin className="h-4 w-4" /> Ubicación del técnico
-              </h2>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="mt-3">
-              <MapPicker
-                readOnly
-                markers={[
-                  ...(visita.lat_inicio && visita.lng_inicio
-                    ? [{ lat: visita.lat_inicio, lng: visita.lng_inicio, label: 'Inicio', color: '#22c55e' }]
-                    : []),
-                  ...(visita.lat_fin && visita.lng_fin
-                    ? [{ lat: visita.lat_fin, lng: visita.lng_fin, label: 'Fin', color: '#ef4444' }]
-                    : []),
-                ]}
-                lat={visita.lat_inicio || visita.lat_fin}
-                lng={visita.lng_inicio || visita.lng_fin}
-                className="h-[300px]"
-              />
-              <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
-                {visita.lat_inicio && <span>🟢 Inicio: {visita.lat_inicio.toFixed(5)}, {visita.lng_inicio.toFixed(5)}</span>}
-                {visita.lat_fin && <span>🔴 Fin: {visita.lat_fin.toFixed(5)}, {visita.lng_fin.toFixed(5)}</span>}
+        {/* Trazabilidad */}
+        <Collapsible defaultOpen>
+          <CollapsibleTrigger className="flex items-center gap-2 w-full text-left">
+            <ChevronDown className="h-4 w-4 transition-transform data-[state=closed]:rotate-[-90deg]" />
+            <h2 className="font-heading text-lg font-semibold flex items-center gap-2">
+              <Clock className="h-4 w-4" /> Trazabilidad
+            </h2>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-3 space-y-4">
+            {/* Duration */}
+            {visita.fecha && (visita as any).fecha_fin && (
+              <div className="rounded-lg bg-muted p-4 flex items-center gap-3">
+                <Clock className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="text-sm font-semibold">Duración total: {formatDuration(visita.fecha, (visita as any).fecha_fin)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {format(new Date(visita.fecha), "dd MMM yyyy, HH:mm", { locale: es })} → {format(new Date((visita as any).fecha_fin), "HH:mm", { locale: es })}
+                  </p>
+                </div>
               </div>
-            </CollapsibleContent>
-          </Collapsible>
-        )}
+            )}
+
+            {/* Two columns: start and end */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Start */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold flex items-center gap-1.5">🟢 Inicio</h3>
+                <p className="text-xs text-muted-foreground">
+                  {format(new Date(visita.fecha), "dd MMM yyyy, HH:mm:ss", { locale: es })}
+                </p>
+                {visita.lat_inicio && visita.lng_inicio ? (
+                  <>
+                    <MapPicker
+                      readOnly
+                      markers={[
+                        { lat: visita.lat_inicio, lng: visita.lng_inicio, label: 'Inicio', color: '#22c55e' },
+                        ...(obraLat && obraLng ? [{ lat: obraLat, lng: obraLng, label: 'Obra', color: '#3b82f6' }] : []),
+                      ]}
+                      lat={visita.lat_inicio}
+                      lng={visita.lng_inicio}
+                      className="h-[200px]"
+                    />
+                    <p className="text-[11px] text-muted-foreground">{visita.lat_inicio.toFixed(5)}, {visita.lng_inicio.toFixed(5)}</p>
+                    {obraLat && obraLng && (
+                      <p className="text-xs font-medium text-primary">
+                        <MapPin className="h-3 w-3 inline mr-1" />
+                        Distancia a obra: {formatDistance(haversineDistance(visita.lat_inicio, visita.lng_inicio, obraLat, obraLng))}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">Sin coordenadas GPS</p>
+                )}
+              </div>
+
+              {/* End */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold flex items-center gap-1.5">🔴 Fin</h3>
+                {(visita as any).fecha_fin ? (
+                  <p className="text-xs text-muted-foreground">
+                    {format(new Date((visita as any).fecha_fin), "dd MMM yyyy, HH:mm:ss", { locale: es })}
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">Visita no finalizada</p>
+                )}
+                {visita.lat_fin && visita.lng_fin ? (
+                  <>
+                    <MapPicker
+                      readOnly
+                      markers={[
+                        { lat: visita.lat_fin, lng: visita.lng_fin, label: 'Fin', color: '#ef4444' },
+                        ...(obraLat && obraLng ? [{ lat: obraLat, lng: obraLng, label: 'Obra', color: '#3b82f6' }] : []),
+                      ]}
+                      lat={visita.lat_fin}
+                      lng={visita.lng_fin}
+                      className="h-[200px]"
+                    />
+                    <p className="text-[11px] text-muted-foreground">{visita.lat_fin.toFixed(5)}, {visita.lng_fin.toFixed(5)}</p>
+                    {obraLat && obraLng && (
+                      <p className="text-xs font-medium text-primary">
+                        <MapPin className="h-3 w-3 inline mr-1" />
+                        Distancia a obra: {formatDistance(haversineDistance(visita.lat_fin, visita.lng_fin, obraLat, obraLng))}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">Sin coordenadas GPS</p>
+                )}
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
 
         {/* Datos Generales */}
         {informe && (
