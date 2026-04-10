@@ -254,12 +254,15 @@ export default function AdminVisitaDetalle() {
                 {a.trabajador && <p className="text-sm font-semibold">{a.trabajador}</p>}
                 {a.descripcion && <p className="text-sm">{a.descripcion}</p>}
                 {a.foto_url && (
-                  <img
-                    src={a.foto_url}
-                    alt="Foto"
-                    className="h-20 w-20 rounded-lg object-cover border border-border cursor-pointer hover:ring-2 hover:ring-primary"
-                    onClick={() => setFotoUrl(a.foto_url)}
-                  />
+                  <div>
+                    <img
+                      src={a.foto_url}
+                      alt="Foto"
+                      className="h-20 w-20 rounded-lg object-cover border border-border cursor-pointer hover:ring-2 hover:ring-primary"
+                      onClick={() => setFotoUrl(a.foto_url)}
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">📅 {format(new Date(a.created_at), "dd MMM yyyy, HH:mm", { locale: es })}</p>
+                  </div>
                 )}
                 {a.normativa && (
                   <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
@@ -285,12 +288,15 @@ export default function AdminVisitaDetalle() {
               <div key={obs.id} className="rounded-xl border border-border bg-card p-4 space-y-2">
                 {obs.texto && <p className="text-sm">{obs.texto}</p>}
                 {obs.foto_url && (
-                  <img
-                    src={obs.foto_url}
-                    alt="Foto"
-                    className="h-20 w-20 rounded-lg object-cover border border-border cursor-pointer hover:ring-2 hover:ring-primary"
-                    onClick={() => setFotoUrl(obs.foto_url)}
-                  />
+                  <div>
+                    <img
+                      src={obs.foto_url}
+                      alt="Foto"
+                      className="h-20 w-20 rounded-lg object-cover border border-border cursor-pointer hover:ring-2 hover:ring-primary"
+                      onClick={() => setFotoUrl(obs.foto_url)}
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">📅 {format(new Date(obs.created_at), "dd MMM yyyy, HH:mm", { locale: es })}</p>
+                  </div>
                 )}
                 {obs.normativa && (
                   <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground">

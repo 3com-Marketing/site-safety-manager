@@ -158,7 +158,7 @@ export default function ChecklistBloque({
                 {a.foto_url && (
                   <>
                     <img src={a.foto_url} alt="Foto anotación" className="w-full max-h-[400px] rounded-lg object-contain bg-muted/50 border border-border cursor-pointer" onClick={() => setViewingFoto(a.foto_url)} />
-                    {a.etiqueta && <p className="text-[11px] text-muted-foreground text-center mt-1 italic">{a.etiqueta}</p>}
+                    <p className="text-[11px] text-muted-foreground text-center mt-1">📅 {format(new Date(a.created_at), "dd MMM yyyy, HH:mm", { locale: es })}</p>
                   </>
                 )}
                 {editingId === a.id ? (

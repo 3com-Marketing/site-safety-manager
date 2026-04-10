@@ -217,7 +217,7 @@ export default function SeccionAmonestaciones({ informeId, visitaId, obraNombre,
                 {item.foto_url && (
                   <>
                     <img src={item.foto_url} alt="Foto" className="w-full max-h-[400px] rounded-lg object-contain bg-muted/50 border border-border cursor-pointer" onClick={() => setViewingFoto(item.foto_url)} />
-                    {item.etiqueta && <p className="text-[11px] text-muted-foreground text-center mt-1 italic">{item.etiqueta}</p>}
+                    <p className="text-[11px] text-muted-foreground text-center mt-1">📅 {format(new Date(item.created_at), "dd MMM yyyy, HH:mm", { locale: es })}</p>
                   </>
                 )}
                 {editingId === item.id ? (
