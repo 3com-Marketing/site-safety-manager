@@ -61,6 +61,9 @@ export default function AdminClientes() {
 
   // Primary contacts map (cliente_id -> first contact)
   const [primaryContacts, setPrimaryContacts] = useState<Record<string, Contacto>>({});
+  // All contacts map for view dialog
+  const [allContactsMap, setAllContactsMap] = useState<Record<string, Contacto[]>>({});
+  const [viewCliente, setViewCliente] = useState<Cliente | null>(null);
 
   const fetchClientes = async () => {
     const { data } = await supabase.from('clientes').select('*').order('nombre');
