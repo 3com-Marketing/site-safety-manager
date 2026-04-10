@@ -139,6 +139,7 @@ export default function VisitaActiva() {
       setEditableUntil(deadline);
     }
 
+    setFechaInicio(visita.fecha);
     setObraNombre((visita as any).obras?.nombre || 'Obra');
 
     const { data: informe } = await supabase
@@ -211,6 +212,22 @@ export default function VisitaActiva() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Elapsed timer
+  useEffect(() => {
+    if (!fechaInicio || isFinalized) return;
+    const update = () => setElapsed(differenceInSeconds(new Date(), new Date(fechaInicio)));
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [fechaInicio, isFinalized]);
+
+  const formatElapsed = (secs: number) => {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
 
   const finishVisita = async () => {
     if (!id || !informeId) return;
@@ -303,7 +320,12 @@ export default function VisitaActiva() {
             <p className="text-xs text-muted-foreground">
               {isFinalized && editableUntil
                 ? `Finalizada · Editable hasta ${format(editableUntil, "dd MMM yyyy", { locale: es })}`
-                : 'Visita en progreso'}
+                : (
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    En visita: {formatElapsed(elapsed)}
+                  </span>
+                )}
             </p>
           )}
         </div>
