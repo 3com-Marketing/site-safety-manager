@@ -322,6 +322,8 @@ export type Database = {
           created_at: string
           direccion: string
           id: string
+          latitud: number | null
+          longitud: number | null
           nombre: string
         }
         Insert: {
@@ -329,6 +331,8 @@ export type Database = {
           created_at?: string
           direccion?: string
           id?: string
+          latitud?: number | null
+          longitud?: number | null
           nombre: string
         }
         Update: {
@@ -336,6 +340,8 @@ export type Database = {
           created_at?: string
           direccion?: string
           id?: string
+          latitud?: number | null
+          longitud?: number | null
           nombre?: string
         }
         Relationships: [
@@ -506,6 +512,10 @@ export type Database = {
           estado: string
           fecha: string
           id: string
+          lat_fin: number | null
+          lat_inicio: number | null
+          lng_fin: number | null
+          lng_inicio: number | null
           obra_id: string
           usuario_id: string
         }
@@ -514,6 +524,10 @@ export type Database = {
           estado?: string
           fecha?: string
           id?: string
+          lat_fin?: number | null
+          lat_inicio?: number | null
+          lng_fin?: number | null
+          lng_inicio?: number | null
           obra_id: string
           usuario_id: string
         }
@@ -522,6 +536,10 @@ export type Database = {
           estado?: string
           fecha?: string
           id?: string
+          lat_fin?: number | null
+          lat_inicio?: number | null
+          lng_fin?: number | null
+          lng_inicio?: number | null
           obra_id?: string
           usuario_id?: string
         }

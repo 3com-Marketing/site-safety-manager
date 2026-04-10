@@ -3,10 +3,11 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Check, Home, Info } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Home, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { addDays, isAfter, format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import VisitaSecciones, { type SeccionId } from '@/components/visita/VisitaSecciones';
 import ChecklistSection from '@/components/visita/ChecklistSection';
 import type { BloqueCategoria } from '@/components/visita/ChecklistSection';
@@ -87,6 +88,7 @@ export default function VisitaActiva() {
   const [observacionesCount, setObservacionesCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [finishing, setFinishing] = useState(false);
+  const [gettingGeo, setGettingGeo] = useState(false);
   const [view, setView] = useState<ViewState>({ type: 'secciones' });
   const [isFinalized, setIsFinalized] = useState(false);
   const [editableUntil, setEditableUntil] = useState<Date | null>(null);
@@ -177,7 +179,7 @@ export default function VisitaActiva() {
       .from('amonestaciones')
       .select('id', { count: 'exact', head: true })
       .eq('informe_id', informe.id);
-    setAmonestacionesCount(amonestacionesCount || 0);
+    setAmonestacionesCount(amonCount || 0);
 
     const { count: obsCount } = await supabase
       .from('observaciones')
@@ -211,7 +213,30 @@ export default function VisitaActiva() {
   const finishVisita = async () => {
     if (!id || !informeId) return;
     setFinishing(true);
-    await supabase.from('visitas').update({ estado: 'finalizada' }).eq('id', id);
+    setGettingGeo(true);
+
+    // Capture end location
+    let lat_fin: number | null = null;
+    let lng_fin: number | null = null;
+
+    if (navigator.geolocation) {
+      try {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+          });
+        });
+        lat_fin = pos.coords.latitude;
+        lng_fin = pos.coords.longitude;
+      } catch {
+        // GPS denied — continue without
+      }
+    }
+
+    setGettingGeo(false);
+
+    await supabase.from('visitas').update({ estado: 'finalizada', lat_fin, lng_fin }).eq('id', id);
     await supabase.from('informes').update({ estado: 'pendiente_revision' }).eq('id', informeId);
     toast.success('Visita finalizada');
     navigate(isAdminMode ? '/admin' : '/');
@@ -342,7 +367,7 @@ export default function VisitaActiva() {
                   variant="default"
                   className="h-14 flex-1 text-base font-bold gap-2 bg-success hover:bg-success/90 text-success-foreground"
                 >
-                  <Check className="h-5 w-5" />
+                  {finishing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Check className="h-5 w-5" />}
                   {finishing ? 'Finalizando...' : 'FINALIZAR VISITA'}
                 </Button>
               )}
@@ -373,7 +398,7 @@ export default function VisitaActiva() {
                     disabled={finishing}
                     className="h-12 flex-1 text-sm font-bold gap-1 bg-success hover:bg-success/90 text-success-foreground"
                   >
-                    <Check className="h-4 w-4" />
+                    {finishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                     {finishing ? 'Finalizando...' : 'FINALIZAR'}
                   </Button>
                 ) : (
@@ -401,6 +426,19 @@ export default function VisitaActiva() {
           )}
         </div>
       </div>
+
+      {/* GPS dialog when finishing */}
+      <Dialog open={gettingGeo}>
+        <DialogContent className="max-w-xs text-center">
+          <DialogHeader>
+            <DialogTitle>Obteniendo ubicación de cierre</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-3 py-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Registrando tu ubicación final...</p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

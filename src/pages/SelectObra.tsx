@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
-import { ArrowLeft, Building2 } from 'lucide-react';
+import { ArrowLeft, Building2, MapPin, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface Obra {
   id: string;
@@ -12,12 +13,17 @@ interface Obra {
   cliente_nombre: string;
 }
 
+type GeoState =
+  | { status: 'idle' }
+  | { status: 'requesting'; obraId: string }
+  | { status: 'creating'; obraId: string; lat: number | null; lng: number | null };
+
 export default function SelectObra() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [obras, setObras] = useState<Obra[]>([]);
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState<string | null>(null);
+  const [geo, setGeo] = useState<GeoState>({ status: 'idle' });
 
   useEffect(() => {
     supabase
@@ -37,20 +43,44 @@ export default function SelectObra() {
       });
   }, []);
 
-  const handleSelectObra = async (obraId: string) => {
+  const handleSelectObra = (obraId: string) => {
     if (!user) return;
-    setCreating(obraId);
+    setGeo({ status: 'requesting', obraId });
+
+    if (!navigator.geolocation) {
+      createVisita(obraId, null, null);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        createVisita(obraId, pos.coords.latitude, pos.coords.longitude);
+      },
+      () => {
+        // GPS denied or error — continue without location
+        createVisita(obraId, null, null);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const createVisita = async (obraId: string, lat: number | null, lng: number | null) => {
+    if (!user) return;
+    setGeo({ status: 'creating', obraId, lat, lng });
     try {
-      // Create visita
       const { data: visita, error: visitaError } = await supabase
         .from('visitas')
-        .insert({ obra_id: obraId, usuario_id: user.id })
+        .insert({
+          obra_id: obraId,
+          usuario_id: user.id,
+          lat_inicio: lat,
+          lng_inicio: lng,
+        })
         .select('id')
         .single();
 
       if (visitaError) throw visitaError;
 
-      // Create informe for this visita
       const { error: informeError } = await supabase
         .from('informes')
         .insert({ visita_id: visita.id });
@@ -60,9 +90,11 @@ export default function SelectObra() {
       navigate(`/visita/${visita.id}`);
     } catch (err) {
       console.error(err);
-      setCreating(null);
+      setGeo({ status: 'idle' });
     }
   };
+
+  const isBusy = geo.status !== 'idle';
 
   return (
     <div className="min-h-screen bg-background">
@@ -82,7 +114,7 @@ export default function SelectObra() {
           obras.map(obra => (
             <button
               key={obra.id}
-              disabled={creating !== null}
+              disabled={isBusy}
               onClick={() => handleSelectObra(obra.id)}
               className="flex w-full items-center gap-4 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/50 disabled:opacity-50"
             >
@@ -93,11 +125,32 @@ export default function SelectObra() {
                 <p className="font-heading font-semibold truncate">{obra.nombre}</p>
                 <p className="text-xs text-muted-foreground truncate">{obra.cliente_nombre} · {obra.direccion}</p>
               </div>
-              {creating === obra.id && <span className="ml-auto text-xs text-muted-foreground">Creando...</span>}
+              {geo.status !== 'idle' && geo.obraId === obra.id && (
+                <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  {geo.status === 'requesting' ? 'Ubicación...' : 'Creando...'}
+                </span>
+              )}
             </button>
           ))
         )}
       </div>
+
+      {/* GPS dialog */}
+      <Dialog open={geo.status === 'requesting'}>
+        <DialogContent className="max-w-xs text-center">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" />
+              Obteniendo ubicación
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-3 py-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Permite el acceso a tu ubicación para registrar el punto de inicio de la visita.</p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Pencil, Trash2, HardHat, Users, Eye } from 'lucide-react';
 import { toast } from 'sonner';
+import MapPicker from '@/components/MapPicker';
 
 interface Obra {
   id: string;
@@ -18,6 +19,8 @@ interface Obra {
   cliente_id: string;
   cliente_nombre?: string;
   tecnicoNames?: string[];
+  latitud?: number | null;
+  longitud?: number | null;
 }
 
 interface Cliente {
@@ -43,13 +46,15 @@ export default function AdminObras() {
   const [direccion, setDireccion] = useState('');
   const [clienteId, setClienteId] = useState('');
   const [selectedTecnicos, setSelectedTecnicos] = useState<string[]>([]);
+  const [latitud, setLatitud] = useState<number | null>(null);
+  const [longitud, setLongitud] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Obra | null>(null);
   const [viewObra, setViewObra] = useState<Obra | null>(null);
 
   const fetchData = async () => {
     const [obrasRes, clientesRes, { data: tecData }, { data: links }] = await Promise.all([
-      supabase.from('obras').select('id, nombre, direccion, cliente_id, clientes(nombre)').order('nombre'),
+      supabase.from('obras').select('id, nombre, direccion, cliente_id, latitud, longitud, clientes(nombre)').order('nombre'),
       supabase.from('clientes').select('id, nombre').order('nombre'),
       supabase.from('tecnicos').select('id, nombre').order('nombre'),
       supabase.from('tecnicos_obras').select('tecnico_id, obra_id'),
@@ -80,6 +85,8 @@ export default function AdminObras() {
         cliente_id: o.cliente_id,
         cliente_nombre: o.clientes?.nombre || '',
         tecnicoNames: namesByObra[o.id] || [],
+        latitud: o.latitud,
+        longitud: o.longitud,
       }))
     );
     setClientes(clientesRes.data || []);
@@ -94,6 +101,8 @@ export default function AdminObras() {
     setDireccion('');
     setClienteId('');
     setSelectedTecnicos([]);
+    setLatitud(null);
+    setLongitud(null);
     setDialogOpen(true);
   };
 
@@ -103,6 +112,8 @@ export default function AdminObras() {
     setDireccion(o.direccion);
     setClienteId(o.cliente_id);
     setSelectedTecnicos(obraTecLinks[o.id] || []);
+    setLatitud(o.latitud ?? null);
+    setLongitud(o.longitud ?? null);
     setDialogOpen(true);
   };
 
@@ -113,7 +124,7 @@ export default function AdminObras() {
   const handleSave = async () => {
     if (!nombre.trim() || !clienteId) return;
     setSaving(true);
-    const payload = { nombre: nombre.trim(), direccion: direccion.trim(), cliente_id: clienteId };
+    const payload = { nombre: nombre.trim(), direccion: direccion.trim(), cliente_id: clienteId, latitud, longitud };
 
     let obraId: string;
 
@@ -250,6 +261,19 @@ export default function AdminObras() {
                 </div>
               )}
             </div>
+
+            {/* Ubicación en mapa */}
+            <div className="space-y-2">
+              <Label>Ubicación en mapa</Label>
+              <MapPicker
+                lat={latitud}
+                lng={longitud}
+                onSelect={(lat, lng) => { setLatitud(lat); setLongitud(lng); }}
+              />
+              {latitud && longitud && (
+                <p className="text-xs text-muted-foreground">📍 {latitud.toFixed(5)}, {longitud.toFixed(5)}</p>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button onClick={handleSave} disabled={saving || !nombre.trim() || !clienteId} className="h-12 rounded-xl">
@@ -299,6 +323,12 @@ export default function AdminObras() {
                   </div>
                 ) : <span className="text-muted-foreground ml-1">Ninguno</span>}
               </div>
+              {viewObra.latitud && viewObra.longitud && (
+                <div>
+                  <span className="font-semibold">Ubicación:</span>
+                  <MapPicker lat={viewObra.latitud} lng={viewObra.longitud} readOnly className="mt-2" />
+                </div>
+              )}
             </div>
           )}
         </DialogContent>

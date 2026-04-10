@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Scale, ChevronDown, FileText } from 'lucide-react';
+import { ArrowLeft, Scale, ChevronDown, FileText, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
 import FotoViewer from '@/components/visita/FotoViewer';
+import MapPicker from '@/components/MapPicker';
 
 const CATEGORIAS: Record<string, string> = {
   EPIs: 'EPIs',
@@ -46,7 +47,7 @@ export default function AdminVisitaDetalle() {
 
       const { data: vis } = await supabase
         .from('visitas')
-        .select('id, estado, fecha, obras(nombre), profiles!visitas_usuario_id_profiles_fkey(nombre)')
+        .select('id, estado, fecha, lat_inicio, lng_inicio, lat_fin, lng_fin, obras(nombre), profiles!visitas_usuario_id_profiles_fkey(nombre)')
         .eq('id', id)
         .single();
 
@@ -120,6 +121,38 @@ export default function AdminVisitaDetalle() {
             <FileText className="h-4 w-4" />
             Ver informe completo (editable)
           </Button>
+        )}
+
+        {/* Mapa de ubicación inicio/fin */}
+        {(visita.lat_inicio || visita.lat_fin) && (
+          <Collapsible defaultOpen>
+            <CollapsibleTrigger className="flex items-center gap-2 w-full text-left">
+              <ChevronDown className="h-4 w-4 transition-transform data-[state=closed]:rotate-[-90deg]" />
+              <h2 className="font-heading text-lg font-semibold flex items-center gap-2">
+                <MapPin className="h-4 w-4" /> Ubicación del técnico
+              </h2>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-3">
+              <MapPicker
+                readOnly
+                markers={[
+                  ...(visita.lat_inicio && visita.lng_inicio
+                    ? [{ lat: visita.lat_inicio, lng: visita.lng_inicio, label: 'Inicio', color: '#22c55e' }]
+                    : []),
+                  ...(visita.lat_fin && visita.lng_fin
+                    ? [{ lat: visita.lat_fin, lng: visita.lng_fin, label: 'Fin', color: '#ef4444' }]
+                    : []),
+                ]}
+                lat={visita.lat_inicio || visita.lat_fin}
+                lng={visita.lng_inicio || visita.lng_fin}
+                className="h-[300px]"
+              />
+              <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+                {visita.lat_inicio && <span>🟢 Inicio: {visita.lat_inicio.toFixed(5)}, {visita.lng_inicio.toFixed(5)}</span>}
+                {visita.lat_fin && <span>🔴 Fin: {visita.lat_fin.toFixed(5)}, {visita.lng_fin.toFixed(5)}</span>}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         )}
 
         {/* Datos Generales */}
