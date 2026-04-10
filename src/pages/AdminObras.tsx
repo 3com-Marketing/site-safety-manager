@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Pencil, Trash2, HardHat, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -16,7 +17,7 @@ interface Obra {
   direccion: string;
   cliente_id: string;
   cliente_nombre?: string;
-  tecnicos?: string[];
+  tecnicoNames?: string[];
 }
 
 interface Cliente {
@@ -32,12 +33,16 @@ interface TecnicoMin {
 export default function AdminObras() {
   const [obras, setObras] = useState<Obra[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [allTecnicos, setAllTecnicos] = useState<TecnicoMin[]>([]);
+  const [obraTecLinks, setObraTecLinks] = useState<Record<string, string[]>>({}); // obra_id -> tecnico_id[]
   const [loading, setLoading] = useState(true);
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingObra, setEditingObra] = useState<Obra | null>(null);
   const [nombre, setNombre] = useState('');
   const [direccion, setDireccion] = useState('');
   const [clienteId, setClienteId] = useState('');
+  const [selectedTecnicos, setSelectedTecnicos] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Obra | null>(null);
 
@@ -49,15 +54,22 @@ export default function AdminObras() {
       supabase.from('tecnicos_obras').select('tecnico_id, obra_id'),
     ]);
 
-    const tecMap = new Map<string, string>();
-    (tecData || []).forEach((t: any) => tecMap.set(t.id, t.nombre));
+    const tecList = (tecData || []) as TecnicoMin[];
+    setAllTecnicos(tecList);
 
-    const obraLinks: Record<string, string[]> = {};
+    const tecMap = new Map<string, string>();
+    tecList.forEach(t => tecMap.set(t.id, t.nombre));
+
+    const byObra: Record<string, string[]> = {};
+    const namesByObra: Record<string, string[]> = {};
     (links || []).forEach((l: any) => {
-      if (!obraLinks[l.obra_id]) obraLinks[l.obra_id] = [];
+      if (!byObra[l.obra_id]) byObra[l.obra_id] = [];
+      byObra[l.obra_id].push(l.tecnico_id);
+      if (!namesByObra[l.obra_id]) namesByObra[l.obra_id] = [];
       const name = tecMap.get(l.tecnico_id);
-      if (name) obraLinks[l.obra_id].push(name);
+      if (name) namesByObra[l.obra_id].push(name);
     });
+    setObraTecLinks(byObra);
 
     setObras(
       (obrasRes.data || []).map((o: any) => ({
@@ -66,7 +78,7 @@ export default function AdminObras() {
         direccion: o.direccion,
         cliente_id: o.cliente_id,
         cliente_nombre: o.clientes?.nombre || '',
-        tecnicos: obraLinks[o.id] || [],
+        tecnicoNames: namesByObra[o.id] || [],
       }))
     );
     setClientes(clientesRes.data || []);
@@ -80,6 +92,7 @@ export default function AdminObras() {
     setNombre('');
     setDireccion('');
     setClienteId('');
+    setSelectedTecnicos([]);
     setDialogOpen(true);
   };
 
@@ -88,22 +101,40 @@ export default function AdminObras() {
     setNombre(o.nombre);
     setDireccion(o.direccion);
     setClienteId(o.cliente_id);
+    setSelectedTecnicos(obraTecLinks[o.id] || []);
     setDialogOpen(true);
+  };
+
+  const toggleTecnico = (tecId: string) => {
+    setSelectedTecnicos(prev => prev.includes(tecId) ? prev.filter(id => id !== tecId) : [...prev, tecId]);
   };
 
   const handleSave = async () => {
     if (!nombre.trim() || !clienteId) return;
     setSaving(true);
     const payload = { nombre: nombre.trim(), direccion: direccion.trim(), cliente_id: clienteId };
+
+    let obraId: string;
+
     if (editingObra) {
       const { error } = await supabase.from('obras').update(payload).eq('id', editingObra.id);
-      if (error) toast.error('Error al actualizar');
-      else toast.success('Obra actualizada');
+      if (error) { toast.error('Error al actualizar'); setSaving(false); return; }
+      obraId = editingObra.id;
     } else {
-      const { error } = await supabase.from('obras').insert(payload);
-      if (error) toast.error('Error al crear');
-      else toast.success('Obra creada');
+      const { data, error } = await supabase.from('obras').insert(payload).select('id').single();
+      if (error || !data) { toast.error('Error al crear'); setSaving(false); return; }
+      obraId = data.id;
     }
+
+    // Sync tecnicos links
+    await supabase.from('tecnicos_obras').delete().eq('obra_id', obraId);
+    if (selectedTecnicos.length > 0) {
+      await supabase.from('tecnicos_obras').insert(
+        selectedTecnicos.map(tecnico_id => ({ tecnico_id, obra_id: obraId }))
+      );
+    }
+
+    toast.success(editingObra ? 'Obra actualizada' : 'Obra creada');
     setSaving(false);
     setDialogOpen(false);
     fetchData();
@@ -143,9 +174,9 @@ export default function AdminObras() {
                   <div>
                     <p className="font-heading font-semibold">{o.nombre}</p>
                     <p className="text-xs text-muted-foreground">{o.cliente_nombre} · {o.direccion || 'Sin dirección'}</p>
-                    {o.tecnicos && o.tecnicos.length > 0 && (
+                    {o.tecnicoNames && o.tecnicoNames.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
-                        {o.tecnicos.map((name, i) => (
+                        {o.tecnicoNames.map((name, i) => (
                           <span key={i} className="inline-flex items-center gap-1 text-xs bg-success/10 text-success px-2 py-0.5 rounded-full">
                             <Users className="h-3 w-3" />{name}
                           </span>
@@ -169,7 +200,7 @@ export default function AdminObras() {
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingObra ? 'Editar obra' : 'Nueva obra'}</DialogTitle>
           </DialogHeader>
@@ -194,6 +225,26 @@ export default function AdminObras() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Técnicos assignment */}
+            <div className="space-y-2">
+              <Label>Técnicos asignados</Label>
+              {allTecnicos.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No hay técnicos creados</p>
+              ) : (
+                <div className="space-y-2 max-h-40 overflow-y-auto rounded-lg border border-border p-3">
+                  {allTecnicos.map(t => (
+                    <label key={t.id} className="flex items-center gap-2 cursor-pointer">
+                      <Checkbox
+                        checked={selectedTecnicos.includes(t.id)}
+                        onCheckedChange={() => toggleTecnico(t.id)}
+                      />
+                      <span className="text-sm">{t.nombre}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>
