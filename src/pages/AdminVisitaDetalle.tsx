@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Scale, ChevronDown, FileText } from 'lucide-react';
+import { ArrowLeft, Scale, ChevronDown, FileText, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
 import FotoViewer from '@/components/visita/FotoViewer';
+import MapPicker from '@/components/MapPicker';
 
 const CATEGORIAS: Record<string, string> = {
   EPIs: 'EPIs',
@@ -46,7 +47,7 @@ export default function AdminVisitaDetalle() {
 
       const { data: vis } = await supabase
         .from('visitas')
-        .select('id, estado, fecha, obras(nombre), profiles!visitas_usuario_id_profiles_fkey(nombre)')
+        .select('id, estado, fecha, lat_inicio, lng_inicio, lat_fin, lng_fin, obras(nombre), profiles!visitas_usuario_id_profiles_fkey(nombre)')
         .eq('id', id)
         .single();
 
