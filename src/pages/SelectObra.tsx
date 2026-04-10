@@ -179,7 +179,7 @@ export default function SelectObra() {
 
       {/* Distance confirmation dialog */}
       <Dialog open={!!confirmState} onOpenChange={(open) => { if (!open) setGeo({ status: 'idle' }); }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Navigation className="h-5 w-5 text-primary" />
