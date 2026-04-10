@@ -1,37 +1,67 @@
 
 
-# Plan: Mostrar fotos completas sin recortar
+# Plan: Etiquetado automático de fotos
 
 ## Problema
-Las fotos en anotaciones, incidencias, amonestaciones y observaciones usan `max-h-48 object-cover`, lo que recorta la imagen a 192px de alto. En pantallas grandes (tablet/desktop) la imagen queda cortada y no se ve entera.
+Las fotos no tienen contexto: no se sabe de qué sección son, ni su orden, ni la fecha/hora, ni la obra. En el informe final esto genera confusión.
 
 ## Solución
-Cambiar `object-cover` por `object-contain` y eliminar `max-h-48` (o aumentarlo significativamente) para que la imagen se muestre completa. Además, hacer las fotos clicables para abrirlas a pantalla completa en un modal (preparación para la fase de edición futura).
+Añadir un campo `etiqueta` a las tablas que almacenan fotos (`anotaciones`, `fotos`, `amonestaciones`, `observaciones`) que se genera automáticamente al subir la foto, con formato:
+
+```
+EPIs - Foto 3 | Obra Residencial Norte | 10 abr 2026, 14:32
+```
+
+La etiqueta se compone de:
+- **Sección/bloque**: "EPIs", "Incidencias", "Amonestaciones", "Observaciones"
+- **Número secuencial**: calculado contando las fotos existentes en esa sección +1
+- **Nombre de la obra**: obtenido de la visita
+- **Fecha y hora**: momento de captura
 
 ## Cambios
 
-### 1. Todas las imágenes: quitar recorte
-En los 4 archivos, cambiar la clase de las fotos de:
+### 1. Migración: añadir columna `etiqueta`
+```sql
+ALTER TABLE anotaciones ADD COLUMN etiqueta text NOT NULL DEFAULT '';
+ALTER TABLE fotos ADD COLUMN etiqueta text NOT NULL DEFAULT '';
+ALTER TABLE amonestaciones ADD COLUMN etiqueta text NOT NULL DEFAULT '';
+ALTER TABLE observaciones ADD COLUMN etiqueta text NOT NULL DEFAULT '';
 ```
-max-h-48 object-cover
-```
-a:
-```
-max-h-[400px] object-contain bg-muted/50
-```
-Esto muestra la foto completa (sin recortar), con un fondo sutil detrás si hay espacio vacío.
 
-### 2. Modal de foto a pantalla completa (nuevo componente)
-Crear `src/components/visita/FotoViewer.tsx`: un Dialog sencillo que muestra la imagen al 100% al hacer clic. Preparado para añadir herramientas de edición en el futuro.
+### 2. `VisitaActiva.tsx`
+- Cargar el nombre de la obra al inicio (ya tiene `obra_id` de la visita) y pasarlo como prop `obraNombre` a todos los componentes de sección y a `ChecklistBloque`.
 
-### 3. Integrar el visor en los 4 archivos
-Hacer que cada `<img>` sea clicable y abra el `FotoViewer`.
+### 3. `ChecklistBloque.tsx`
+- Recibir prop `obraNombre`.
+- Al subir foto: contar anotaciones con foto existentes en ese bloque, generar etiqueta `"{categoriaLabel} - Foto {n} | {obraNombre} | {fecha}"` y guardarla en el insert.
+- Mostrar la etiqueta debajo de cada foto como pie de foto (`text-xs text-muted-foreground`).
 
+### 4. `SeccionIncidencias.tsx`
+- Recibir prop `obraNombre`.
+- Al subir foto: contar fotos existentes en incidencias del mismo informe, generar etiqueta `"Incidencias - Foto {n} | {obraNombre} | {fecha}"`.
+- Mostrar etiqueta a pie de foto.
+
+### 5. `SeccionAmonestaciones.tsx`
+- Recibir prop `obraNombre`.
+- Misma lógica: `"Amonestaciones - Foto {n} | {obraNombre} | {fecha}"`.
+
+### 6. `SeccionObservaciones.tsx`
+- Recibir prop `obraNombre`.
+- Misma lógica: `"Observaciones - Foto {n} | {obraNombre} | {fecha}"`.
+
+### 7. UI de pie de foto (en los 4 componentes)
+Debajo de cada `<img>`, si hay etiqueta, mostrar:
+```html
+<p class="text-[11px] text-muted-foreground text-center mt-1 italic">{etiqueta}</p>
+```
+
+## Archivos modificados
 | Archivo | Cambio |
 |---|---|
-| `src/components/visita/FotoViewer.tsx` | Nuevo — modal visor de foto |
-| `src/components/visita/ChecklistBloque.tsx` | Foto sin recorte + clic para ampliar |
-| `src/components/visita/SeccionIncidencias.tsx` | Foto sin recorte + clic para ampliar |
-| `src/components/visita/SeccionAmonestaciones.tsx` | Foto sin recorte + clic para ampliar |
-| `src/components/visita/SeccionObservaciones.tsx` | Foto sin recorte + clic para ampliar |
+| Migración SQL | Añadir columna `etiqueta` a 4 tablas |
+| `src/pages/VisitaActiva.tsx` | Cargar nombre de obra, pasarlo como prop |
+| `src/components/visita/ChecklistBloque.tsx` | Generar etiqueta al subir foto, mostrar pie de foto |
+| `src/components/visita/SeccionIncidencias.tsx` | Generar etiqueta, mostrar pie de foto |
+| `src/components/visita/SeccionAmonestaciones.tsx` | Generar etiqueta, mostrar pie de foto |
+| `src/components/visita/SeccionObservaciones.tsx` | Generar etiqueta, mostrar pie de foto |
 
