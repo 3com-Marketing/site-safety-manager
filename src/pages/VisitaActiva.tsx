@@ -186,7 +186,7 @@ export default function VisitaActiva() {
     setObservacionesCount(obsCount || 0);
 
     setLoading(false);
-  }, [id, navigate]);
+  }, [id, navigate, isAdminMode]);
 
   const ensureBloques = async (informeId: string) => {
     const { data: existing } = await supabase
