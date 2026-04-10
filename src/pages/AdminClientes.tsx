@@ -59,10 +59,23 @@ export default function AdminClientes() {
   const [editingContacto, setEditingContacto] = useState<Contacto | null>(null);
   const [savingContacto, setSavingContacto] = useState(false);
 
+  // Primary contacts map (cliente_id -> first contact)
+  const [primaryContacts, setPrimaryContacts] = useState<Record<string, Contacto>>({});
+
   const fetchClientes = async () => {
     const { data } = await supabase.from('clientes').select('*').order('nombre');
     setClientes(data || []);
     setLoading(false);
+
+    // Fetch all contacts to show primary contact per client
+    const { data: allContactos } = await supabase.from('contactos_cliente').select('*').order('created_at');
+    if (allContactos) {
+      const map: Record<string, Contacto> = {};
+      allContactos.forEach(ct => {
+        if (!map[ct.cliente_id]) map[ct.cliente_id] = ct;
+      });
+      setPrimaryContacts(map);
+    }
   };
 
   useEffect(() => { fetchClientes(); }, []);
@@ -202,6 +215,12 @@ export default function AdminClientes() {
                     <p className="text-xs text-muted-foreground">
                       {[c.cif, c.ciudad, c.telefono].filter(Boolean).join(' · ') || 'Sin datos adicionales'}
                     </p>
+                    {primaryContacts[c.id] && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        <span className="font-medium text-foreground/70">Contacto:</span>{' '}
+                        {[primaryContacts[c.id].nombre, primaryContacts[c.id].cargo, primaryContacts[c.id].telefono, primaryContacts[c.id].email].filter(Boolean).join(' · ')}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-2">
