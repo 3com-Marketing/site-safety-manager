@@ -24,7 +24,6 @@ interface Props {
   bloqueId: string;
   categoria: string;
   categoriaLabel: string;
-  estado: string;
   anotaciones: Anotacion[];
   visitaId: string;
   onBack: () => void;
