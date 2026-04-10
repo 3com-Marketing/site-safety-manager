@@ -234,6 +234,9 @@ export default function AdminClientes() {
                   <Button variant="ghost" size="icon" onClick={() => openContactos(c)} title="Contactos">
                     <Users className="h-4 w-4" />
                   </Button>
+                  <Button variant="ghost" size="icon" onClick={() => setViewCliente(c)} title="Ver ficha">
+                    <Eye className="h-4 w-4" />
+                  </Button>
                   <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>
                     <Pencil className="h-4 w-4" />
                   </Button>
