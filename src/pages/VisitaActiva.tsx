@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Check } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Home } from 'lucide-react';
 import { toast } from 'sonner';
 import VisitaSecciones, { type SeccionId } from '@/components/visita/VisitaSecciones';
 import ChecklistSection from '@/components/visita/ChecklistSection';
@@ -24,6 +24,41 @@ const BLOQUE_LABELS: Record<string, string> = {
 
 const CATEGORIAS_ORDER = ['EPIs', 'orden_limpieza', 'altura', 'señalizacion', 'maquinaria'];
 
+type StepId =
+  | 'datos_generales'
+  | 'bloque_EPIs'
+  | 'bloque_orden_limpieza'
+  | 'bloque_altura'
+  | 'bloque_señalizacion'
+  | 'bloque_maquinaria'
+  | 'incidencias'
+  | 'amonestaciones'
+  | 'observaciones';
+
+const STEPS: StepId[] = [
+  'datos_generales',
+  'bloque_EPIs',
+  'bloque_orden_limpieza',
+  'bloque_altura',
+  'bloque_señalizacion',
+  'bloque_maquinaria',
+  'incidencias',
+  'amonestaciones',
+  'observaciones',
+];
+
+const STEP_LABELS: Record<StepId, string> = {
+  datos_generales: 'Datos generales',
+  bloque_EPIs: 'EPIs',
+  bloque_orden_limpieza: 'Orden y limpieza',
+  bloque_altura: 'Trabajo en altura',
+  bloque_señalizacion: 'Señalización',
+  bloque_maquinaria: 'Maquinaria',
+  incidencias: 'Incidencias',
+  amonestaciones: 'Amonestaciones',
+  observaciones: 'Observaciones',
+};
+
 interface BloqueData {
   id: string;
   categoria: string;
@@ -33,8 +68,7 @@ interface BloqueData {
 
 type ViewState =
   | { type: 'secciones' }
-  | { type: 'seccion'; seccionId: SeccionId }
-  | { type: 'bloque'; bloqueCategoria: BloqueCategoria };
+  | { type: 'step'; stepId: StepId };
 
 export default function VisitaActiva() {
   const { id } = useParams<{ id: string }>();
@@ -50,6 +84,26 @@ export default function VisitaActiva() {
   const [loading, setLoading] = useState(true);
   const [finishing, setFinishing] = useState(false);
   const [view, setView] = useState<ViewState>({ type: 'secciones' });
+
+  const currentStepIndex = view.type === 'step' ? STEPS.indexOf(view.stepId) : -1;
+  const isFirstStep = currentStepIndex === 0;
+  const isLastStep = currentStepIndex === STEPS.length - 1;
+
+  const goNext = useCallback(() => {
+    if (view.type !== 'step') return;
+    const idx = STEPS.indexOf(view.stepId);
+    if (idx < STEPS.length - 1) {
+      setView({ type: 'step', stepId: STEPS[idx + 1] });
+    }
+  }, [view]);
+
+  const goPrev = useCallback(() => {
+    if (view.type !== 'step') return;
+    const idx = STEPS.indexOf(view.stepId);
+    if (idx > 0) {
+      setView({ type: 'step', stepId: STEPS[idx - 1] });
+    }
+  }, [view]);
 
   const fetchData = useCallback(async () => {
     if (!id) return;
@@ -97,7 +151,6 @@ export default function VisitaActiva() {
       }))
     );
 
-    // Counts for badges
     const { count: incCount } = await supabase
       .from('incidencias')
       .select('id', { count: 'exact', head: true })
@@ -108,7 +161,7 @@ export default function VisitaActiva() {
       .from('amonestaciones')
       .select('id', { count: 'exact', head: true })
       .eq('informe_id', informe.id);
-    setAmonestacionesCount(amonCount || 0);
+    setAmonestacionesCount(amonestacionesCount || 0);
 
     const { count: obsCount } = await supabase
       .from('observaciones')
@@ -149,19 +202,25 @@ export default function VisitaActiva() {
   };
 
   const handleSelectSeccion = (seccionId: SeccionId) => {
-    setView({ type: 'seccion', seccionId });
+    const stepMap: Partial<Record<SeccionId, StepId>> = {
+      datos_generales: 'datos_generales',
+      incidencias: 'incidencias',
+      amonestaciones: 'amonestaciones',
+      observaciones: 'observaciones',
+    };
+    if (stepMap[seccionId]) {
+      setView({ type: 'step', stepId: stepMap[seccionId]! });
+    } else if (seccionId === 'checklist') {
+      setView({ type: 'step', stepId: 'bloque_EPIs' });
+    }
   };
 
   const handleSelectBloque = (cat: BloqueCategoria) => {
-    setView({ type: 'bloque', bloqueCategoria: cat });
+    setView({ type: 'step', stepId: `bloque_${cat}` as StepId });
   };
 
   const handleBack = () => {
-    if (view.type === 'bloque') {
-      setView({ type: 'seccion', seccionId: 'checklist' });
-    } else {
-      setView({ type: 'secciones' });
-    }
+    setView({ type: 'secciones' });
   };
 
   if (loading) {
@@ -172,27 +231,34 @@ export default function VisitaActiva() {
     );
   }
 
-  const currentBloque = view.type === 'bloque'
-    ? bloques.find(b => b.categoria === view.bloqueCategoria)
+  const currentBloque = view.type === 'step' && view.stepId.startsWith('bloque_')
+    ? bloques.find(b => b.categoria === view.stepId.replace('bloque_', ''))
     : null;
 
   const checklistAnotacionesTotal = bloques.reduce((sum, b) => sum + b.anotaciones.length, 0);
 
+  const currentStepLabel = view.type === 'step' ? STEP_LABELS[view.stepId] : '';
+  const stepNumber = view.type === 'step' ? currentStepIndex + 1 : 0;
+
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className="min-h-screen bg-background pb-36">
       <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-card px-4 py-3">
-        {view.type !== 'secciones' ? (
-          <Button variant="ghost" size="icon" onClick={handleBack}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        ) : (
-          <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        )}
-        <div className="min-w-0">
+        <Button variant="ghost" size="icon" onClick={handleBack}>
+          {view.type === 'secciones' ? (
+            <ArrowLeft className="h-5 w-5" onClick={(e) => { e.stopPropagation(); navigate('/'); }} />
+          ) : (
+            <Home className="h-5 w-5" />
+          )}
+        </Button>
+        <div className="min-w-0 flex-1">
           <h1 className="font-heading text-base font-bold truncate">{obraNombre}</h1>
-          <p className="text-xs text-muted-foreground">Visita en progreso</p>
+          {view.type === 'step' ? (
+            <p className="text-xs text-muted-foreground">
+              Paso {stepNumber} de {STEPS.length} · {currentStepLabel}
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">Visita en progreso</p>
+          )}
         </div>
       </header>
 
@@ -207,18 +273,11 @@ export default function VisitaActiva() {
           />
         )}
 
-        {view.type === 'seccion' && view.seccionId === 'checklist' && (
-          <ChecklistSection
-            bloqueEstados={bloques.map(b => ({
-              categoria: b.categoria,
-              anotacionesCount: b.anotaciones.length,
-            }))}
-            onSelectBloque={handleSelectBloque}
-            onBack={handleBack}
-          />
+        {view.type === 'step' && view.stepId === 'datos_generales' && informeId && (
+          <SeccionDatosGenerales informeId={informeId} onBack={handleBack} />
         )}
 
-        {view.type === 'bloque' && currentBloque && (
+        {view.type === 'step' && view.stepId.startsWith('bloque_') && currentBloque && (
           <ChecklistBloque
             bloqueId={currentBloque.id}
             categoria={currentBloque.categoria}
@@ -230,34 +289,76 @@ export default function VisitaActiva() {
           />
         )}
 
-        {view.type === 'seccion' && view.seccionId === 'datos_generales' && informeId && (
-          <SeccionDatosGenerales informeId={informeId} onBack={handleBack} />
-        )}
-
-        {view.type === 'seccion' && view.seccionId === 'incidencias' && informeId && (
+        {view.type === 'step' && view.stepId === 'incidencias' && informeId && (
           <SeccionIncidencias informeId={informeId} visitaId={id!} onBack={handleBack} onRefresh={fetchData} />
         )}
 
-        {view.type === 'seccion' && view.seccionId === 'amonestaciones' && informeId && (
+        {view.type === 'step' && view.stepId === 'amonestaciones' && informeId && (
           <SeccionAmonestaciones informeId={informeId} visitaId={id!} onBack={handleBack} onRefresh={fetchData} />
         )}
 
-        {view.type === 'seccion' && view.seccionId === 'observaciones' && informeId && (
+        {view.type === 'step' && view.stepId === 'observaciones' && informeId && (
           <SeccionObservaciones informeId={informeId} visitaId={id!} onBack={handleBack} onRefresh={fetchData} />
         )}
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-card p-4">
         <div className="mx-auto max-w-2xl">
-          <Button
-            onClick={finishVisita}
-            disabled={finishing}
-            variant="default"
-            className="h-14 w-full text-base font-bold gap-2 bg-success hover:bg-success/90 text-success-foreground"
-          >
-            <Check className="h-5 w-5" />
-            {finishing ? 'Finalizando...' : 'FINALIZAR VISITA'}
-          </Button>
+          {view.type === 'secciones' ? (
+            <Button
+              onClick={finishVisita}
+              disabled={finishing}
+              variant="default"
+              className="h-14 w-full text-base font-bold gap-2 bg-success hover:bg-success/90 text-success-foreground"
+            >
+              <Check className="h-5 w-5" />
+              {finishing ? 'Finalizando...' : 'FINALIZAR VISITA'}
+            </Button>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={goPrev}
+                  disabled={isFirstStep}
+                  className="h-12 flex-1 text-sm font-semibold gap-1"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Anterior
+                </Button>
+                {!isLastStep ? (
+                  <Button
+                    onClick={goNext}
+                    className="h-12 flex-1 text-sm font-semibold gap-1"
+                  >
+                    Siguiente
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={finishVisita}
+                    disabled={finishing}
+                    className="h-12 flex-1 text-sm font-bold gap-1 bg-success hover:bg-success/90 text-success-foreground"
+                  >
+                    <Check className="h-4 w-4" />
+                    {finishing ? 'Finalizando...' : 'FINALIZAR'}
+                  </Button>
+                )}
+              </div>
+              {!isLastStep && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={finishVisita}
+                  disabled={finishing}
+                  className="text-xs text-muted-foreground h-8"
+                >
+                  <Check className="h-3 w-3 mr-1" />
+                  {finishing ? 'Finalizando...' : 'Finalizar visita ahora'}
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
