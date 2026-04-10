@@ -47,7 +47,7 @@ export default function AdminInformeDetalle() {
 
     const { data: inf } = await supabase
       .from('informes')
-      .select('id, estado, fecha, num_trabajadores, condiciones_climaticas, empresas_presentes, notas_generales, visitas(obras(nombre), profiles:usuario_id(nombre))')
+      .select('id, estado, fecha, num_trabajadores, condiciones_climaticas, empresas_presentes, notas_generales, visitas(obras(nombre), profiles!visitas_usuario_id_profiles_fkey(nombre))')
       .eq('id', id)
       .single();
 
