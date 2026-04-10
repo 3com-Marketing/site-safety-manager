@@ -1,54 +1,69 @@
 
 
-# Plan: Fecha y hora siempre visible a pie de foto
+# Plan: Ubicación en mapa para obras y geolocalización de visitas
 
-## Problema
-Las fotos no siempre muestran la fecha y hora. Solo se muestra cuando existe el campo `etiqueta`, que es opcional. La fecha/hora debe aparecer siempre debajo de cada foto, tanto en la app como en el PDF generado.
+## Resumen
+1. Añadir coordenadas (latitud/longitud) a la tabla `obras` para situar cada obra en un mapa.
+2. Añadir coordenadas de inicio y fin a la tabla `visitas` para registrar dónde estaba el técnico al empezar y al acabar.
+3. Mostrar mapa en la gestión de obras (admin) y solicitar ubicación GPS al técnico al iniciar y finalizar una visita.
 
-## Cambios
+## Cambios en base de datos
 
-### 1. Componentes de visita — añadir fecha/hora a pie de foto
-En todos los componentes que muestran fotos, añadir siempre un pie de foto con `created_at` formateado como `dd MMM yyyy, HH:mm`:
+### Migración 1: Columnas de geolocalización
+```sql
+-- Obras: ubicación fija de la obra
+ALTER TABLE public.obras ADD COLUMN latitud double precision;
+ALTER TABLE public.obras ADD COLUMN longitud double precision;
 
-- **`ChecklistBloque.tsx`** (línea ~144): Debajo de cada `<img>` de anotación, mostrar siempre `format(new Date(a.created_at), "dd MMM yyyy, HH:mm")` como pie de foto, independientemente de si tiene `etiqueta`
-- **`SeccionIncidencias.tsx`** (línea ~178): Debajo de cada foto de incidencia, usar `created_at` de la foto. Como `fotos` tiene su propio `created_at`, añadirlo al select y mostrarlo
-- **`SeccionAmonestaciones.tsx`** (línea ~219): Debajo de la foto, mostrar `created_at` del registro
-- **`SeccionObservaciones.tsx`** (línea ~168): Debajo de la foto, mostrar `created_at` del registro
-
-El formato será consistente en todas:
-```
-📅 10 abr 2026, 14:35
-```
-
-### 2. Query de fotos en incidencias
-En `SeccionIncidencias.tsx`, el select de fotos es `fotos(id, url, etiqueta)` — añadir `created_at`:
-```typescript
-.select('..., fotos(id, url, etiqueta, created_at)')
+-- Visitas: ubicación del técnico al iniciar y finalizar
+ALTER TABLE public.visitas ADD COLUMN lat_inicio double precision;
+ALTER TABLE public.visitas ADD COLUMN lng_inicio double precision;
+ALTER TABLE public.visitas ADD COLUMN lat_fin double precision;
+ALTER TABLE public.visitas ADD COLUMN lng_fin double precision;
 ```
 
-### 3. PDF (`generar-pdf/index.ts`)
-Añadir pie de foto con fecha/hora en el HTML generado:
-- En anotaciones del checklist: debajo de `<img>`, añadir `<p class="foto-caption">${fecha}</p>`
-- En fotos de incidencias: igual
-- En amonestaciones con foto: igual
-- En observaciones con foto: igual
+## Cambios en frontend
 
-Añadir estilo CSS `.foto-caption` al PDF:
-```css
-.foto-caption { font-size: 8pt; color: #666; text-align: center; margin-top: 2pt; }
-```
+### 1. Componente `MapPicker.tsx` (nuevo)
+- Componente reutilizable con Leaflet (libre, sin API key)
+- Props: `lat`, `lng`, `onSelect(lat, lng)`, `readOnly`
+- Modo editable: click en mapa para poner pin
+- Modo solo lectura: muestra pin fijo
+- Usa tiles de OpenStreetMap
 
-### 4. Vista de detalle admin (`AdminVisitaDetalle.tsx`)
-Verificar que también muestre fecha/hora a pie de foto en la vista solo lectura.
+### 2. `AdminObras.tsx` — Mapa en ficha de obra
+- En el diálogo de crear/editar obra: añadir `MapPicker` para seleccionar ubicación
+- En el diálogo de ver obra: mostrar mapa en solo lectura
+- Guardar `latitud` y `longitud` en la obra
+
+### 3. `SelectObra.tsx` — Captura de ubicación al iniciar visita
+- Al seleccionar una obra, antes de crear la visita, pedir `navigator.geolocation.getCurrentPosition()`
+- Mostrar un diálogo/paso intermedio: "Obteniendo tu ubicación..." con spinner
+- Si el usuario deniega GPS, mostrar aviso pero permitir continuar (campos quedan null)
+- Guardar `lat_inicio` y `lng_inicio` en la visita al hacer el insert
+
+### 4. `VisitaActiva.tsx` — Captura de ubicación al finalizar
+- En `finishVisita()`, antes de actualizar estado, pedir geolocalización
+- Guardar `lat_fin` y `lng_fin` en la visita con el update
+- Mostrar "Obteniendo ubicación de cierre..." brevemente
+
+### 5. `AdminInformes.tsx` / `AdminVisitaDetalle.tsx` — Visualización
+- En la vista de detalle de visita del admin, mostrar mini-mapa con los pins de inicio y fin
+- En el dashboard, opcionalmente mostrar icono de ubicación si hay coordenadas
+
+## Dependencias
+- `leaflet` + `react-leaflet` (npm) — mapas gratuitos con OpenStreetMap
+- API nativa `navigator.geolocation` del navegador — sin coste
 
 ## Archivos
 
 | Archivo | Cambio |
 |---|---|
-| `src/components/visita/ChecklistBloque.tsx` | Pie de foto con fecha/hora siempre |
-| `src/components/visita/SeccionIncidencias.tsx` | Añadir `created_at` al select de fotos + pie de foto |
-| `src/components/visita/SeccionAmonestaciones.tsx` | Pie de foto con fecha/hora siempre |
-| `src/components/visita/SeccionObservaciones.tsx` | Pie de foto con fecha/hora siempre |
-| `src/pages/AdminVisitaDetalle.tsx` | Pie de foto en vista solo lectura |
-| `supabase/functions/generar-pdf/index.ts` | Pie de foto con fecha/hora en PDF |
+| Migración SQL | Añadir columnas lat/lng a `obras` y `visitas` |
+| `package.json` | Añadir `leaflet`, `react-leaflet`, `@types/leaflet` |
+| `src/components/MapPicker.tsx` | Nuevo componente de mapa interactivo |
+| `src/pages/AdminObras.tsx` | Mapa en crear/editar/ver obra |
+| `src/pages/SelectObra.tsx` | Captura GPS al iniciar visita |
+| `src/pages/VisitaActiva.tsx` | Captura GPS al finalizar visita |
+| `src/pages/AdminVisitaDetalle.tsx` | Mini-mapa con pins inicio/fin |
 
