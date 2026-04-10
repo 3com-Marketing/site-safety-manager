@@ -9,7 +9,10 @@ import VisitaSecciones, { type SeccionId } from '@/components/visita/VisitaSecci
 import ChecklistSection from '@/components/visita/ChecklistSection';
 import type { BloqueCategoria } from '@/components/visita/ChecklistSection';
 import ChecklistBloque from '@/components/visita/ChecklistBloque';
-import SeccionPlaceholder from '@/components/visita/SeccionPlaceholder';
+import SeccionIncidencias from '@/components/visita/SeccionIncidencias';
+import SeccionAmonestaciones from '@/components/visita/SeccionAmonestaciones';
+import SeccionObservaciones from '@/components/visita/SeccionObservaciones';
+import SeccionDatosGenerales from '@/components/visita/SeccionDatosGenerales';
 
 const BLOQUE_LABELS: Record<string, string> = {
   EPIs: 'EPIs',
@@ -42,6 +45,8 @@ export default function VisitaActiva() {
   const [obraNombre, setObraNombre] = useState('');
   const [bloques, setBloques] = useState<BloqueData[]>([]);
   const [incidenciasCount, setIncidenciasCount] = useState(0);
+  const [amonestacionesCount, setAmonestacionesCount] = useState(0);
+  const [observacionesCount, setObservacionesCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [finishing, setFinishing] = useState(false);
   const [view, setView] = useState<ViewState>({ type: 'secciones' });
@@ -75,10 +80,8 @@ export default function VisitaActiva() {
 
     setInformeId(informe.id);
 
-    // Ensure all 5 checklist blocks exist
     await ensureBloques(informe.id);
 
-    // Fetch blocks with annotations
     const { data: bloquesData } = await supabase
       .from('checklist_bloques')
       .select('id, categoria, estado, anotaciones(id, texto, foto_url, created_at)')
@@ -94,12 +97,24 @@ export default function VisitaActiva() {
       }))
     );
 
-    // Count existing incidencias
-    const { count } = await supabase
+    // Counts for badges
+    const { count: incCount } = await supabase
       .from('incidencias')
       .select('id', { count: 'exact', head: true })
       .eq('informe_id', informe.id);
-    setIncidenciasCount(count || 0);
+    setIncidenciasCount(incCount || 0);
+
+    const { count: amonCount } = await supabase
+      .from('amonestaciones')
+      .select('id', { count: 'exact', head: true })
+      .eq('informe_id', informe.id);
+    setAmonestacionesCount(amonCount || 0);
+
+    const { count: obsCount } = await supabase
+      .from('observaciones')
+      .select('id', { count: 'exact', head: true })
+      .eq('informe_id', informe.id);
+    setObservacionesCount(obsCount || 0);
 
     setLoading(false);
   }, [id, navigate]);
@@ -134,11 +149,7 @@ export default function VisitaActiva() {
   };
 
   const handleSelectSeccion = (seccionId: SeccionId) => {
-    if (seccionId === 'checklist') {
-      setView({ type: 'seccion', seccionId: 'checklist' });
-    } else {
-      setView({ type: 'seccion', seccionId });
-    }
+    setView({ type: 'seccion', seccionId });
   };
 
   const handleSelectBloque = (cat: BloqueCategoria) => {
@@ -167,16 +178,8 @@ export default function VisitaActiva() {
 
   const checklistAnotacionesTotal = bloques.reduce((sum, b) => sum + b.anotaciones.length, 0);
 
-  const seccionLabels: Record<string, string> = {
-    datos_generales: 'Datos generales',
-    incidencias: 'Incidencias',
-    amonestaciones: 'Amonestaciones',
-    observaciones: 'Observaciones',
-  };
-
   return (
     <div className="min-h-screen bg-background pb-28">
-      {/* Header */}
       <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-card px-4 py-3">
         {view.type !== 'secciones' ? (
           <Button variant="ghost" size="icon" onClick={handleBack}>
@@ -194,16 +197,16 @@ export default function VisitaActiva() {
       </header>
 
       <div className="mx-auto max-w-2xl p-4">
-        {/* Main section menu */}
         {view.type === 'secciones' && (
           <VisitaSecciones
             onSelect={handleSelectSeccion}
             checklistCount={checklistAnotacionesTotal}
             incidenciasCount={incidenciasCount}
+            amonestacionesCount={amonestacionesCount}
+            observacionesCount={observacionesCount}
           />
         )}
 
-        {/* Checklist section - block list */}
         {view.type === 'seccion' && view.seccionId === 'checklist' && (
           <ChecklistSection
             bloqueEstados={bloques.map(b => ({
@@ -215,13 +218,11 @@ export default function VisitaActiva() {
           />
         )}
 
-        {/* Checklist block detail */}
         {view.type === 'bloque' && currentBloque && (
           <ChecklistBloque
             bloqueId={currentBloque.id}
             categoria={currentBloque.categoria}
             categoriaLabel={BLOQUE_LABELS[currentBloque.categoria] || currentBloque.categoria}
-            
             anotaciones={currentBloque.anotaciones}
             visitaId={id!}
             onBack={handleBack}
@@ -229,16 +230,23 @@ export default function VisitaActiva() {
           />
         )}
 
-        {/* Placeholder sections */}
-        {view.type === 'seccion' && view.seccionId !== 'checklist' && (
-          <SeccionPlaceholder
-            titulo={seccionLabels[view.seccionId] || view.seccionId}
-            onBack={handleBack}
-          />
+        {view.type === 'seccion' && view.seccionId === 'datos_generales' && informeId && (
+          <SeccionDatosGenerales informeId={informeId} onBack={handleBack} />
+        )}
+
+        {view.type === 'seccion' && view.seccionId === 'incidencias' && informeId && (
+          <SeccionIncidencias informeId={informeId} visitaId={id!} onBack={handleBack} onRefresh={fetchData} />
+        )}
+
+        {view.type === 'seccion' && view.seccionId === 'amonestaciones' && informeId && (
+          <SeccionAmonestaciones informeId={informeId} visitaId={id!} onBack={handleBack} onRefresh={fetchData} />
+        )}
+
+        {view.type === 'seccion' && view.seccionId === 'observaciones' && informeId && (
+          <SeccionObservaciones informeId={informeId} visitaId={id!} onBack={handleBack} onRefresh={fetchData} />
         )}
       </div>
 
-      {/* Finish button - sticky bottom */}
       <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-card p-4">
         <div className="mx-auto max-w-2xl">
           <Button
