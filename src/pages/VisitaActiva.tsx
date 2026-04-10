@@ -208,7 +208,6 @@ export default function VisitaActiva() {
           <ChecklistSection
             bloqueEstados={bloques.map(b => ({
               categoria: b.categoria,
-              estado: b.estado,
               anotacionesCount: b.anotaciones.length,
             }))}
             onSelectBloque={handleSelectBloque}
@@ -222,7 +221,7 @@ export default function VisitaActiva() {
             bloqueId={currentBloque.id}
             categoria={currentBloque.categoria}
             categoriaLabel={BLOQUE_LABELS[currentBloque.categoria] || currentBloque.categoria}
-            estado={currentBloque.estado}
+            
             anotaciones={currentBloque.anotaciones}
             visitaId={id!}
             onBack={handleBack}
