@@ -236,7 +236,7 @@ export default function VisitaActiva() {
 
     setGettingGeo(false);
 
-    await supabase.from('visitas').update({ estado: 'finalizada', lat_fin, lng_fin }).eq('id', id);
+    await supabase.from('visitas').update({ estado: 'finalizada', lat_fin, lng_fin, fecha_fin: new Date().toISOString() } as any).eq('id', id);
     await supabase.from('informes').update({ estado: 'pendiente_revision' }).eq('id', informeId);
     toast.success('Visita finalizada');
     navigate(isAdminMode ? '/admin' : '/');
