@@ -250,6 +250,65 @@ export default function AdminClientes() {
         )}
       </div>
 
+      {/* View Client Dialog */}
+      <Dialog open={!!viewCliente} onOpenChange={open => !open && setViewCliente(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" /> {viewCliente?.nombre}
+              {viewCliente && tipoLabel(viewCliente.tipo_cliente)}
+            </DialogTitle>
+          </DialogHeader>
+          {viewCliente && (
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground text-xs">CIF</p>
+                  <p className="font-medium">{viewCliente.cif || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Ciudad</p>
+                  <p className="font-medium">{viewCliente.ciudad || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Teléfono</p>
+                  <p className="font-medium">{viewCliente.telefono || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Email</p>
+                  <p className="font-medium">{viewCliente.email || '—'}</p>
+                </div>
+              </div>
+              {viewCliente.notas && (
+                <div>
+                  <p className="text-muted-foreground text-xs">Notas</p>
+                  <p className="text-sm">{viewCliente.notas}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-sm font-semibold mb-2 flex items-center gap-2">
+                  <Users className="h-4 w-4" /> Contactos
+                </p>
+                {(allContactsMap[viewCliente.id] || []).length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Sin contactos</p>
+                ) : (
+                  <div className="space-y-2">
+                    {(allContactsMap[viewCliente.id] || []).map(ct => (
+                      <div key={ct.id} className="rounded-lg border border-border bg-muted/30 p-3">
+                        <p className="text-sm font-semibold">{ct.nombre}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {[ct.cargo, ct.telefono, ct.email].filter(Boolean).join(' · ')}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Create/Edit Client Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg">
