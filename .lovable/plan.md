@@ -1,67 +1,36 @@
 
 
-# Plan: Etiquetado automático de fotos
+# Plan: Permitir acceso y edición de visitas finalizadas durante 7 días
 
 ## Problema
-Las fotos no tienen contexto: no se sabe de qué sección son, ni su orden, ni la fecha/hora, ni la obra. En el informe final esto genera confusión.
+Dos bloqueos actuales:
+1. **TechHome**: Las visitas finalizadas no son clicables (línea 85: `v.estado === 'en_progreso' ? navigate(...) : null`)
+2. **VisitaActiva**: Si el estado es `finalizada`, redirige al inicio inmediatamente (línea 117)
 
 ## Solución
-Añadir un campo `etiqueta` a las tablas que almacenan fotos (`anotaciones`, `fotos`, `amonestaciones`, `observaciones`) que se genera automáticamente al subir la foto, con formato:
-
-```
-EPIs - Foto 3 | Obra Residencial Norte | 10 abr 2026, 14:32
-```
-
-La etiqueta se compone de:
-- **Sección/bloque**: "EPIs", "Incidencias", "Amonestaciones", "Observaciones"
-- **Número secuencial**: calculado contando las fotos existentes en esa sección +1
-- **Nombre de la obra**: obtenido de la visita
-- **Fecha y hora**: momento de captura
+Permitir entrar en visitas finalizadas si han pasado menos de 7 días desde su fecha. Dentro, se puede editar todo igual, pero el botón "FINALIZAR" no aparece (ya está finalizada). Se añade un badge indicando "Editable hasta [fecha]".
 
 ## Cambios
 
-### 1. Migración: añadir columna `etiqueta`
-```sql
-ALTER TABLE anotaciones ADD COLUMN etiqueta text NOT NULL DEFAULT '';
-ALTER TABLE fotos ADD COLUMN etiqueta text NOT NULL DEFAULT '';
-ALTER TABLE amonestaciones ADD COLUMN etiqueta text NOT NULL DEFAULT '';
-ALTER TABLE observaciones ADD COLUMN etiqueta text NOT NULL DEFAULT '';
-```
+### 1. `src/pages/TechHome.tsx`
+- Hacer clicables las visitas finalizadas si `fecha + 7 días > ahora`
+- Mostrar icono `ChevronRight` también en esas visitas
+- Cambiar el badge a "Editable" (amarillo) si está dentro del plazo, "Finalizada" (verde) si ya no
 
-### 2. `VisitaActiva.tsx`
-- Cargar el nombre de la obra al inicio (ya tiene `obra_id` de la visita) y pasarlo como prop `obraNombre` a todos los componentes de sección y a `ChecklistBloque`.
+### 2. `src/pages/VisitaActiva.tsx`
+- Cambiar la condición de la línea 117: en vez de redirigir si `estado === 'finalizada'`, calcular si `fecha + 7 días > ahora`. Solo redirigir si ha expirado el plazo
+- Guardar un flag `isReadOnly` (false si en_progreso o dentro del plazo de 7 días)
+- Guardar la fecha de la visita para mostrar "Editable hasta X"
+- Mostrar un banner informativo en la cabecera: "Visita finalizada · Editable hasta [fecha]"
+- Ocultar el botón "FINALIZAR VISITA" si ya está finalizada (solo mostrar "Guardar y salir")
+- En la vista de steps, permitir navegación normal (Anterior/Siguiente) sin botón de finalizar
 
-### 3. `ChecklistBloque.tsx`
-- Recibir prop `obraNombre`.
-- Al subir foto: contar anotaciones con foto existentes en ese bloque, generar etiqueta `"{categoriaLabel} - Foto {n} | {obraNombre} | {fecha}"` y guardarla en el insert.
-- Mostrar la etiqueta debajo de cada foto como pie de foto (`text-xs text-muted-foreground`).
+### 3. Helper de fecha
+- Función `isWithinEditWindow(fecha: string): boolean` → `differenceInDays(new Date(), new Date(fecha)) < 7`
+- Usar `date-fns` (ya instalado) para `addDays` y `format`
 
-### 4. `SeccionIncidencias.tsx`
-- Recibir prop `obraNombre`.
-- Al subir foto: contar fotos existentes en incidencias del mismo informe, generar etiqueta `"Incidencias - Foto {n} | {obraNombre} | {fecha}"`.
-- Mostrar etiqueta a pie de foto.
-
-### 5. `SeccionAmonestaciones.tsx`
-- Recibir prop `obraNombre`.
-- Misma lógica: `"Amonestaciones - Foto {n} | {obraNombre} | {fecha}"`.
-
-### 6. `SeccionObservaciones.tsx`
-- Recibir prop `obraNombre`.
-- Misma lógica: `"Observaciones - Foto {n} | {obraNombre} | {fecha}"`.
-
-### 7. UI de pie de foto (en los 4 componentes)
-Debajo de cada `<img>`, si hay etiqueta, mostrar:
-```html
-<p class="text-[11px] text-muted-foreground text-center mt-1 italic">{etiqueta}</p>
-```
-
-## Archivos modificados
 | Archivo | Cambio |
 |---|---|
-| Migración SQL | Añadir columna `etiqueta` a 4 tablas |
-| `src/pages/VisitaActiva.tsx` | Cargar nombre de obra, pasarlo como prop |
-| `src/components/visita/ChecklistBloque.tsx` | Generar etiqueta al subir foto, mostrar pie de foto |
-| `src/components/visita/SeccionIncidencias.tsx` | Generar etiqueta, mostrar pie de foto |
-| `src/components/visita/SeccionAmonestaciones.tsx` | Generar etiqueta, mostrar pie de foto |
-| `src/components/visita/SeccionObservaciones.tsx` | Generar etiqueta, mostrar pie de foto |
+| `src/pages/TechHome.tsx` | Visitas finalizadas clicables si < 7 días |
+| `src/pages/VisitaActiva.tsx` | Permitir acceso a finalizadas < 7 días, banner informativo, ocultar finalizar |
 
