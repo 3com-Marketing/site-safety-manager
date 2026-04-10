@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           created_at: string
           descripcion: string
+          etiqueta: string
           foto_url: string | null
           id: string
           informe_id: string
@@ -27,6 +28,7 @@ export type Database = {
         Insert: {
           created_at?: string
           descripcion?: string
+          etiqueta?: string
           foto_url?: string | null
           id?: string
           informe_id: string
@@ -36,6 +38,7 @@ export type Database = {
         Update: {
           created_at?: string
           descripcion?: string
+          etiqueta?: string
           foto_url?: string | null
           id?: string
           informe_id?: string
@@ -56,6 +59,7 @@ export type Database = {
         Row: {
           bloque_id: string
           created_at: string
+          etiqueta: string
           foto_url: string | null
           id: string
           normativa: string
@@ -64,6 +68,7 @@ export type Database = {
         Insert: {
           bloque_id: string
           created_at?: string
+          etiqueta?: string
           foto_url?: string | null
           id?: string
           normativa?: string
@@ -72,6 +77,7 @@ export type Database = {
         Update: {
           bloque_id?: string
           created_at?: string
+          etiqueta?: string
           foto_url?: string | null
           id?: string
           normativa?: string
@@ -196,18 +202,21 @@ export type Database = {
       fotos: {
         Row: {
           created_at: string
+          etiqueta: string
           id: string
           incidencia_id: string
           url: string
         }
         Insert: {
           created_at?: string
+          etiqueta?: string
           id?: string
           incidencia_id: string
           url: string
         }
         Update: {
           created_at?: string
+          etiqueta?: string
           id?: string
           incidencia_id?: string
           url?: string
@@ -342,6 +351,7 @@ export type Database = {
       observaciones: {
         Row: {
           created_at: string
+          etiqueta: string
           foto_url: string | null
           id: string
           informe_id: string
@@ -350,6 +360,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          etiqueta?: string
           foto_url?: string | null
           id?: string
           informe_id: string
@@ -358,6 +369,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          etiqueta?: string
           foto_url?: string | null
           id?: string
           informe_id?: string
