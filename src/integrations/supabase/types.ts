@@ -14,6 +14,70 @@ export type Database = {
   }
   public: {
     Tables: {
+      anotaciones: {
+        Row: {
+          bloque_id: string
+          created_at: string
+          foto_url: string | null
+          id: string
+          texto: string
+        }
+        Insert: {
+          bloque_id: string
+          created_at?: string
+          foto_url?: string | null
+          id?: string
+          texto?: string
+        }
+        Update: {
+          bloque_id?: string
+          created_at?: string
+          foto_url?: string | null
+          id?: string
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anotaciones_bloque_id_fkey"
+            columns: ["bloque_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_bloques"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_bloques: {
+        Row: {
+          categoria: string
+          created_at: string
+          estado: string
+          id: string
+          informe_id: string
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          estado?: string
+          id?: string
+          informe_id: string
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          estado?: string
+          id?: string
+          informe_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_bloques_informe_id_fkey"
+            columns: ["informe_id"]
+            isOneToOne: false
+            referencedRelation: "informes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clientes: {
         Row: {
           created_at: string
