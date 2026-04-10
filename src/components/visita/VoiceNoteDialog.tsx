@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Mic, MicOff, Sparkles, Loader2 } from 'lucide-react';
+import { Mic, MicOff, Sparkles, Loader2, Scale } from 'lucide-react';
 import type { VoiceDialogStep } from '@/hooks/useVoiceNote';
 
 interface Props {
@@ -17,6 +17,7 @@ interface Props {
   rawTranscript: string;
   improvedText: string;
   onImprovedTextChange: (text: string) => void;
+  normativa?: string;
   onStartRecording: () => void;
   onStopRecording: () => void;
   onFinishRecording: () => void;
@@ -32,6 +33,7 @@ export default function VoiceNoteDialog({
   rawTranscript,
   improvedText,
   onImprovedTextChange,
+  normativa,
   onStartRecording,
   onStopRecording,
   onFinishRecording,
@@ -109,6 +111,16 @@ export default function VoiceNoteDialog({
                 className="min-h-[120px] text-base"
               />
             </div>
+
+            {normativa && (
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <Scale className="h-3.5 w-3.5 text-primary" />
+                  <p className="text-xs font-semibold text-primary">Normativa aplicable</p>
+                </div>
+                <p className="text-xs text-muted-foreground whitespace-pre-line">{normativa}</p>
+              </div>
+            )}
 
             <div className="flex gap-2">
               <Button

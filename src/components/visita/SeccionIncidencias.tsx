@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Trash2, Pencil } from 'lucide-react';
+import { ArrowLeft, Trash2, Pencil, Scale } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -14,6 +14,7 @@ interface Incidencia {
   titulo: string;
   descripcion: string;
   categoria: string;
+  normativa: string;
   fotos: { id: string; url: string }[];
   created_at: string;
 }
@@ -38,7 +39,7 @@ export default function SeccionIncidencias({ informeId, visitaId, onBack, onRefr
   const fetchIncidencias = async () => {
     const { data } = await supabase
       .from('incidencias')
-      .select('id, titulo, descripcion, categoria, created_at, fotos(id, url)')
+      .select('id, titulo, descripcion, categoria, normativa, created_at, fotos(id, url)')
       .eq('informe_id', informeId)
       .order('created_at', { ascending: false });
 
@@ -46,9 +47,7 @@ export default function SeccionIncidencias({ informeId, visitaId, onBack, onRefr
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchIncidencias();
-  }, [informeId]);
+  useEffect(() => { fetchIncidencias(); }, [informeId]);
 
   const handlePhotoCapture = () => fileInputRef.current?.click();
 
@@ -60,40 +59,20 @@ export default function SeccionIncidencias({ informeId, visitaId, onBack, onRefr
     const ext = file.name.split('.').pop();
     const path = `${visitaId}/${Date.now()}.${ext}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from('incidencia-fotos')
-      .upload(path, file);
-
-    if (uploadError) {
-      toast.error('Error al subir foto');
-      setUploading(false);
-      return;
-    }
+    const { error: uploadError } = await supabase.storage.from('incidencia-fotos').upload(path, file);
+    if (uploadError) { toast.error('Error al subir foto'); setUploading(false); return; }
 
     const { data: urlData } = supabase.storage.from('incidencia-fotos').getPublicUrl(path);
 
-    // Create incidencia with photo
     const { data: inc, error: incError } = await supabase
       .from('incidencias')
-      .insert({
-        informe_id: informeId,
-        titulo: 'Incidencia con foto',
-        categoria: 'general',
-        descripcion: '',
-      })
+      .insert({ informe_id: informeId, titulo: 'Incidencia con foto', categoria: 'general', descripcion: '' })
       .select('id')
       .single();
 
-    if (incError || !inc) {
-      toast.error('Error al crear incidencia');
-      setUploading(false);
-      return;
-    }
+    if (incError || !inc) { toast.error('Error al crear incidencia'); setUploading(false); return; }
 
-    await supabase.from('fotos').insert({
-      incidencia_id: inc.id,
-      url: urlData.publicUrl,
-    });
+    await supabase.from('fotos').insert({ incidencia_id: inc.id, url: urlData.publicUrl });
 
     toast.success('Foto añadida');
     setUploading(false);
@@ -110,35 +89,21 @@ export default function SeccionIncidencias({ informeId, visitaId, onBack, onRefr
       titulo: voice.improvedText.trim().slice(0, 60),
       categoria: 'general',
       descripcion: voice.improvedText.trim(),
+      normativa: voice.normativa || '',
     });
 
-    if (error) {
-      toast.error('Error al guardar');
-      return;
-    }
-
+    if (error) { toast.error('Error al guardar'); return; }
     toast.success('Incidencia guardada');
     voice.closeDialog();
     await fetchIncidencias();
     onRefresh();
   };
 
-  const startEdit = (inc: Incidencia) => {
-    setEditingId(inc.id);
-    setEditText(inc.descripcion);
-  };
+  const startEdit = (inc: Incidencia) => { setEditingId(inc.id); setEditText(inc.descripcion); };
 
   const saveEdit = async () => {
     if (!editingId) return;
-    const { error } = await supabase
-      .from('incidencias')
-      .update({ descripcion: editText.trim(), titulo: editText.trim().slice(0, 60) })
-      .eq('id', editingId);
-
-    if (error) {
-      toast.error('Error al actualizar');
-      return;
-    }
+    await supabase.from('incidencias').update({ descripcion: editText.trim(), titulo: editText.trim().slice(0, 60) }).eq('id', editingId);
     toast.success('Actualizada');
     setEditingId(null);
     await fetchIncidencias();
@@ -157,9 +122,7 @@ export default function SeccionIncidencias({ informeId, visitaId, onBack, onRefr
       <input ref={fileInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileUpload} />
 
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0">
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
+        <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0"><ArrowLeft className="h-5 w-5" /></Button>
         <h2 className="font-heading text-base font-semibold">Incidencias</h2>
       </div>
 
@@ -214,6 +177,15 @@ export default function SeccionIncidencias({ informeId, visitaId, onBack, onRefr
                 ) : (
                   inc.descripcion && <p className="text-sm text-foreground">{inc.descripcion}</p>
                 )}
+                {inc.normativa && (
+                  <div className="rounded-lg border border-primary/20 bg-primary/5 p-2.5 space-y-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <Scale className="h-3 w-3 text-primary" />
+                      <p className="text-[10px] font-semibold text-primary">Normativa</p>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground whitespace-pre-line">{inc.normativa}</p>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -228,6 +200,7 @@ export default function SeccionIncidencias({ informeId, visitaId, onBack, onRefr
         rawTranscript={voice.rawTranscript}
         improvedText={voice.improvedText}
         onImprovedTextChange={voice.setImprovedText}
+        normativa={voice.normativa}
         onStartRecording={voice.startRecording}
         onStopRecording={voice.stopRecording}
         onFinishRecording={voice.finishRecording}

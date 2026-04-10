@@ -12,6 +12,7 @@ export function useVoiceNote(categoriaLabel: string) {
   const [isRecording, setIsRecording] = useState(false);
   const [rawTranscript, setRawTranscript] = useState('');
   const [improvedText, setImprovedText] = useState('');
+  const [normativa, setNormativa] = useState('');
   const [isImproving, setIsImproving] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [dialogStep, setDialogStep] = useState<VoiceDialogStep>('recording');
@@ -70,6 +71,7 @@ export function useVoiceNote(categoriaLabel: string) {
   const openDialog = useCallback(() => {
     setRawTranscript('');
     setImprovedText('');
+    setNormativa('');
     setDialogStep('recording');
     setShowDialog(true);
   }, []);
@@ -91,13 +93,16 @@ export function useVoiceNote(categoriaLabel: string) {
       if (error) {
         console.error('AI error:', error);
         setImprovedText(texto);
+        setNormativa('');
         toast.error('No se pudo mejorar el texto. Se usará el original.');
       } else {
         setImprovedText(data.texto_mejorado || texto);
+        setNormativa(data.normativa || '');
       }
     } catch (err) {
       console.error('AI error:', err);
       setImprovedText(texto);
+      setNormativa('');
       toast.error('No se pudo mejorar el texto. Se usará el original.');
     }
 
@@ -127,6 +132,8 @@ export function useVoiceNote(categoriaLabel: string) {
     rawTranscript,
     improvedText,
     setImprovedText,
+    normativa,
+    setNormativa,
     isImproving,
     showDialog,
     dialogStep,

@@ -36,8 +36,48 @@ Reglas:
 - Estructura el texto de forma clara
 - Sé conciso pero completo
 - No añadas saludos, encabezados ni formato markdown
-- Devuelve solo el texto mejorado
-${categoria ? `- Contexto: la anotación es sobre la categoría "${categoria}"` : ""}`;
+${categoria ? `- Contexto: la anotación es sobre la categoría "${categoria}"` : ""}
+
+Además de mejorar el texto, identifica la normativa española de prevención de riesgos laborales aplicable.
+Usa la función proporcionada para devolver tanto el texto mejorado como la normativa.`;
+
+    const tools = [
+      {
+        type: "function",
+        function: {
+          name: "resultado_inspeccion",
+          description: "Devuelve el texto mejorado y la normativa aplicable",
+          parameters: {
+            type: "object",
+            properties: {
+              texto_mejorado: {
+                type: "string",
+                description: "El texto profesionalizado y corregido",
+              },
+              normativa: {
+                type: "array",
+                description: "Normativa aplicable (puede estar vacío si no aplica ninguna específica)",
+                items: {
+                  type: "object",
+                  properties: {
+                    referencia: {
+                      type: "string",
+                      description: "Referencia legal, ej: RD 1627/1997, Anexo IV, Parte C",
+                    },
+                    descripcion: {
+                      type: "string",
+                      description: "Breve descripción de qué regula",
+                    },
+                  },
+                  required: ["referencia", "descripcion"],
+                },
+              },
+            },
+            required: ["texto_mejorado", "normativa"],
+          },
+        },
+      },
+    ];
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -51,6 +91,8 @@ ${categoria ? `- Contexto: la anotación es sobre la categoría "${categoria}"` 
           { role: "system", content: systemPrompt },
           { role: "user", content: texto },
         ],
+        tools,
+        tool_choice: { type: "function", function: { name: "resultado_inspeccion" } },
       }),
     });
 
@@ -72,14 +114,36 @@ ${categoria ? `- Contexto: la anotación es sobre la categoría "${categoria}"` 
       return new Response(
         JSON.stringify({ error: "Error del servicio de IA" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+      );
     }
 
     const data = await response.json();
-    const mejorado = data.choices?.[0]?.message?.content || texto;
 
+    // Try to extract tool call result
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    if (toolCall?.function?.arguments) {
+      try {
+        const args = JSON.parse(toolCall.function.arguments);
+        const normativaText = (args.normativa || [])
+          .map((n: any) => `${n.referencia} — ${n.descripcion}`)
+          .join("\n");
+
+        return new Response(
+          JSON.stringify({
+            texto_mejorado: args.texto_mejorado || texto,
+            normativa: normativaText,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (parseErr) {
+        console.error("Failed to parse tool call args:", parseErr);
+      }
+    }
+
+    // Fallback: plain text response
+    const mejorado = data.choices?.[0]?.message?.content || texto;
     return new Response(
-      JSON.stringify({ texto_mejorado: mejorado }),
+      JSON.stringify({ texto_mejorado: mejorado, normativa: "" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {

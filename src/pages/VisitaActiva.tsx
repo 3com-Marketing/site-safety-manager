@@ -28,7 +28,7 @@ interface BloqueData {
   id: string;
   categoria: string;
   estado: string;
-  anotaciones: { id: string; texto: string; foto_url: string | null; created_at: string }[];
+  anotaciones: { id: string; texto: string; normativa?: string; foto_url: string | null; created_at: string }[];
 }
 
 type ViewState =
@@ -84,7 +84,7 @@ export default function VisitaActiva() {
 
     const { data: bloquesData } = await supabase
       .from('checklist_bloques')
-      .select('id, categoria, estado, anotaciones(id, texto, foto_url, created_at)')
+      .select('id, categoria, estado, anotaciones(id, texto, normativa, foto_url, created_at)')
       .eq('informe_id', informe.id)
       .order('created_at');
 

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Trash2, Pencil } from 'lucide-react';
+import { ArrowLeft, Trash2, Pencil, Scale } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -12,6 +12,7 @@ import VoiceNoteDialog from './VoiceNoteDialog';
 interface Observacion {
   id: string;
   texto: string;
+  normativa: string;
   foto_url: string | null;
   created_at: string;
 }
@@ -81,6 +82,7 @@ export default function SeccionObservaciones({ informeId, visitaId, onBack, onRe
     const { error } = await supabase.from('observaciones').insert({
       informe_id: informeId,
       texto: voice.improvedText.trim(),
+      normativa: voice.normativa || '',
     });
 
     if (error) { toast.error('Error al guardar'); return; }
@@ -167,6 +169,15 @@ export default function SeccionObservaciones({ informeId, visitaId, onBack, onRe
                 ) : (
                   item.texto && <p className="text-sm text-foreground">{item.texto}</p>
                 )}
+                {item.normativa && (
+                  <div className="rounded-lg border border-primary/20 bg-primary/5 p-2.5 space-y-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <Scale className="h-3 w-3 text-primary" />
+                      <p className="text-[10px] font-semibold text-primary">Normativa</p>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground whitespace-pre-line">{item.normativa}</p>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -181,6 +192,7 @@ export default function SeccionObservaciones({ informeId, visitaId, onBack, onRe
         rawTranscript={voice.rawTranscript}
         improvedText={voice.improvedText}
         onImprovedTextChange={voice.setImprovedText}
+        normativa={voice.normativa}
         onStartRecording={voice.startRecording}
         onStopRecording={voice.stopRecording}
         onFinishRecording={voice.finishRecording}
