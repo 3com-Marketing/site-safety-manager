@@ -121,13 +121,13 @@ export default function VisitaActiva() {
       .single();
 
     if (!visita) {
-      navigate('/');
+      navigate(isAdminMode ? '/admin' : '/');
       return;
     }
 
     if (visita.estado === 'finalizada') {
       const deadline = addDays(new Date(visita.fecha), 7);
-      if (!isAfter(deadline, new Date())) {
+      if (!isAfter(deadline, new Date()) && !isAdminMode) {
         navigate('/');
         return;
       }
@@ -214,7 +214,7 @@ export default function VisitaActiva() {
     await supabase.from('visitas').update({ estado: 'finalizada' }).eq('id', id);
     await supabase.from('informes').update({ estado: 'pendiente_revision' }).eq('id', informeId);
     toast.success('Visita finalizada');
-    navigate('/');
+    navigate(isAdminMode ? '/admin' : '/');
   };
 
   const handleSelectSeccion = (seccionId: SeccionId) => {
@@ -259,7 +259,7 @@ export default function VisitaActiva() {
   return (
     <div className="min-h-screen bg-background pb-36">
       <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-card px-4 py-3">
-        <Button variant="ghost" size="icon" onClick={view.type === 'secciones' ? () => navigate('/') : handleBack}>
+        <Button variant="ghost" size="icon" onClick={view.type === 'secciones' ? () => navigate(isAdminMode ? '/admin' : '/') : handleBack}>
           {view.type === 'secciones' ? (
             <ArrowLeft className="h-5 w-5" />
           ) : (
@@ -329,13 +329,13 @@ export default function VisitaActiva() {
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                onClick={() => navigate('/')}
-                className={`h-14 ${isFinalized ? 'w-full' : 'flex-1'} text-base font-semibold gap-2`}
+                onClick={() => navigate(isAdminMode ? '/admin' : '/')}
+                className={`h-14 ${isFinalized || isAdminMode ? 'w-full' : 'flex-1'} text-base font-semibold gap-2`}
               >
                 <ArrowLeft className="h-5 w-5" />
-                Guardar y salir
+                {isAdminMode ? 'Volver a admin' : 'Guardar y salir'}
               </Button>
-              {!isFinalized && (
+              {!isFinalized && !isAdminMode && (
                 <Button
                   onClick={finishVisita}
                   disabled={finishing}
@@ -367,7 +367,7 @@ export default function VisitaActiva() {
                     Siguiente
                     <ArrowRight className="h-4 w-4" />
                   </Button>
-                ) : !isFinalized ? (
+                ) : !isFinalized && !isAdminMode ? (
                   <Button
                     onClick={finishVisita}
                     disabled={finishing}
@@ -385,7 +385,7 @@ export default function VisitaActiva() {
                   </Button>
                 )}
               </div>
-              {!isLastStep && !isFinalized && (
+              {!isLastStep && !isFinalized && !isAdminMode && (
                 <Button
                   variant="ghost"
                   size="sm"
