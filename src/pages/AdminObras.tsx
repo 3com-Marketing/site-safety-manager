@@ -261,6 +261,19 @@ export default function AdminObras() {
                 </div>
               )}
             </div>
+
+            {/* Ubicación en mapa */}
+            <div className="space-y-2">
+              <Label>Ubicación en mapa</Label>
+              <MapPicker
+                lat={latitud}
+                lng={longitud}
+                onSelect={(lat, lng) => { setLatitud(lat); setLongitud(lng); }}
+              />
+              {latitud && longitud && (
+                <p className="text-xs text-muted-foreground">📍 {latitud.toFixed(5)}, {longitud.toFixed(5)}</p>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button onClick={handleSave} disabled={saving || !nombre.trim() || !clienteId} className="h-12 rounded-xl">
@@ -310,6 +323,12 @@ export default function AdminObras() {
                   </div>
                 ) : <span className="text-muted-foreground ml-1">Ninguno</span>}
               </div>
+              {viewObra.latitud && viewObra.longitud && (
+                <div>
+                  <span className="font-semibold">Ubicación:</span>
+                  <MapPicker lat={viewObra.latitud} lng={viewObra.longitud} readOnly className="mt-2" />
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
