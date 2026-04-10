@@ -90,3 +90,12 @@
     font-family: var(--font-heading);
   }
 }
+
+@keyframes pulse-border {
+  0%, 100% { border-color: hsl(var(--warning) / 0.4); }
+  50% { border-color: hsl(var(--warning)); }
+}
+
+.animate-pulse-border {
+  animation: pulse-border 2s ease-in-out infinite;
+}
