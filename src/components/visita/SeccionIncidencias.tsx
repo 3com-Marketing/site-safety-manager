@@ -210,6 +210,8 @@ export default function SeccionIncidencias({ informeId, visitaId, onBack, onRefr
         onRepeat={voice.openDialog}
       />
 
+      <FotoViewer url={viewingFoto} onClose={() => setViewingFoto(null)} />
+
       {uploading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50">
           <div className="rounded-xl bg-card p-6 text-center">
