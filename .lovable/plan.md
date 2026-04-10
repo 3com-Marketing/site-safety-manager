@@ -1,103 +1,100 @@
 
 
-# Plan: Implementar Secciones Incidencias, Amonestaciones, Datos Generales y Observaciones
+# Plan: Normativa Automática + Generación de PDF
 
 ## Resumen
-Completar las 4 secciones que actualmente muestran "Próximamente", reutilizando el mismo patrón UX del checklist (foto + nota por voz con IA + lista de anotaciones editables).
+Dos funcionalidades principales:
+1. **Normativa automática**: Al crear/mejorar anotaciones e incidencias con IA, el sistema sugiere automáticamente la normativa aplicable (Real Decreto, artículo) vinculada a lo descrito.
+2. **Generación de PDF**: El admin puede generar un PDF profesional del informe completo desde `AdminInformeDetalle`.
 
-## Cambios en base de datos (2 migraciones)
+---
 
-### Migración 1: Tabla `observaciones`
-```sql
-CREATE TABLE public.observaciones (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  informe_id uuid NOT NULL REFERENCES informes(id) ON DELETE CASCADE,
-  texto text NOT NULL DEFAULT '',
-  foto_url text,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-ALTER TABLE observaciones ENABLE ROW LEVEL SECURITY;
--- RLS: mismo patrón que anotaciones (owner via informe->visita + admin)
+## Parte 1: Normativa Automática
+
+### Modificar edge function `mejorar-texto`
+- Ampliar el prompt del sistema para que, además de mejorar el texto, devuelva la normativa aplicable.
+- Usar tool calling (structured output) para extraer: `texto_mejorado` + `normativa` (array de `{referencia, descripcion}`).
+- Ejemplo de normativa: `"RD 1627/1997, Anexo IV, Parte C, punto 2 — Protección contra caídas de altura"`.
+
+### Modificar respuesta del edge function
+- Devolver `{ texto_mejorado, normativa: [{referencia, descripcion}] }`.
+
+### DB: Añadir columna `normativa` a tablas
+- Migración: añadir columna `normativa text default ''` a `anotaciones`, `incidencias`, `observaciones`, `amonestaciones`.
+- Almacena la normativa sugerida como texto (o JSON serializado).
+
+### Modificar componentes de captura
+- En `ChecklistBloque`, `SeccionIncidencias`, `SeccionAmonestaciones`, `SeccionObservaciones`: al recibir la respuesta de IA, guardar también la normativa.
+- Mostrar la normativa debajo del texto mejorado en el diálogo de edición y en la lista de anotaciones, con estilo visual diferenciado (badge o caja con icono de ley).
+
+### Modificar `VoiceNoteDialog`
+- Añadir sección que muestra la normativa sugerida debajo del texto mejorado.
+- El hook `useVoiceNote` almacenará también `normativa` en su estado.
+
+---
+
+## Parte 2: Generación de PDF
+
+### Nueva edge function `generar-pdf`
+- Recibe `informe_id`.
+- Consulta todas las tablas del informe: datos generales, checklist (bloques + anotaciones), incidencias (+ fotos), amonestaciones, observaciones.
+- Genera un PDF profesional con estructura:
+  1. Portada: logo SafeWork, nombre obra, fecha, técnico
+  2. Datos generales: trabajadores, clima, empresas, notas
+  3. Checklist por categoría: cada bloque con sus anotaciones (texto + normativa + foto si hay)
+  4. Incidencias: listado con fotos y normativa
+  5. Amonestaciones: con trabajador y descripción
+  6. Observaciones generales
+- Usa la librería `jsPDF` o similar disponible en Deno para generar el PDF.
+- Devuelve el PDF como `application/pdf` o lo sube a storage y devuelve la URL.
+
+### Modificar `AdminInformeDetalle.tsx`
+- El botón "Generar PDF" llama a la edge function.
+- Muestra spinner durante la generación.
+- Al recibir el PDF, lo descarga automáticamente o abre en nueva pestaña.
+- Mostrar también las secciones de checklist, amonestaciones, observaciones (actualmente solo muestra incidencias).
+
+### Ampliar la vista de detalle del informe
+- Añadir secciones colapsables para: Datos Generales, Checklist (por bloque), Amonestaciones, Observaciones.
+- Cada sección muestra sus datos con la normativa asociada.
+
+---
+
+## Archivos a crear/modificar
+
+| Archivo | Acción |
+|---------|--------|
+| `supabase/functions/mejorar-texto/index.ts` | Modificar: añadir normativa al prompt + tool calling |
+| `supabase/functions/generar-pdf/index.ts` | Crear: generación de PDF completo |
+| Migración SQL | Crear: añadir columna `normativa` a 4 tablas |
+| `src/hooks/useVoiceNote.ts` | Modificar: gestionar estado de normativa |
+| `src/components/visita/VoiceNoteDialog.tsx` | Modificar: mostrar normativa sugerida |
+| `src/components/visita/ChecklistBloque.tsx` | Modificar: guardar normativa al crear anotación |
+| `src/components/visita/SeccionIncidencias.tsx` | Modificar: guardar normativa |
+| `src/components/visita/SeccionAmonestaciones.tsx` | Modificar: guardar normativa |
+| `src/components/visita/SeccionObservaciones.tsx` | Modificar: guardar normativa |
+| `src/pages/AdminInformeDetalle.tsx` | Modificar: vista completa + descarga PDF funcional |
+
+---
+
+## Detalle técnico
+
+### Tool calling para normativa (en `mejorar-texto`)
+```json
+{
+  "name": "mejorar_y_normar",
+  "parameters": {
+    "texto_mejorado": "string",
+    "normativa": [{
+      "referencia": "RD 1627/1997, Art. 11",
+      "descripcion": "Obligaciones del coordinador en materia de seguridad"
+    }]
+  }
+}
 ```
 
-### Migración 2: Tabla `amonestaciones`
-```sql
-CREATE TABLE public.amonestaciones (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  informe_id uuid NOT NULL REFERENCES informes(id) ON DELETE CASCADE,
-  trabajador text NOT NULL DEFAULT '',
-  descripcion text NOT NULL DEFAULT '',
-  foto_url text,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-ALTER TABLE amonestaciones ENABLE ROW LEVEL SECURITY;
--- RLS: mismo patrón
-```
-
-### Datos Generales
-No necesita tabla nueva. Añadir columnas a `informes`:
-```sql
-ALTER TABLE informes
-  ADD COLUMN num_trabajadores integer,
-  ADD COLUMN condiciones_climaticas text DEFAULT '',
-  ADD COLUMN empresas_presentes text DEFAULT '',
-  ADD COLUMN notas_generales text DEFAULT '';
-```
-
-## Nuevos componentes (4 archivos)
-
-### `src/components/visita/SeccionIncidencias.tsx`
-- Header con botón back + titulo
-- Botones "Foto" + "Nota por voz" (reutilizando el mismo patrón de grabación + IA de ChecklistBloque)
-- Al crear, inserta en tabla `incidencias` con categoria='general', titulo auto-generado
-- Lista de incidencias existentes con fotos asociadas (tabla `fotos`)
-- Editable y eliminable
-
-### `src/components/visita/SeccionAmonestaciones.tsx`
-- Mismo layout: foto + voz con IA
-- Campo adicional "trabajador" (input texto)
-- Lista de amonestaciones con descripción mejorada por IA
-- Editable y eliminable
-
-### `src/components/visita/SeccionObservaciones.tsx`
-- Mismo layout: foto + voz con IA
-- Lista simple de observaciones (texto + foto opcional)
-- Editable y eliminable
-
-### `src/components/visita/SeccionDatosGenerales.tsx`
-- Formulario con campos editables:
-  - Num. trabajadores (input numérico)
-  - Condiciones climáticas (voz o texto)
-  - Empresas presentes (voz o texto)
-  - Notas generales (voz o texto)
-- Auto-guarda al cambiar (debounce)
-- Sin lista de anotaciones, es un formulario directo
-
-## Refactor: Extraer lógica de voz + IA a hook reutilizable
-
-### `src/hooks/useVoiceNote.ts`
-Extraer de ChecklistBloque la lógica de:
-- Grabación con Web Speech API
-- Llamada a edge function `mejorar-texto`
-- Estado del diálogo (recording/improving/editing)
-
-Esto evita duplicar ~100 líneas en cada sección.
-
-### `src/components/visita/VoiceNoteDialog.tsx`
-Extraer el diálogo de grabación/mejora/edición como componente reutilizable.
-
-## Modificar `VisitaActiva.tsx`
-- Importar los 4 nuevos componentes
-- Reemplazar el `SeccionPlaceholder` por el componente real según `seccionId`
-- Pasar `informeId`, `visitaId`, `onRefresh` a cada sección
-- Añadir conteos de amonestaciones y observaciones en los badges de `VisitaSecciones`
-
-## Modificar `VisitaSecciones.tsx`
-- Añadir props para `amonestacionesCount` y `observacionesCount`
-- Mostrar badges en las secciones correspondientes
-
-## UX
-- Todos los botones grandes, tablet-first
-- Mismo estilo visual: rounded-2xl, border-2, iconos grandes
-- Flujo idéntico al checklist: entrar > foto/voz > lista > volver
+### PDF (en edge function)
+- Generado server-side con fetch de todos los datos.
+- Subido a storage bucket `incidencia-fotos` (o nuevo bucket `informes-pdf`).
+- Devuelve URL pública para descarga.
 
