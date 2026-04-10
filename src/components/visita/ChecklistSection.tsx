@@ -38,7 +38,7 @@ export default function ChecklistSection({ bloqueEstados, onSelectBloque, onBack
         {BLOQUES.map((bloque) => {
           const Icon = bloque.icon;
           const est = getEstado(bloque.value);
-          const estado = est?.estado || 'pendiente';
+          const count = est?.anotacionesCount || 0;
           const count = est?.anotacionesCount || 0;
 
           return (
