@@ -39,7 +39,6 @@ export default function ChecklistSection({ bloqueEstados, onSelectBloque, onBack
           const Icon = bloque.icon;
           const est = getEstado(bloque.value);
           const count = est?.anotacionesCount || 0;
-          const count = est?.anotacionesCount || 0;
 
           return (
             <button
