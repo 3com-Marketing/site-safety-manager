@@ -123,6 +123,38 @@ export default function AdminVisitaDetalle() {
           </Button>
         )}
 
+        {/* Mapa de ubicación inicio/fin */}
+        {(visita.lat_inicio || visita.lat_fin) && (
+          <Collapsible defaultOpen>
+            <CollapsibleTrigger className="flex items-center gap-2 w-full text-left">
+              <ChevronDown className="h-4 w-4 transition-transform data-[state=closed]:rotate-[-90deg]" />
+              <h2 className="font-heading text-lg font-semibold flex items-center gap-2">
+                <MapPin className="h-4 w-4" /> Ubicación del técnico
+              </h2>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-3">
+              <MapPicker
+                readOnly
+                markers={[
+                  ...(visita.lat_inicio && visita.lng_inicio
+                    ? [{ lat: visita.lat_inicio, lng: visita.lng_inicio, label: 'Inicio', color: '#22c55e' }]
+                    : []),
+                  ...(visita.lat_fin && visita.lng_fin
+                    ? [{ lat: visita.lat_fin, lng: visita.lng_fin, label: 'Fin', color: '#ef4444' }]
+                    : []),
+                ]}
+                lat={visita.lat_inicio || visita.lat_fin}
+                lng={visita.lng_inicio || visita.lng_fin}
+                className="h-[300px]"
+              />
+              <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+                {visita.lat_inicio && <span>🟢 Inicio: {visita.lat_inicio.toFixed(5)}, {visita.lng_inicio.toFixed(5)}</span>}
+                {visita.lat_fin && <span>🔴 Fin: {visita.lat_fin.toFixed(5)}, {visita.lng_fin.toFixed(5)}</span>}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+
         {/* Datos Generales */}
         {informe && (
           <Collapsible defaultOpen>
