@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useVoiceNote } from '@/hooks/useVoiceNote';
 import VoiceNoteDialog from './VoiceNoteDialog';
+import FotoViewer from './FotoViewer';
 
 interface Anotacion {
   id: string;
@@ -38,6 +39,7 @@ export default function ChecklistBloque({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [viewingFoto, setViewingFoto] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
 
   const voice = useVoiceNote(categoriaLabel);
@@ -147,7 +149,7 @@ export default function ChecklistBloque({
                   </div>
                 </div>
                 {a.foto_url && (
-                  <img src={a.foto_url} alt="Foto anotación" className="w-full max-h-48 rounded-lg object-cover border border-border" />
+                  <img src={a.foto_url} alt="Foto anotación" className="w-full max-h-[400px] rounded-lg object-contain bg-muted/50 border border-border cursor-pointer" onClick={() => setViewingFoto(a.foto_url)} />
                 )}
                 {editingId === a.id ? (
                   <div className="space-y-2">
@@ -190,6 +192,8 @@ export default function ChecklistBloque({
         onSave={saveImprovedNote}
         onRepeat={voice.openDialog}
       />
+
+      <FotoViewer url={viewingFoto} onClose={() => setViewingFoto(null)} />
 
       {uploading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50">

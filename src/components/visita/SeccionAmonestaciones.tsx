@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useVoiceNote } from '@/hooks/useVoiceNote';
 import VoiceNoteDialog from './VoiceNoteDialog';
+import FotoViewer from './FotoViewer';
 
 interface Amonestacion {
   id: string;
@@ -32,6 +33,7 @@ export default function SeccionAmonestaciones({ informeId, visitaId, onBack, onR
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
   const [loading, setLoading] = useState(true);
+  const [viewingFoto, setViewingFoto] = useState<string | null>(null);
   const [trabajadorInput, setTrabajadorInput] = useState('');
   const [showTrabajadorInput, setShowTrabajadorInput] = useState(false);
   const [pendingAction, setPendingAction] = useState<'photo' | 'voice' | null>(null);
@@ -207,7 +209,7 @@ export default function SeccionAmonestaciones({ informeId, visitaId, onBack, onR
                   </div>
                 </div>
                 {item.foto_url && (
-                  <img src={item.foto_url} alt="Foto" className="w-full max-h-48 rounded-lg object-cover border border-border" />
+                  <img src={item.foto_url} alt="Foto" className="w-full max-h-[400px] rounded-lg object-contain bg-muted/50 border border-border cursor-pointer" onClick={() => setViewingFoto(item.foto_url)} />
                 )}
                 {editingId === item.id ? (
                   <div className="space-y-2">
@@ -240,6 +242,8 @@ export default function SeccionAmonestaciones({ informeId, visitaId, onBack, onR
         onSave={saveVoiceNote}
         onRepeat={voice.openDialog}
       />
+
+      <FotoViewer url={viewingFoto} onClose={() => setViewingFoto(null)} />
 
       {uploading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50">
