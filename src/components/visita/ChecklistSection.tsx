@@ -13,7 +13,6 @@ export type BloqueCategoria = typeof BLOQUES[number]['value'];
 
 interface BloqueEstado {
   categoria: string;
-  estado: string;
   anotacionesCount: number;
 }
 
@@ -39,7 +38,6 @@ export default function ChecklistSection({ bloqueEstados, onSelectBloque, onBack
         {BLOQUES.map((bloque) => {
           const Icon = bloque.icon;
           const est = getEstado(bloque.value);
-          const estado = est?.estado || 'pendiente';
           const count = est?.anotacionesCount || 0;
 
           return (
@@ -57,15 +55,6 @@ export default function ChecklistSection({ bloqueEstados, onSelectBloque, onBack
                   <span className="text-xs text-muted-foreground">{count} anotación{count !== 1 ? 'es' : ''}</span>
                 )}
               </div>
-              <span className={`text-xs font-semibold px-3 py-1.5 rounded-full shrink-0 ${
-                estado === 'correcto'
-                  ? 'bg-success/10 text-success'
-                  : estado === 'incorrecto'
-                  ? 'bg-destructive/10 text-destructive'
-                  : 'bg-muted text-muted-foreground'
-              }`}>
-                {estado === 'correcto' ? '✓ Correcto' : estado === 'incorrecto' ? '✗ Incorrecto' : 'Pendiente'}
-              </span>
               <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
             </button>
           );
