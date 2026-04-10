@@ -243,9 +243,9 @@ export default function VisitaActiva() {
   return (
     <div className="min-h-screen bg-background pb-36">
       <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-card px-4 py-3">
-        <Button variant="ghost" size="icon" onClick={handleBack}>
+        <Button variant="ghost" size="icon" onClick={view.type === 'secciones' ? () => navigate('/') : handleBack}>
           {view.type === 'secciones' ? (
-            <ArrowLeft className="h-5 w-5" onClick={(e) => { e.stopPropagation(); navigate('/'); }} />
+            <ArrowLeft className="h-5 w-5" />
           ) : (
             <Home className="h-5 w-5" />
           )}
@@ -305,15 +305,25 @@ export default function VisitaActiva() {
       <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-card p-4">
         <div className="mx-auto max-w-2xl">
           {view.type === 'secciones' ? (
-            <Button
-              onClick={finishVisita}
-              disabled={finishing}
-              variant="default"
-              className="h-14 w-full text-base font-bold gap-2 bg-success hover:bg-success/90 text-success-foreground"
-            >
-              <Check className="h-5 w-5" />
-              {finishing ? 'Finalizando...' : 'FINALIZAR VISITA'}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => navigate('/')}
+                className="h-14 flex-1 text-base font-semibold gap-2"
+              >
+                <ArrowLeft className="h-5 w-5" />
+                Guardar y salir
+              </Button>
+              <Button
+                onClick={finishVisita}
+                disabled={finishing}
+                variant="default"
+                className="h-14 flex-1 text-base font-bold gap-2 bg-success hover:bg-success/90 text-success-foreground"
+              >
+                <Check className="h-5 w-5" />
+                {finishing ? 'Finalizando...' : 'FINALIZAR VISITA'}
+              </Button>
+            </div>
           ) : (
             <div className="flex flex-col gap-2">
               <div className="flex gap-2">
