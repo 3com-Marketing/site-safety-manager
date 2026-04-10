@@ -75,7 +75,9 @@ type ViewState =
 export default function VisitaActiva() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
+  const isAdminMode = location.pathname.startsWith('/admin/');
 
   const [informeId, setInformeId] = useState<string | null>(null);
   const [obraNombre, setObraNombre] = useState('');
