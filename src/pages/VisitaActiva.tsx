@@ -3,9 +3,9 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Check, Home, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Home, Loader2, Clock } from 'lucide-react';
 import { toast } from 'sonner';
-import { addDays, isAfter, format } from 'date-fns';
+import { addDays, isAfter, format, differenceInSeconds } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import VisitaSecciones, { type SeccionId } from '@/components/visita/VisitaSecciones';
@@ -92,6 +92,8 @@ export default function VisitaActiva() {
   const [view, setView] = useState<ViewState>({ type: 'secciones' });
   const [isFinalized, setIsFinalized] = useState(false);
   const [editableUntil, setEditableUntil] = useState<Date | null>(null);
+  const [fechaInicio, setFechaInicio] = useState<string | null>(null);
+  const [elapsed, setElapsed] = useState(0);
 
   const currentStepIndex = view.type === 'step' ? STEPS.indexOf(view.stepId) : -1;
   const isFirstStep = currentStepIndex === 0;
