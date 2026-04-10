@@ -9,6 +9,9 @@ import Login from "./pages/Login";
 import SelectObra from "./pages/SelectObra";
 import VisitaActiva from "./pages/VisitaActiva";
 import AdminInformeDetalle from "./pages/AdminInformeDetalle";
+import AdminClientes from "./pages/AdminClientes";
+import AdminObras from "./pages/AdminObras";
+import AdminTecnicos from "./pages/AdminTecnicos";
 import NotFound from "./pages/NotFound";
 import RoleSwitcher from "./components/RoleSwitcher";
 
