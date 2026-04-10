@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { ArrowLeft, Camera, MessageSquare, Trash2 } from 'lucide-react';
+import { ArrowLeft, Camera, Mic, MicOff, Trash2, Sparkles, Loader2, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -31,32 +31,34 @@ interface Props {
   onRefresh: () => void;
 }
 
+// Check browser support for Web Speech API
+const SpeechRecognition =
+  (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
 export default function ChecklistBloque({
   bloqueId,
   categoria,
   categoriaLabel,
-  estado,
   anotaciones,
   visitaId,
   onBack,
   onRefresh,
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const recognitionRef = useRef<any>(null);
   const [uploading, setUploading] = useState(false);
-  const [showNoteDialog, setShowNoteDialog] = useState(false);
-  const [noteText, setNoteText] = useState('');
 
-  const updateEstado = async (newEstado: string) => {
-    const { error } = await supabase
-      .from('checklist_bloques')
-      .update({ estado: newEstado })
-      .eq('id', bloqueId);
-    if (error) {
-      toast.error('Error al actualizar estado');
-      return;
-    }
-    onRefresh();
-  };
+  // Voice recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [rawTranscript, setRawTranscript] = useState('');
+  const [improvedText, setImprovedText] = useState('');
+  const [isImproving, setIsImproving] = useState(false);
+  const [showVoiceDialog, setShowVoiceDialog] = useState(false);
+  const [dialogStep, setDialogStep] = useState<'recording' | 'improving' | 'editing'>('recording');
+
+  // Editing existing annotation
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
 
   const handlePhotoCapture = () => {
     fileInputRef.current?.click();
@@ -100,19 +102,140 @@ export default function ChecklistBloque({
     onRefresh();
   };
 
-  const handleNoteSubmit = async () => {
-    if (!noteText.trim()) return;
+  // Voice recording
+  const startRecording = () => {
+    if (!SpeechRecognition) {
+      toast.error('Tu navegador no soporta reconocimiento de voz. Usa Chrome o Edge.');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    let finalTranscript = '';
+
+    recognition.onresult = (event: any) => {
+      let interim = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript + ' ';
+        } else {
+          interim = transcript;
+        }
+      }
+      setRawTranscript(finalTranscript + interim);
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      if (event.error !== 'no-speech') {
+        toast.error('Error en el reconocimiento de voz');
+      }
+      setIsRecording(false);
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsRecording(true);
+  };
+
+  const stopRecording = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+    setIsRecording(false);
+  };
+
+  const openVoiceDialog = () => {
+    setRawTranscript('');
+    setImprovedText('');
+    setDialogStep('recording');
+    setShowVoiceDialog(true);
+  };
+
+  const handleFinishRecording = async () => {
+    stopRecording();
+    if (!rawTranscript.trim()) {
+      toast.error('No se ha detectado ningún texto');
+      return;
+    }
+    await improveText(rawTranscript.trim());
+  };
+
+  const improveText = async (texto: string) => {
+    setDialogStep('improving');
+    setIsImproving(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('mejorar-texto', {
+        body: { texto, categoria: categoriaLabel },
+      });
+
+      if (error) {
+        console.error('AI error:', error);
+        // Fallback: use raw text
+        setImprovedText(texto);
+        toast.error('No se pudo mejorar el texto. Se usará el original.');
+      } else {
+        setImprovedText(data.texto_mejorado || texto);
+      }
+    } catch (err) {
+      console.error('AI error:', err);
+      setImprovedText(texto);
+      toast.error('No se pudo mejorar el texto. Se usará el original.');
+    }
+
+    setIsImproving(false);
+    setDialogStep('editing');
+  };
+
+  const saveImprovedNote = async () => {
+    if (!improvedText.trim()) return;
+
     const { error } = await supabase.from('anotaciones').insert({
       bloque_id: bloqueId,
-      texto: noteText.trim(),
+      texto: improvedText.trim(),
     });
+
     if (error) {
       toast.error('Error al guardar nota');
       return;
     }
-    toast.success('Nota añadida');
-    setNoteText('');
-    setShowNoteDialog(false);
+
+    toast.success('Nota guardada');
+    setShowVoiceDialog(false);
+    setRawTranscript('');
+    setImprovedText('');
+    onRefresh();
+  };
+
+  const startEditAnotacion = (a: Anotacion) => {
+    setEditingId(a.id);
+    setEditText(a.texto);
+  };
+
+  const saveEditAnotacion = async () => {
+    if (!editingId) return;
+    const { error } = await supabase
+      .from('anotaciones')
+      .update({ texto: editText.trim() })
+      .eq('id', editingId);
+
+    if (error) {
+      toast.error('Error al actualizar');
+      return;
+    }
+    toast.success('Nota actualizada');
+    setEditingId(null);
+    setEditText('');
     onRefresh();
   };
 
@@ -121,6 +244,15 @@ export default function ChecklistBloque({
     toast.success('Anotación eliminada');
     onRefresh();
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
 
   return (
     <div className="space-y-5">
@@ -142,42 +274,15 @@ export default function ChecklistBloque({
         <h2 className="font-heading text-base font-semibold">{categoriaLabel}</h2>
       </div>
 
-      {/* Estado general */}
-      <div className="space-y-2">
-        <p className="text-sm font-medium text-muted-foreground">Estado general</p>
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() => updateEstado('correcto')}
-            className={`flex items-center justify-center gap-2 rounded-2xl border-2 p-4 font-heading font-semibold text-base transition-all active:scale-95 ${
-              estado === 'correcto'
-                ? 'border-success bg-success/10 text-success'
-                : 'border-border bg-card text-foreground hover:border-success/50'
-            }`}
-          >
-            ✓ Correcto
-          </button>
-          <button
-            onClick={() => updateEstado('incorrecto')}
-            className={`flex items-center justify-center gap-2 rounded-2xl border-2 p-4 font-heading font-semibold text-base transition-all active:scale-95 ${
-              estado === 'incorrecto'
-                ? 'border-destructive bg-destructive/10 text-destructive'
-                : 'border-border bg-card text-foreground hover:border-destructive/50'
-            }`}
-          >
-            ✗ Incorrecto
-          </button>
-        </div>
-      </div>
-
       {/* Action buttons */}
       <div className="grid grid-cols-2 gap-3">
         <button onClick={handlePhotoCapture} className="field-action-btn">
           <span className="icon">📷</span>
           <span className="label">Foto</span>
         </button>
-        <button onClick={() => setShowNoteDialog(true)} className="field-action-btn">
-          <span className="icon">📝</span>
-          <span className="label">Nota</span>
+        <button onClick={openVoiceDialog} className="field-action-btn">
+          <span className="icon">🎤</span>
+          <span className="label">Nota por voz</span>
         </button>
       </div>
 
@@ -197,14 +302,26 @@ export default function ChecklistBloque({
                   <p className="text-xs text-muted-foreground">
                     {format(new Date(a.created_at), "dd MMM yyyy, HH:mm", { locale: es })}
                   </p>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive shrink-0"
-                    onClick={() => deleteAnotacion(a.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex gap-1 shrink-0">
+                    {a.texto && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => startEditAnotacion(a)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive"
+                      onClick={() => deleteAnotacion(a.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
                 {a.foto_url && (
                   <img
@@ -213,8 +330,24 @@ export default function ChecklistBloque({
                     className="w-full max-h-48 rounded-lg object-cover border border-border"
                   />
                 )}
-                {a.texto && (
-                  <p className="text-sm text-foreground">{a.texto}</p>
+                {editingId === a.id ? (
+                  <div className="space-y-2">
+                    <Textarea
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      className="min-h-[80px] text-sm"
+                    />
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={saveEditAnotacion} className="flex-1">
+                        Guardar
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setEditingId(null)} className="flex-1">
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  a.texto && <p className="text-sm text-foreground">{a.texto}</p>
                 )}
               </div>
             ))}
@@ -222,27 +355,106 @@ export default function ChecklistBloque({
         )}
       </div>
 
-      {/* Note dialog */}
-      <Dialog open={showNoteDialog} onOpenChange={setShowNoteDialog}>
+      {/* Voice recording dialog */}
+      <Dialog open={showVoiceDialog} onOpenChange={(open) => {
+        if (!open) {
+          stopRecording();
+          setShowVoiceDialog(false);
+        }
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-heading">Añadir nota</DialogTitle>
+            <DialogTitle className="font-heading">
+              {dialogStep === 'recording' && 'Grabar nota de voz'}
+              {dialogStep === 'improving' && 'Mejorando texto...'}
+              {dialogStep === 'editing' && 'Revisar nota'}
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <Textarea
-              placeholder="Escribe tu observación..."
-              value={noteText}
-              onChange={(e) => setNoteText(e.target.value)}
-              className="min-h-[120px] text-base"
-            />
-            <Button
-              onClick={handleNoteSubmit}
-              className="h-12 w-full text-base font-semibold"
-              disabled={!noteText.trim()}
-            >
-              Guardar nota
-            </Button>
-          </div>
+
+          {/* Step 1: Recording */}
+          {dialogStep === 'recording' && (
+            <div className="space-y-4">
+              <div className="flex flex-col items-center gap-4 py-4">
+                <button
+                  onClick={isRecording ? stopRecording : startRecording}
+                  className={`flex h-20 w-20 items-center justify-center rounded-full transition-all active:scale-95 ${
+                    isRecording
+                      ? 'bg-destructive text-destructive-foreground animate-pulse'
+                      : 'bg-primary text-primary-foreground'
+                  }`}
+                >
+                  {isRecording ? <MicOff className="h-8 w-8" /> : <Mic className="h-8 w-8" />}
+                </button>
+                <p className="text-sm text-muted-foreground text-center">
+                  {isRecording
+                    ? 'Escuchando... Pulsa para detener'
+                    : 'Pulsa para empezar a hablar'}
+                </p>
+              </div>
+
+              {rawTranscript && (
+                <div className="rounded-lg bg-muted p-3">
+                  <p className="text-xs text-muted-foreground mb-1">Transcripción:</p>
+                  <p className="text-sm">{rawTranscript}</p>
+                </div>
+              )}
+
+              <Button
+                onClick={handleFinishRecording}
+                disabled={!rawTranscript.trim()}
+                className="h-12 w-full text-base font-semibold gap-2"
+              >
+                <Sparkles className="h-5 w-5" />
+                Mejorar con IA
+              </Button>
+            </div>
+          )}
+
+          {/* Step 2: AI improving */}
+          {dialogStep === 'improving' && (
+            <div className="flex flex-col items-center gap-4 py-8">
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Procesando con IA...</p>
+            </div>
+          )}
+
+          {/* Step 3: Edit result */}
+          {dialogStep === 'editing' && (
+            <div className="space-y-4">
+              {rawTranscript !== improvedText && (
+                <div className="rounded-lg bg-muted p-3">
+                  <p className="text-xs text-muted-foreground mb-1">Texto original:</p>
+                  <p className="text-xs text-muted-foreground italic">{rawTranscript}</p>
+                </div>
+              )}
+
+              <div>
+                <p className="text-xs text-muted-foreground mb-2">Resultado (editable):</p>
+                <Textarea
+                  value={improvedText}
+                  onChange={(e) => setImprovedText(e.target.value)}
+                  className="min-h-[120px] text-base"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={saveImprovedNote}
+                  disabled={!improvedText.trim()}
+                  className="h-12 flex-1 text-base font-semibold"
+                >
+                  Guardar nota
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={openVoiceDialog}
+                  className="h-12"
+                >
+                  Repetir
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
