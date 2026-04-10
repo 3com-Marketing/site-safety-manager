@@ -34,6 +34,7 @@ export default function SeccionIncidencias({ informeId, visitaId, onBack, onRefr
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
   const [loading, setLoading] = useState(true);
+  const [viewingFoto, setViewingFoto] = useState<string | null>(null);
 
   const voice = useVoiceNote('Incidencias de seguridad');
 
@@ -165,7 +166,7 @@ export default function SeccionIncidencias({ informeId, visitaId, onBack, onRefr
                   </div>
                 </div>
                 {inc.fotos?.map((f) => (
-                  <img key={f.id} src={f.url} alt="Foto" className="w-full max-h-48 rounded-lg object-cover border border-border" />
+                  <img key={f.id} src={f.url} alt="Foto" className="w-full max-h-[400px] rounded-lg object-contain bg-muted/50 border border-border cursor-pointer" onClick={() => setViewingFoto(f.url)} />
                 ))}
                 {editingId === inc.id ? (
                   <div className="space-y-2">
