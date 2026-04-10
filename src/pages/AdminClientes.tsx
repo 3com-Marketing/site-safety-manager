@@ -73,11 +73,15 @@ export default function AdminClientes() {
     // Fetch all contacts to show primary contact per client
     const { data: allContactos } = await supabase.from('contactos_cliente').select('*').order('created_at');
     if (allContactos) {
-      const map: Record<string, Contacto> = {};
+      const primary: Record<string, Contacto> = {};
+      const all: Record<string, Contacto[]> = {};
       allContactos.forEach(ct => {
-        if (!map[ct.cliente_id]) map[ct.cliente_id] = ct;
+        if (!primary[ct.cliente_id]) primary[ct.cliente_id] = ct;
+        if (!all[ct.cliente_id]) all[ct.cliente_id] = [];
+        all[ct.cliente_id].push(ct);
       });
-      setPrimaryContacts(map);
+      setPrimaryContacts(primary);
+      setAllContactsMap(all);
     }
   };
 
