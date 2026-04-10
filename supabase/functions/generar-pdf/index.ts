@@ -48,7 +48,7 @@ serve(async (req) => {
         .order("created_at"),
       supabase
         .from("incidencias")
-        .select("titulo, descripcion, categoria, normativa, fotos(url)")
+        .select("titulo, descripcion, categoria, normativa, fotos(url, created_at)")
         .eq("informe_id", informe_id)
         .order("orden"),
       supabase
@@ -105,7 +105,8 @@ serve(async (req) => {
   .normativa { background: #FFF8F0; border-left: 3px solid #F37520; padding: 6pt 10pt; margin-top: 6pt; font-size: 9pt; color: #555; }
   .normativa-label { font-weight: bold; color: #F37520; font-size: 8pt; text-transform: uppercase; }
   .badge { display: inline-block; background: #F37520; color: white; font-size: 8pt; padding: 2pt 8pt; border-radius: 10pt; }
-  .foto { max-width: 200pt; max-height: 150pt; border-radius: 4pt; margin: 6pt 4pt 6pt 0; }
+  .foto { max-width: 200pt; max-height: 150pt; border-radius: 4pt; margin: 6pt 4pt 2pt 0; }
+  .foto-caption { font-size: 8pt; color: #666; text-align: center; margin: 2pt 0 6pt 0; }
   .empty { color: #999; font-style: italic; }
   table { width: 100%; border-collapse: collapse; margin: 8pt 0; }
   th, td { border: 1px solid #ddd; padding: 6pt 8pt; text-align: left; font-size: 10pt; }
@@ -149,7 +150,10 @@ ${informe.notas_generales ? `<p><strong>Notas generales:</strong> ${informe.nota
           for (const a of anotaciones) {
             html += `<div class="item-card">`;
             if (a.texto) html += `<p>${a.texto}</p>`;
-            if (a.foto_url) html += `<img class="foto" src="${a.foto_url}" />`;
+            if (a.foto_url) {
+              const fDate = new Date(a.created_at).toLocaleString("es-ES", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+              html += `<img class="foto" src="${a.foto_url}" /><p class="foto-caption">📅 ${fDate}</p>`;
+            }
             if (a.normativa) html += `<div class="normativa"><span class="normativa-label">📋 Normativa</span><br/>${a.normativa.replace(/\n/g, "<br/>")}</div>`;
             html += `</div>`;
           }
@@ -168,7 +172,8 @@ ${informe.notas_generales ? `<p><strong>Notas generales:</strong> ${informe.nota
           ${inc.descripcion ? `<p>${inc.descripcion}</p>` : ""}`;
         if (inc.fotos?.length) {
           for (const f of inc.fotos) {
-            html += `<img class="foto" src="${f.url}" />`;
+            const fDate = new Date(f.created_at).toLocaleString("es-ES", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+            html += `<img class="foto" src="${f.url}" /><p class="foto-caption">📅 ${fDate}</p>`;
           }
         }
         if (inc.normativa) html += `<div class="normativa"><span class="normativa-label">📋 Normativa</span><br/>${inc.normativa.replace(/\n/g, "<br/>")}</div>`;
@@ -183,6 +188,10 @@ ${informe.notas_generales ? `<p><strong>Notas generales:</strong> ${informe.nota
       html += `<table><tr><th>Trabajador</th><th>Descripción</th><th>Normativa</th></tr>`;
       for (const a of amonestaciones as any[]) {
         html += `<tr><td>${a.trabajador || "—"}</td><td>${a.descripcion || "—"}</td><td>${a.normativa || "—"}</td></tr>`;
+        if (a.foto_url) {
+          const fDate = new Date(a.created_at).toLocaleString("es-ES", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+          html += `<tr><td colspan="3"><img class="foto" src="${a.foto_url}" /><p class="foto-caption">📅 ${fDate}</p></td></tr>`;
+        }
       }
       html += `</table>`;
     }
@@ -194,7 +203,10 @@ ${informe.notas_generales ? `<p><strong>Notas generales:</strong> ${informe.nota
       for (const obs of observaciones as any[]) {
         html += `<div class="item-card">`;
         if (obs.texto) html += `<p>${obs.texto}</p>`;
-        if (obs.foto_url) html += `<img class="foto" src="${obs.foto_url}" />`;
+        if (obs.foto_url) {
+          const fDate = new Date(obs.created_at).toLocaleString("es-ES", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+          html += `<img class="foto" src="${obs.foto_url}" /><p class="foto-caption">📅 ${fDate}</p>`;
+        }
         if (obs.normativa) html += `<div class="normativa"><span class="normativa-label">📋 Normativa</span><br/>${obs.normativa.replace(/\n/g, "<br/>")}</div>`;
         html += `</div>`;
       }
