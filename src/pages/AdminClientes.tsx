@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Building2, Users, UserPlus, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Building2, Users, UserPlus, X, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Cliente {
@@ -61,6 +61,9 @@ export default function AdminClientes() {
 
   // Primary contacts map (cliente_id -> first contact)
   const [primaryContacts, setPrimaryContacts] = useState<Record<string, Contacto>>({});
+  // All contacts map for view dialog
+  const [allContactsMap, setAllContactsMap] = useState<Record<string, Contacto[]>>({});
+  const [viewCliente, setViewCliente] = useState<Cliente | null>(null);
 
   const fetchClientes = async () => {
     const { data } = await supabase.from('clientes').select('*').order('nombre');
@@ -70,11 +73,15 @@ export default function AdminClientes() {
     // Fetch all contacts to show primary contact per client
     const { data: allContactos } = await supabase.from('contactos_cliente').select('*').order('created_at');
     if (allContactos) {
-      const map: Record<string, Contacto> = {};
+      const primary: Record<string, Contacto> = {};
+      const all: Record<string, Contacto[]> = {};
       allContactos.forEach(ct => {
-        if (!map[ct.cliente_id]) map[ct.cliente_id] = ct;
+        if (!primary[ct.cliente_id]) primary[ct.cliente_id] = ct;
+        if (!all[ct.cliente_id]) all[ct.cliente_id] = [];
+        all[ct.cliente_id].push(ct);
       });
-      setPrimaryContacts(map);
+      setPrimaryContacts(primary);
+      setAllContactsMap(all);
     }
   };
 
@@ -227,6 +234,9 @@ export default function AdminClientes() {
                   <Button variant="ghost" size="icon" onClick={() => openContactos(c)} title="Contactos">
                     <Users className="h-4 w-4" />
                   </Button>
+                  <Button variant="ghost" size="icon" onClick={() => setViewCliente(c)} title="Ver ficha">
+                    <Eye className="h-4 w-4" />
+                  </Button>
                   <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -239,6 +249,65 @@ export default function AdminClientes() {
           </div>
         )}
       </div>
+
+      {/* View Client Dialog */}
+      <Dialog open={!!viewCliente} onOpenChange={open => !open && setViewCliente(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" /> {viewCliente?.nombre}
+              {viewCliente && tipoLabel(viewCliente.tipo_cliente)}
+            </DialogTitle>
+          </DialogHeader>
+          {viewCliente && (
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground text-xs">CIF</p>
+                  <p className="font-medium">{viewCliente.cif || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Ciudad</p>
+                  <p className="font-medium">{viewCliente.ciudad || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Teléfono</p>
+                  <p className="font-medium">{viewCliente.telefono || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Email</p>
+                  <p className="font-medium">{viewCliente.email || '—'}</p>
+                </div>
+              </div>
+              {viewCliente.notas && (
+                <div>
+                  <p className="text-muted-foreground text-xs">Notas</p>
+                  <p className="text-sm">{viewCliente.notas}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-sm font-semibold mb-2 flex items-center gap-2">
+                  <Users className="h-4 w-4" /> Contactos
+                </p>
+                {(allContactsMap[viewCliente.id] || []).length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Sin contactos</p>
+                ) : (
+                  <div className="space-y-2">
+                    {(allContactsMap[viewCliente.id] || []).map(ct => (
+                      <div key={ct.id} className="rounded-lg border border-border bg-muted/30 p-3">
+                        <p className="text-sm font-semibold">{ct.nombre}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {[ct.cargo, ct.telefono, ct.email].filter(Boolean).join(' · ')}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Create/Edit Client Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
