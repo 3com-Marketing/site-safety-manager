@@ -16,9 +16,15 @@ interface Obra {
   direccion: string;
   cliente_id: string;
   cliente_nombre?: string;
+  tecnicos?: string[];
 }
 
 interface Cliente {
+  id: string;
+  nombre: string;
+}
+
+interface TecnicoMin {
   id: string;
   nombre: string;
 }
