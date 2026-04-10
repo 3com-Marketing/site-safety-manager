@@ -4,8 +4,10 @@ import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { HardHat, LogOut, Plus, ChevronRight } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, addDays, isAfter } from 'date-fns';
 import { es } from 'date-fns/locale';
+
+const isWithinEditWindow = (fecha: string) => isAfter(addDays(new Date(fecha), 7), new Date());
 
 interface VisitaReciente {
   id: string;
@@ -79,11 +81,18 @@ export default function TechHome() {
             <p className="text-muted-foreground text-sm">No hay visitas aún</p>
           ) : (
             <div className="space-y-2">
-              {visitas.map(v => (
+              {visitas.map(v => {
+                const editable = v.estado === 'en_progreso' || (v.estado === 'finalizada' && isWithinEditWindow(v.fecha));
+                const editableUntil = v.estado === 'finalizada' && editable
+                  ? format(addDays(new Date(v.fecha), 7), "dd MMM", { locale: es })
+                  : null;
+
+                return (
                 <button
                   key={v.id}
-                  onClick={() => v.estado === 'en_progreso' ? navigate(`/visita/${v.id}`) : null}
-                  className="flex w-full items-center justify-between rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/50"
+                  onClick={() => editable ? navigate(`/visita/${v.id}`) : undefined}
+                  disabled={!editable}
+                  className={`flex w-full items-center justify-between rounded-xl border border-border bg-card p-4 text-left transition-colors ${editable ? 'hover:border-primary/50' : 'opacity-60 cursor-default'}`}
                 >
                   <div>
                     <p className="font-heading font-semibold text-sm">{v.obra_nombre}</p>
@@ -95,14 +104,16 @@ export default function TechHome() {
                     <span className={`text-xs font-medium px-2 py-1 rounded-full ${
                       v.estado === 'en_progreso'
                         ? 'bg-warning/10 text-warning'
-                        : 'bg-success/10 text-success'
+                        : editable
+                          ? 'bg-warning/10 text-warning'
+                          : 'bg-success/10 text-success'
                     }`}>
-                      {v.estado === 'en_progreso' ? 'En progreso' : 'Finalizada'}
+                      {v.estado === 'en_progreso' ? 'En progreso' : editable ? `Editable hasta ${editableUntil}` : 'Finalizada'}
                     </span>
-                    {v.estado === 'en_progreso' && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                    {editable && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                   </div>
-                </button>
-              ))}
+                </button>);
+              })}
             </div>
           )}
         </div>

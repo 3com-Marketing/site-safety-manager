@@ -3,8 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Check, Home } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Home, Info } from 'lucide-react';
 import { toast } from 'sonner';
+import { addDays, isAfter, format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import VisitaSecciones, { type SeccionId } from '@/components/visita/VisitaSecciones';
 import ChecklistSection from '@/components/visita/ChecklistSection';
 import type { BloqueCategoria } from '@/components/visita/ChecklistSection';
@@ -84,6 +86,8 @@ export default function VisitaActiva() {
   const [loading, setLoading] = useState(true);
   const [finishing, setFinishing] = useState(false);
   const [view, setView] = useState<ViewState>({ type: 'secciones' });
+  const [isFinalized, setIsFinalized] = useState(false);
+  const [editableUntil, setEditableUntil] = useState<Date | null>(null);
 
   const currentStepIndex = view.type === 'step' ? STEPS.indexOf(view.stepId) : -1;
   const isFirstStep = currentStepIndex === 0;
@@ -110,13 +114,23 @@ export default function VisitaActiva() {
 
     const { data: visita } = await supabase
       .from('visitas')
-      .select('id, estado, obras(nombre)')
+      .select('id, estado, fecha, obras(nombre)')
       .eq('id', id)
       .single();
 
-    if (!visita || visita.estado === 'finalizada') {
+    if (!visita) {
       navigate('/');
       return;
+    }
+
+    if (visita.estado === 'finalizada') {
+      const deadline = addDays(new Date(visita.fecha), 7);
+      if (!isAfter(deadline, new Date())) {
+        navigate('/');
+        return;
+      }
+      setIsFinalized(true);
+      setEditableUntil(deadline);
     }
 
     setObraNombre((visita as any).obras?.nombre || 'Obra');
@@ -257,7 +271,11 @@ export default function VisitaActiva() {
               Paso {stepNumber} de {STEPS.length} · {currentStepLabel}
             </p>
           ) : (
-            <p className="text-xs text-muted-foreground">Visita en progreso</p>
+            <p className="text-xs text-muted-foreground">
+              {isFinalized && editableUntil
+                ? `Finalizada · Editable hasta ${format(editableUntil, "dd MMM yyyy", { locale: es })}`
+                : 'Visita en progreso'}
+            </p>
           )}
         </div>
       </header>
@@ -310,20 +328,22 @@ export default function VisitaActiva() {
               <Button
                 variant="outline"
                 onClick={() => navigate('/')}
-                className="h-14 flex-1 text-base font-semibold gap-2"
+                className={`h-14 ${isFinalized ? 'w-full' : 'flex-1'} text-base font-semibold gap-2`}
               >
                 <ArrowLeft className="h-5 w-5" />
                 Guardar y salir
               </Button>
-              <Button
-                onClick={finishVisita}
-                disabled={finishing}
-                variant="default"
-                className="h-14 flex-1 text-base font-bold gap-2 bg-success hover:bg-success/90 text-success-foreground"
-              >
-                <Check className="h-5 w-5" />
-                {finishing ? 'Finalizando...' : 'FINALIZAR VISITA'}
-              </Button>
+              {!isFinalized && (
+                <Button
+                  onClick={finishVisita}
+                  disabled={finishing}
+                  variant="default"
+                  className="h-14 flex-1 text-base font-bold gap-2 bg-success hover:bg-success/90 text-success-foreground"
+                >
+                  <Check className="h-5 w-5" />
+                  {finishing ? 'Finalizando...' : 'FINALIZAR VISITA'}
+                </Button>
+              )}
             </div>
           ) : (
             <div className="flex flex-col gap-2">
@@ -345,7 +365,7 @@ export default function VisitaActiva() {
                     Siguiente
                     <ArrowRight className="h-4 w-4" />
                   </Button>
-                ) : (
+                ) : !isFinalized ? (
                   <Button
                     onClick={finishVisita}
                     disabled={finishing}
@@ -354,9 +374,16 @@ export default function VisitaActiva() {
                     <Check className="h-4 w-4" />
                     {finishing ? 'Finalizando...' : 'FINALIZAR'}
                   </Button>
+                ) : (
+                  <Button
+                    onClick={() => setView({ type: 'secciones' })}
+                    className="h-12 flex-1 text-sm font-semibold gap-1"
+                  >
+                    Volver a secciones
+                  </Button>
                 )}
               </div>
-              {!isLastStep && (
+              {!isLastStep && !isFinalized && (
                 <Button
                   variant="ghost"
                   size="sm"
