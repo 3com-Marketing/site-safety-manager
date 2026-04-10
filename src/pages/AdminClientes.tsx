@@ -215,11 +215,12 @@ export default function AdminClientes() {
                     <p className="text-xs text-muted-foreground">
                       {[c.cif, c.ciudad, c.telefono].filter(Boolean).join(' · ') || 'Sin datos adicionales'}
                     </p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="ghost" size="icon" onClick={() => openContactos(c)} title="Contactos">
-                    <Users className="h-4 w-4" />
+                    {primaryContacts[c.id] && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        <span className="font-medium text-foreground/70">Contacto:</span>{' '}
+                        {[primaryContacts[c.id].nombre, primaryContacts[c.id].cargo, primaryContacts[c.id].telefono, primaryContacts[c.id].email].filter(Boolean).join(' · ')}
+                      </p>
+                    )}
                   </Button>
                   <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>
                     <Pencil className="h-4 w-4" />
