@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Pencil, Trash2, HardHat, Users } from 'lucide-react';
+import { Plus, Pencil, Trash2, HardHat, Users, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Obra {
@@ -45,6 +45,7 @@ export default function AdminObras() {
   const [selectedTecnicos, setSelectedTecnicos] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Obra | null>(null);
+  const [viewObra, setViewObra] = useState<Obra | null>(null);
 
   const fetchData = async () => {
     const [obrasRes, clientesRes, { data: tecData }, { data: links }] = await Promise.all([
@@ -186,6 +187,9 @@ export default function AdminObras() {
                   </div>
                 </div>
                 <div className="flex gap-2">
+                  <Button variant="ghost" size="icon" onClick={() => setViewObra(o)}>
+                    <Eye className="h-4 w-4" />
+                  </Button>
                   <Button variant="ghost" size="icon" onClick={() => openEdit(o)}>
                     <Pencil className="h-4 w-4" />
                   </Button>
