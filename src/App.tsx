@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/lib/auth";
 import Index from "./pages/Index";
+import AdminInformes from "./pages/AdminInformes";
 import Login from "./pages/Login";
 import SelectObra from "./pages/SelectObra";
 import VisitaActiva from "./pages/VisitaActiva";
@@ -30,8 +31,11 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/seleccionar-obra" element={<SelectObra />} />
             <Route path="/visita/:id" element={<VisitaActiva />} />
-            <Route path="/admin" element={<Index />} />
+            <Route path="/admin" element={<AdminInformes />} />
             <Route path="/admin/informe/:id" element={<AdminInformeDetalle />} />
+            <Route path="/admin/clientes" element={<AdminClientes />} />
+            <Route path="/admin/obras" element={<AdminObras />} />
+            <Route path="/admin/tecnicos" element={<AdminTecnicos />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
