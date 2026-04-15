@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { HardHat, LogOut, Plus, ChevronRight } from 'lucide-react';
+import { HardHat, LogOut, Plus, ChevronRight, FileText } from 'lucide-react';
 import { format, addDays, isAfter } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { TIPO_DOCUMENTO_LABELS, type TipoDocumento } from '@/types/documentos';
 
 const isWithinEditWindow = (fecha: string) => isAfter(addDays(new Date(fecha), 7), new Date());
 
@@ -20,27 +21,52 @@ export default function TechHome() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [visitas, setVisitas] = useState<VisitaReciente[]>([]);
+  const [docsPendientes, setDocsPendientes] = useState<{ id: string; tipo: string; obra_nombre: string; obra_id: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from('visitas')
-      .select('id, fecha, estado, obras(nombre)')
-      .eq('usuario_id', user.id)
-      .order('fecha', { ascending: false })
-      .limit(10)
-      .then(({ data }) => {
-        setVisitas(
-          (data || []).map((v: any) => ({
-            id: v.id,
-            fecha: v.fecha,
-            estado: v.estado,
-            obra_nombre: v.obras?.nombre || 'Obra',
-          }))
-        );
-        setLoading(false);
-      });
+
+    const fetchAll = async () => {
+      // Fetch visitas
+      const { data: visitasData } = await supabase
+        .from('visitas')
+        .select('id, fecha, estado, obras(nombre)')
+        .eq('usuario_id', user.id)
+        .order('fecha', { ascending: false })
+        .limit(10);
+
+      setVisitas(
+        (visitasData || []).map((v: any) => ({
+          id: v.id,
+          fecha: v.fecha,
+          estado: v.estado,
+          obra_nombre: v.obras?.nombre || 'Obra',
+        }))
+      );
+
+      // Fetch pending docs for tech's obras
+      const tiposTecnico = ['acta_reunion_cae', 'acta_reunion_inicial', 'acta_reunion_sys', 'informe_css', 'informe_at'];
+      const tiposTecnicoTyped = tiposTecnico as Array<'acta_reunion_cae' | 'acta_reunion_inicial' | 'acta_reunion_sys' | 'informe_css' | 'informe_at'>;
+      const { data: docsData } = await supabase
+        .from('documentos_obra')
+        .select('id, tipo, estado, obra_id, obras(nombre)')
+        .in('tipo', tiposTecnicoTyped)
+        .eq('estado', 'pendiente');
+
+      setDocsPendientes(
+        (docsData || []).map((d: any) => ({
+          id: d.id,
+          tipo: d.tipo,
+          obra_nombre: d.obras?.nombre || 'Obra',
+          obra_id: d.obra_id,
+        }))
+      );
+
+      setLoading(false);
+    };
+
+    fetchAll();
   }, [user]);
 
   return (
@@ -71,6 +97,30 @@ export default function TechHome() {
           <Plus className="h-7 w-7" />
           INICIAR VISITA
         </Button>
+
+        {/* Pending docs */}
+        {docsPendientes.length > 0 && (
+          <div className="space-y-3">
+            <h2 className="font-heading text-lg font-semibold">Documentos pendientes</h2>
+            <div className="space-y-2">
+              {docsPendientes.map(d => (
+                <button
+                  key={d.id}
+                  onClick={() => navigate(`/documentos/${d.obra_id}`)}
+                  className="flex w-full items-center gap-3 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/50"
+                >
+                  <FileText className="h-5 w-5 text-destructive shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-heading font-semibold text-sm truncate">{d.obra_nombre}</p>
+                    <p className="text-xs text-muted-foreground">{TIPO_DOCUMENTO_LABELS[d.tipo as TipoDocumento] || d.tipo}</p>
+                  </div>
+                  <span className="text-xs font-medium px-2 py-1 rounded-full bg-destructive/10 text-destructive">Pendiente</span>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Recent visits */}
         <div className="space-y-3">

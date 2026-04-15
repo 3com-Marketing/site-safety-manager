@@ -2,7 +2,8 @@ import { useEffect, useState, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
-import { FileText, ChevronRight, Radio, HardHat, AlertTriangle, CheckCircle2, Clock, Activity, Eye } from 'lucide-react';
+import { FileText, ChevronRight, Radio, HardHat, AlertTriangle, CheckCircle2, Clock, Activity, Eye, FolderCheck } from 'lucide-react';
+import { calcExpedienteStatus, ExpedienteDot, type ExpedienteStatus } from '@/lib/expedienteStatus';
 import { format, startOfToday, startOfMonth, differenceInMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -25,6 +26,7 @@ interface InformeRow {
   obra_nombre: string;
   tecnico_nombre: string;
   visita_id: string;
+  obra_id?: string;
 }
 
 const ESTADOS_FILTER = [
@@ -78,21 +80,35 @@ export default function AdminInformes() {
   const [visitas, setVisitas] = useState<VisitaRow[]>([]);
   const [filter, setFilter] = useState('todos');
   const [loading, setLoading] = useState(true);
+  const [expedienteMap, setExpedienteMap] = useState<Record<string, ExpedienteStatus>>({});
   const visitaIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchAll = async () => {
-      const [informesRes, visitasRes] = await Promise.all([
+      const [informesRes, visitasRes, docsRes] = await Promise.all([
         supabase
           .from('informes')
-          .select('id, estado, fecha, visita_id, visitas(obras(nombre), profiles!visitas_usuario_id_profiles_fkey(nombre))')
+          .select('id, estado, fecha, visita_id, visitas(obra_id, obras(nombre), profiles!visitas_usuario_id_profiles_fkey(nombre))')
           .order('fecha', { ascending: false }),
         supabase
           .from('visitas')
           .select('id, estado, fecha, obras(nombre), profiles!visitas_usuario_id_profiles_fkey(nombre)')
           .order('fecha', { ascending: false })
           .limit(100),
+        supabase.from('documentos_obra').select('obra_id, tipo, estado'),
       ]);
+
+      // Build expediente map
+      const docsByObra: Record<string, { tipo: string; estado: string }[]> = {};
+      (docsRes.data || []).forEach((d: any) => {
+        if (!docsByObra[d.obra_id]) docsByObra[d.obra_id] = [];
+        docsByObra[d.obra_id].push({ tipo: d.tipo, estado: d.estado });
+      });
+      const expMap: Record<string, ExpedienteStatus> = {};
+      Object.entries(docsByObra).forEach(([obraId, docs]) => {
+        expMap[obraId] = calcExpedienteStatus(docs);
+      });
+      setExpedienteMap(expMap);
 
       setInformes(
         (informesRes.data || []).map((i: any) => ({
@@ -100,6 +116,7 @@ export default function AdminInformes() {
           estado: i.estado,
           fecha: i.fecha,
           visita_id: i.visita_id,
+          obra_id: i.visitas?.obra_id,
           obra_nombre: i.visitas?.obras?.nombre || 'Obra',
           tecnico_nombre: i.visitas?.profiles?.nombre || 'Técnico',
         }))
@@ -417,6 +434,7 @@ export default function AdminInformes() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
+                    {inf.obra_id && <ExpedienteDot status={expedienteMap[inf.obra_id] || 'sin_datos'} />}
                     <span className={`text-xs font-medium px-3 py-1 rounded-full ${estadoColor(inf.estado)}`}>
                       {estadoLabel(inf.estado)}
                     </span>
