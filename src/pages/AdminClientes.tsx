@@ -126,20 +126,24 @@ export default function AdminClientes() {
   const handleSave = async () => {
     if (!nombre.trim()) return;
     setSaving(true);
-    const payload: Record<string, any> = {
+    const payload = {
       nombre: nombre.trim(), cif: cif.trim(), telefono: telefono.trim(),
       email: email.trim(), ciudad: ciudad.trim(), tipo_cliente: tipoCliente, notas: notas.trim(),
+      logo_url: undefined as string | undefined,
     };
     if (editingCliente) {
       if (logoFile) {
         const url = await uploadLogo(editingCliente.id);
         if (url) payload.logo_url = url;
       }
-      const { error } = await supabase.from('clientes').update(payload).eq('id', editingCliente.id);
+      const { logo_url, ...updatePayload } = payload;
+      const finalPayload = logo_url ? { ...updatePayload, logo_url } : updatePayload;
+      const { error } = await supabase.from('clientes').update(finalPayload).eq('id', editingCliente.id);
       if (error) toast.error('Error al actualizar');
       else toast.success('Cliente actualizado');
     } else {
-      const { data: inserted, error } = await supabase.from('clientes').insert(payload).select('id').single();
+      const { logo_url: _lu, ...insertPayload } = payload;
+      const { data: inserted, error } = await supabase.from('clientes').insert({ ...insertPayload, nombre: insertPayload.nombre }).select('id').single();
       if (error) { toast.error('Error al crear'); }
       else {
         if (logoFile && inserted) {
