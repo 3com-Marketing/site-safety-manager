@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Trash2 } from 'lucide-react';
 import { useDocumentosObra, type DocumentoConRelaciones } from '@/hooks/useDocumentosObra';
+import ImportarVisitaButton, { type VisitaImportData } from '@/components/documentos/ImportarVisitaButton';
 import type { Json } from '@/integrations/supabase/types';
 
 interface Props {
@@ -81,6 +82,46 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   const dbAsistentes = documento?.asistentes_reunion || [];
   const dbActividades = documento?.actividades_reunion_cae || [];
   const dbEmpresas = documento?.empresas_acceso_obra || [];
+
+  // --- Import handler ---
+  const handleImport = (data: VisitaImportData) => {
+    // Set fecha from visita
+    if (data.visita.fecha_fin) {
+      setFechaHora(data.visita.fecha_fin.slice(0, 16));
+    } else if (data.visita.fecha) {
+      setFechaHora(data.visita.fecha.slice(0, 16));
+    }
+
+    // Import empresas_presentes → localEmpresas (CAE)
+    if (isCAE && data.informe.empresas_presentes) {
+      const empresas = data.informe.empresas_presentes
+        .split(',')
+        .map(e => e.trim())
+        .filter(Boolean)
+        .map(e => ({ empresa: e, persona_contacto: '', email_referencia: '' }));
+      setLocalEmpresas(prev => [...prev, ...empresas]);
+    }
+
+    // Import incidencias → localActividades (CAE)
+    if (isCAE && data.incidencias.length > 0) {
+      const actividades = data.incidencias.map(inc => ({
+        actividad: inc.titulo + (inc.descripcion ? ` — ${inc.descripcion}` : ''),
+        numero_pedido: '',
+      }));
+      setLocalActividades(prev => [...prev, ...actividades]);
+    }
+
+    // Import observaciones → excusados/notas context
+    if (data.observaciones.length > 0) {
+      const obsTexts = data.observaciones.map(o => o.texto).filter(Boolean);
+      if (obsTexts.length > 0) {
+        setExcusados(prev => {
+          const existing = prev ? prev + '\n' : '';
+          return existing + 'Observaciones de visita:\n' + obsTexts.join('\n');
+        });
+      }
+    }
+  };
 
   // --- Asistentes handlers ---
   const handleAddAsistente = async () => {
@@ -164,7 +205,6 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       nombre_promotor: promotor,
       datos_extra: datosExtra as unknown as Json,
       ...(obraId ? { obra_id: obraId, tipo } : {}),
-      // Pass local arrays for creation
       ...(!documento ? {
         _asistentes: localAsistentes,
         _actividades: isCAE ? localActividades : undefined,
@@ -179,6 +219,11 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
 
   return (
     <div className="space-y-4">
+      {/* Import button — creation mode only */}
+      {!documento && effectiveObraId && (
+        <ImportarVisitaButton obraId={effectiveObraId} onImport={handleImport} />
+      )}
+
       {/* Common fields */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
