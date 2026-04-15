@@ -242,8 +242,12 @@ export default function AdminClientes() {
             {clientes.map(c => (
               <div key={c.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                    <Building2 className="h-5 w-5 text-secondary-foreground" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary overflow-hidden">
+                    {c.logo_url ? (
+                      <img src={c.logo_url} alt={c.nombre} className="h-full w-full object-contain p-1" />
+                    ) : (
+                      <Building2 className="h-5 w-5 text-secondary-foreground" />
+                    )}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
