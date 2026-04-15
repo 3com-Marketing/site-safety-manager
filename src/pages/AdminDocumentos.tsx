@@ -9,12 +9,15 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import DocumentoStatusBadge from '@/components/documentos/DocumentoStatusBadge';
+import NuevoDocumentoDialog from '@/components/documentos/NuevoDocumentoDialog';
+import AdjuntarDocumentoDialog from '@/components/documentos/AdjuntarDocumentoDialog';
 import { TIPO_DOCUMENTO_LABELS, TipoDocumento } from '@/types/documentos';
 import { ESTADO_LABELS } from '@/hooks/useDocumentosObra';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CalendarIcon, Download, Eye, CheckCircle, Trash2 } from 'lucide-react';
+import { CalendarIcon, Download, Eye, CheckCircle, Trash2, Plus, Paperclip } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import {
@@ -53,6 +56,17 @@ export default function AdminDocumentos() {
   const [filterEstados, setFilterEstados] = useState<string[]>([]);
   const [fechaDesde, setFechaDesde] = useState<Date | undefined>();
   const [fechaHasta, setFechaHasta] = useState<Date | undefined>();
+
+  // Nuevo documento
+  const [nuevoOpen, setNuevoOpen] = useState(false);
+  const [nuevoObraId, setNuevoObraId] = useState('');
+  const [selectObraOpen, setSelectObraOpen] = useState(false);
+  const [selectObraTemp, setSelectObraTemp] = useState('');
+
+  // Adjuntar
+  const [adjuntarOpen, setAdjuntarOpen] = useState(false);
+  const [adjuntarDocId, setAdjuntarDocId] = useState('');
+  const [adjuntarObraId, setAdjuntarObraId] = useState('');
 
   const fetchAll = async () => {
     setLoading(true);
@@ -107,7 +121,23 @@ export default function AdminDocumentos() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <h2 className="font-heading text-xl font-bold">Documentos de Obra</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="font-heading text-xl font-bold">Documentos de Obra</h2>
+          <Button
+            onClick={() => {
+              if (filterObra !== '__all') {
+                setNuevoObraId(filterObra);
+                setNuevoOpen(true);
+              } else {
+                setSelectObraTemp('');
+                setSelectObraOpen(true);
+              }
+            }}
+            className="h-12 rounded-xl gap-2"
+          >
+            <Plus className="h-5 w-5" /> Nuevo documento
+          </Button>
+        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -223,6 +253,11 @@ export default function AdminDocumentos() {
                     <Button variant="ghost" size="icon" title="Ver detalle" onClick={() => navigate(`/admin/documento/${d.id}`)}>
                       <Eye className="h-4 w-4" />
                     </Button>
+                    {!d.archivo_url && (
+                      <Button variant="ghost" size="icon" title="Adjuntar archivo" onClick={() => { setAdjuntarDocId(d.id); setAdjuntarObraId(d.obra_id); setAdjuntarOpen(true); }}>
+                        <Paperclip className="h-4 w-4" />
+                      </Button>
+                    )}
                     {d.estado !== 'firmado' && (
                       <Button variant="ghost" size="icon" title="Marcar firmado" onClick={() => marcarFirmado(d.id)}>
                         <CheckCircle className="h-4 w-4 text-success" />
@@ -252,6 +287,48 @@ export default function AdminDocumentos() {
           </Table>
         )}
       </div>
+
+      {/* Select obra dialog (when no filter active) */}
+      <Dialog open={selectObraOpen} onOpenChange={setSelectObraOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Seleccionar obra</DialogTitle>
+          </DialogHeader>
+          <Select value={selectObraTemp} onValueChange={setSelectObraTemp}>
+            <SelectTrigger><SelectValue placeholder="Elige una obra" /></SelectTrigger>
+            <SelectContent>
+              {obras.map(o => <SelectItem key={o.id} value={o.id}>{o.nombre}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <DialogFooter>
+            <Button
+              disabled={!selectObraTemp}
+              onClick={() => { setNuevoObraId(selectObraTemp); setSelectObraOpen(false); setNuevoOpen(true); }}
+              className="h-12 rounded-xl"
+            >
+              Continuar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {nuevoObraId && (
+        <NuevoDocumentoDialog
+          open={nuevoOpen}
+          onOpenChange={setNuevoOpen}
+          obraId={nuevoObraId}
+          onCreated={() => fetchAll()}
+        />
+      )}
+
+      {adjuntarDocId && (
+        <AdjuntarDocumentoDialog
+          open={adjuntarOpen}
+          onOpenChange={open => { setAdjuntarOpen(open); if (!open) fetchAll(); }}
+          documentoId={adjuntarDocId}
+          obraId={adjuntarObraId}
+        />
+      )}
     </AdminLayout>
   );
 }
