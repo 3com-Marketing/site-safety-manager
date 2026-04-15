@@ -14,6 +14,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      actividades_reunion_cae: {
+        Row: {
+          actividad: string
+          documento_id: string
+          id: string
+          numero_pedido: string | null
+          orden: number | null
+        }
+        Insert: {
+          actividad: string
+          documento_id: string
+          id?: string
+          numero_pedido?: string | null
+          orden?: number | null
+        }
+        Update: {
+          actividad?: string
+          documento_id?: string
+          id?: string
+          numero_pedido?: string | null
+          orden?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "actividades_reunion_cae_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_obra"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       amonestaciones: {
         Row: {
           created_at: string
@@ -89,6 +121,50 @@ export type Database = {
             columns: ["bloque_id"]
             isOneToOne: false
             referencedRelation: "checklist_bloques"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asistentes_reunion: {
+        Row: {
+          apellidos: string | null
+          cargo: string | null
+          created_at: string | null
+          dni_nie: string | null
+          documento_id: string
+          empresa: string | null
+          firma_url: string | null
+          id: string
+          nombre: string
+        }
+        Insert: {
+          apellidos?: string | null
+          cargo?: string | null
+          created_at?: string | null
+          dni_nie?: string | null
+          documento_id: string
+          empresa?: string | null
+          firma_url?: string | null
+          id?: string
+          nombre: string
+        }
+        Update: {
+          apellidos?: string | null
+          cargo?: string | null
+          created_at?: string | null
+          dni_nie?: string | null
+          documento_id?: string
+          empresa?: string | null
+          firma_url?: string | null
+          id?: string
+          nombre?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asistentes_reunion_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_obra"
             referencedColumns: ["id"]
           },
         ]
@@ -195,6 +271,131 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documentos_obra: {
+        Row: {
+          archivo_nombre: string | null
+          archivo_url: string | null
+          cif_empresa: string | null
+          cif_promotor: string | null
+          creado_por: string | null
+          created_at: string | null
+          datos_extra: Json | null
+          dni_coordinador: string | null
+          domicilio_empresa: string | null
+          domicilio_promotor: string | null
+          email_coordinador: string | null
+          empresa_coordinacion: string | null
+          estado: Database["public"]["Enums"]["estado_documento"]
+          fecha_documento: string | null
+          id: string
+          movil_coordinador: string | null
+          nombre_coordinador: string | null
+          nombre_promotor: string | null
+          obra_id: string
+          tipo: Database["public"]["Enums"]["tipo_documento"]
+          titulacion_colegiado: string | null
+          titulo: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          archivo_nombre?: string | null
+          archivo_url?: string | null
+          cif_empresa?: string | null
+          cif_promotor?: string | null
+          creado_por?: string | null
+          created_at?: string | null
+          datos_extra?: Json | null
+          dni_coordinador?: string | null
+          domicilio_empresa?: string | null
+          domicilio_promotor?: string | null
+          email_coordinador?: string | null
+          empresa_coordinacion?: string | null
+          estado?: Database["public"]["Enums"]["estado_documento"]
+          fecha_documento?: string | null
+          id?: string
+          movil_coordinador?: string | null
+          nombre_coordinador?: string | null
+          nombre_promotor?: string | null
+          obra_id: string
+          tipo: Database["public"]["Enums"]["tipo_documento"]
+          titulacion_colegiado?: string | null
+          titulo?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          archivo_nombre?: string | null
+          archivo_url?: string | null
+          cif_empresa?: string | null
+          cif_promotor?: string | null
+          creado_por?: string | null
+          created_at?: string | null
+          datos_extra?: Json | null
+          dni_coordinador?: string | null
+          domicilio_empresa?: string | null
+          domicilio_promotor?: string | null
+          email_coordinador?: string | null
+          empresa_coordinacion?: string | null
+          estado?: Database["public"]["Enums"]["estado_documento"]
+          fecha_documento?: string | null
+          id?: string
+          movil_coordinador?: string | null
+          nombre_coordinador?: string | null
+          nombre_promotor?: string | null
+          obra_id?: string
+          tipo?: Database["public"]["Enums"]["tipo_documento"]
+          titulacion_colegiado?: string | null
+          titulo?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_obra_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "documentos_obra_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      empresas_acceso_obra: {
+        Row: {
+          documento_id: string
+          email_referencia: string | null
+          empresa: string
+          id: string
+          persona_contacto: string | null
+        }
+        Insert: {
+          documento_id: string
+          email_referencia?: string | null
+          empresa: string
+          id?: string
+          persona_contacto?: string | null
+        }
+        Update: {
+          documento_id?: string
+          email_referencia?: string | null
+          empresa?: string
+          id?: string
+          persona_contacto?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresas_acceso_obra_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_obra"
             referencedColumns: ["id"]
           },
         ]
@@ -578,6 +779,17 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "tecnico"
+      estado_documento: "pendiente" | "generado" | "adjuntado" | "firmado"
+      tipo_documento:
+        | "acta_nombramiento_cae"
+        | "acta_nombramiento_proyecto"
+        | "acta_aprobacion_dgpo"
+        | "acta_aprobacion_plan_sys"
+        | "acta_reunion_cae"
+        | "acta_reunion_inicial"
+        | "acta_reunion_sys"
+        | "informe_css"
+        | "informe_at"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -706,6 +918,18 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "tecnico"],
+      estado_documento: ["pendiente", "generado", "adjuntado", "firmado"],
+      tipo_documento: [
+        "acta_nombramiento_cae",
+        "acta_nombramiento_proyecto",
+        "acta_aprobacion_dgpo",
+        "acta_aprobacion_plan_sys",
+        "acta_reunion_cae",
+        "acta_reunion_inicial",
+        "acta_reunion_sys",
+        "informe_css",
+        "informe_at",
+      ],
     },
   },
 } as const
