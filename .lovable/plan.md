@@ -1,31 +1,28 @@
 
 
-# Plan: Conectar creación de documentos y ajustar vistas existentes
+# Plan: Mejorar importación en FormInforme
 
-## Resumen
+## Cambio
 
-Hay 3 cambios necesarios. La mayoría de componentes ya existen pero no están conectados correctamente.
+Reescribir la lógica de importación en `FormInforme.tsx`:
 
-## 1. AdminDocumentos.tsx — Botón "Nuevo documento" con selector de obra
+1. **Cambiar la query** para buscar la última visita **finalizada** (`estado = 'finalizada'`), ordenada por `fecha_fin DESC`. Además de los `checklist_bloques` con anotaciones, obtener también `notas_generales` del informe y la `fecha` de la visita para el toast.
 
-`NuevoDocumentoDialog` requiere un `obraId` fijo. En AdminDocumentos no hay obra pre-seleccionada, así que:
+2. **Actualizar `CATEGORY_MAP`** con las categorías reales de la BD:
+   - `'EPIs'` → `'epi'`
+   - `'orden_limpieza'` → `'orden_limpieza'`
+   - `'altura'` → `'trabajos_altura'`
+   - `'señalizacion'` → `'senalizacion'`
+   - `'maquinaria'` → `'maquinaria'`
 
-- Añadir estado `nuevoObraId` y `nuevoOpen`
-- Añadir botón "Nuevo documento" junto al título
-- Al pulsar, si `filterObra` tiene una obra seleccionada, abrir directamente `NuevoDocumentoDialog` con esa obra
-- Si no hay obra seleccionada, mostrar un mini-dialog previo con un Select de obra, y al confirmar abrir `NuevoDocumentoDialog`
-- Importar `NuevoDocumentoDialog` y renderizarlo con `obraId={nuevoObraId}`, `onCreated={() => fetchAll()}`
-- Importar `AdjuntarDocumentoDialog` y añadir botón "Adjuntar" en la columna de acciones de cada fila (cuando no tiene archivo)
+3. **Cambiar `handleImport`** a función async que ejecuta la query on-demand (en lugar de depender de `useQuery` precargada):
+   - Si no encuentra visita finalizada → `toast.error("No hay visitas finalizadas para esta obra")`
+   - Si tiene éxito → mapear bloques (estado + anotaciones concatenados con salto de línea), `notas_generales` → `estado_general`, y mostrar `toast.success("Datos importados desde la visita del [fecha]")`
 
-## 2. AdminObras.tsx — Sección Documentación editable (no readOnly)
+4. **El botón siempre se muestra** cuando es creación (`!documento`) y hay `effectiveObraId`, sin esperar a que la query precargue datos.
 
-Actualmente la línea 378 muestra `<DocumentosList obraId={viewObra.id} readOnly />`. Cambiar a `readOnly={false}` (o eliminar el prop) para que el admin pueda crear documentos y adjuntar desde el detalle de obra.
+5. Añadir `import { toast } from 'sonner'`.
 
-## 3. TechHome.tsx — Ya implementado
-
-La sección "Documentos pendientes" ya existe (líneas 101-123). No requiere cambios.
-
-## Archivos afectados
-- **Editado**: `src/pages/AdminDocumentos.tsx` (botón nuevo doc + adjuntar en tabla)
-- **Editado**: `src/pages/AdminObras.tsx` (quitar `readOnly` de DocumentosList)
+## Archivo afectado
+- `src/components/documentos/formularios/FormInforme.tsx`
 
