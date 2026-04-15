@@ -287,6 +287,48 @@ export default function AdminDocumentos() {
           </Table>
         )}
       </div>
+
+      {/* Select obra dialog (when no filter active) */}
+      <Dialog open={selectObraOpen} onOpenChange={setSelectObraOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Seleccionar obra</DialogTitle>
+          </DialogHeader>
+          <Select value={selectObraTemp} onValueChange={setSelectObraTemp}>
+            <SelectTrigger><SelectValue placeholder="Elige una obra" /></SelectTrigger>
+            <SelectContent>
+              {obras.map(o => <SelectItem key={o.id} value={o.id}>{o.nombre}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <DialogFooter>
+            <Button
+              disabled={!selectObraTemp}
+              onClick={() => { setNuevoObraId(selectObraTemp); setSelectObraOpen(false); setNuevoOpen(true); }}
+              className="h-12 rounded-xl"
+            >
+              Continuar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {nuevoObraId && (
+        <NuevoDocumentoDialog
+          open={nuevoOpen}
+          onOpenChange={setNuevoOpen}
+          obraId={nuevoObraId}
+          onCreated={() => fetchAll()}
+        />
+      )}
+
+      {adjuntarDocId && (
+        <AdjuntarDocumentoDialog
+          open={adjuntarOpen}
+          onOpenChange={open => { setAdjuntarOpen(open); if (!open) fetchAll(); }}
+          documentoId={adjuntarDocId}
+          obraId={adjuntarObraId}
+        />
+      )}
     </AdminLayout>
   );
 }
