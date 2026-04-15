@@ -122,7 +122,14 @@ export default function NuevoDocumentoDialog({ open, onOpenChange, obraId, onCre
   const FormComponent = tipo ? FORM_MAP[tipo] : null;
 
   const handleSave = async (data: Record<string, any>) => {
-    await crearDocumento.mutateAsync({ tipo: tipo as any, datos: data });
+    const { _asistentes, _actividades, _empresas, ...datos } = data;
+    await crearDocumento.mutateAsync({
+      tipo: tipo as any,
+      datos,
+      asistentes: _asistentes,
+      actividades: _actividades,
+      empresas: _empresas,
+    });
     onOpenChange(false);
     resetState();
     onCreated();
