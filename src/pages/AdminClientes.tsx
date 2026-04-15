@@ -21,6 +21,7 @@ interface Cliente {
   tipo_cliente: string;
   notas: string;
   created_at: string;
+  logo_url?: string;
 }
 
 interface Contacto {
@@ -50,7 +51,9 @@ export default function AdminClientes() {
   const [ciudad, setCiudad] = useState('');
   const [tipoCliente, setTipoCliente] = useState('Promotora');
   const [notas, setNotas] = useState('');
-
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>('');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   // Contacts
   const [contactosDialogOpen, setContactosDialogOpen] = useState(false);
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
@@ -90,6 +93,7 @@ export default function AdminClientes() {
   const resetForm = () => {
     setNombre(''); setCif(''); setTelefono(''); setEmail('');
     setCiudad(''); setTipoCliente('Promotora'); setNotas('');
+    setLogoFile(null); setLogoPreview('');
   };
 
   const openCreate = () => {
@@ -103,7 +107,20 @@ export default function AdminClientes() {
     setNombre(c.nombre); setCif(c.cif); setTelefono(c.telefono);
     setEmail(c.email); setCiudad(c.ciudad);
     setTipoCliente(c.tipo_cliente || 'Promotora'); setNotas(c.notas);
+    setLogoFile(null); setLogoPreview(c.logo_url || '');
     setDialogOpen(true);
+  };
+
+  const uploadLogo = async (clienteId: string): Promise<string | null> => {
+    if (!logoFile) return null;
+    setUploadingLogo(true);
+    const ext = logoFile.name.split('.').pop();
+    const path = `clientes/${clienteId}.${ext}`;
+    const { error } = await supabase.storage.from('logos').upload(path, logoFile, { upsert: true });
+    setUploadingLogo(false);
+    if (error) { toast.error('Error al subir logo'); return null; }
+    const { data: urlData } = supabase.storage.from('logos').getPublicUrl(path);
+    return urlData.publicUrl;
   };
 
   const handleSave = async () => {
@@ -112,15 +129,29 @@ export default function AdminClientes() {
     const payload = {
       nombre: nombre.trim(), cif: cif.trim(), telefono: telefono.trim(),
       email: email.trim(), ciudad: ciudad.trim(), tipo_cliente: tipoCliente, notas: notas.trim(),
+      logo_url: undefined as string | undefined,
     };
     if (editingCliente) {
-      const { error } = await supabase.from('clientes').update(payload).eq('id', editingCliente.id);
+      if (logoFile) {
+        const url = await uploadLogo(editingCliente.id);
+        if (url) payload.logo_url = url;
+      }
+      const { logo_url, ...updatePayload } = payload;
+      const finalPayload = logo_url ? { ...updatePayload, logo_url } : updatePayload;
+      const { error } = await supabase.from('clientes').update(finalPayload).eq('id', editingCliente.id);
       if (error) toast.error('Error al actualizar');
       else toast.success('Cliente actualizado');
     } else {
-      const { error } = await supabase.from('clientes').insert(payload);
-      if (error) toast.error('Error al crear');
-      else toast.success('Cliente creado');
+      const { logo_url: _lu, ...insertPayload } = payload;
+      const { data: inserted, error } = await supabase.from('clientes').insert({ ...insertPayload, nombre: insertPayload.nombre }).select('id').single();
+      if (error) { toast.error('Error al crear'); }
+      else {
+        if (logoFile && inserted) {
+          const url = await uploadLogo(inserted.id);
+          if (url) await supabase.from('clientes').update({ logo_url: url }).eq('id', inserted.id);
+        }
+        toast.success('Cliente creado');
+      }
     }
     setSaving(false);
     setDialogOpen(false);
@@ -352,6 +383,25 @@ export default function AdminClientes() {
             <div className="space-y-2">
               <Label>Notas</Label>
               <Textarea placeholder="Notas adicionales..." value={notas} onChange={e => setNotas(e.target.value)} rows={3} />
+            </div>
+            <div className="space-y-2">
+              <Label>Logotipo</Label>
+              {logoPreview && (
+                <div className="mb-2">
+                  <img src={logoPreview} alt="Logo" className="h-12 object-contain rounded border border-border p-1" />
+                </div>
+              )}
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setLogoFile(file);
+                    setLogoPreview(URL.createObjectURL(file));
+                  }
+                }}
+              />
             </div>
           </div>
           <DialogFooter>
