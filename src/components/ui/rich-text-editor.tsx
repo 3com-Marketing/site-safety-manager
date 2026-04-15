@@ -45,7 +45,7 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
     const current = editor.getHTML();
     const incoming = ensureHtml(value);
     if (current !== incoming && incoming !== '<p></p>') {
-      editor.commands.setContent(incoming, false);
+      editor.commands.setContent(incoming, { emitUpdate: false });
     }
   }, [value, editor]);
 
