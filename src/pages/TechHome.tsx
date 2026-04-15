@@ -47,10 +47,11 @@ export default function TechHome() {
 
       // Fetch pending docs for tech's obras
       const tiposTecnico = ['acta_reunion_cae', 'acta_reunion_inicial', 'acta_reunion_sys', 'informe_css', 'informe_at'];
+      const tiposTecnicoTyped = tiposTecnico as Array<'acta_reunion_cae' | 'acta_reunion_inicial' | 'acta_reunion_sys' | 'informe_css' | 'informe_at'>;
       const { data: docsData } = await supabase
         .from('documentos_obra')
         .select('id, tipo, estado, obra_id, obras(nombre)')
-        .in('tipo', tiposTecnico)
+        .in('tipo', tiposTecnicoTyped)
         .eq('estado', 'pendiente');
 
       setDocsPendientes(
