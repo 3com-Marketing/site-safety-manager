@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
@@ -46,18 +45,40 @@ export default function FormActaNombramiento({ documento, obraId, tipo, onSave, 
   const [lugarFirma, setLugarFirma] = useState('Maspalomas');
   const [fechaDocumento, setFechaDocumento] = useState('');
 
+  // Store the raw template from config so we can re-apply substitutions
+  const templateRef = useRef<string | null>(null);
+
+  /** Replace sequential [....] markers with field values */
+  const applyPlaceholders = useCallback((template: string, dom: string, coord: string, tit: string) => {
+    let i = 0;
+    const values = [dom || '____', coord || '____', tit || '____'];
+    return template.replace(/\[\.{3,}\]/g, () => {
+      const v = values[i] ?? '____';
+      i++;
+      return v;
+    });
+  }, []);
+
   // Load default legal text from config when creating new document
   useEffect(() => {
-    if (documento) return; // don't override if editing existing
+    if (documento) return;
     const docTipo = tipo || '';
     const configField = TIPO_TO_CONFIG_FIELD[docTipo];
     if (!configField) return;
     supabase.from('configuracion_empresa').select(configField).limit(1).single().then(({ data }) => {
       if (data && (data as any)[configField]) {
-        setTextoLegal((data as any)[configField]);
+        const raw = (data as any)[configField] as string;
+        templateRef.current = raw;
+        setTextoLegal(applyPlaceholders(raw, domicilioPromotor, nombreCoordinador, titulacionColegiado));
       }
     });
   }, [documento, tipo]);
+
+  // Re-apply placeholders when relevant fields change (only for new docs with a template)
+  useEffect(() => {
+    if (!templateRef.current || documento) return;
+    setTextoLegal(applyPlaceholders(templateRef.current, domicilioPromotor, nombreCoordinador, titulacionColegiado));
+  }, [domicilioPromotor, nombreCoordinador, titulacionColegiado, applyPlaceholders]);
 
   useEffect(() => {
     if (documento) {
