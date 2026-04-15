@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { TIPO_LABELS, useDocumentosObra } from '@/hooks/useDocumentosObra';
+import { useDocumentosObra } from '@/hooks/useDocumentosObra';
+import { TIPO_DOCUMENTO_LABELS, TIPO_DOCUMENTO_ROL } from '@/types/documentos';
+import { useAuth } from '@/lib/auth';
 import FormActaNombramiento from './formularios/FormActaNombramiento';
 import FormActaAprobacion from './formularios/FormActaAprobacion';
 import FormActaReunion from './formularios/FormActaReunion';
@@ -31,6 +33,12 @@ export default function NuevoDocumentoDialog({ open, onOpenChange, obraId, onCre
   const [tipo, setTipo] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const { createDocumento } = useDocumentosObra();
+  const { role } = useAuth();
+
+  const tiposDisponibles = Object.entries(TIPO_DOCUMENTO_LABELS).filter(([key]) => {
+    const rolTipo = TIPO_DOCUMENTO_ROL[key as keyof typeof TIPO_DOCUMENTO_ROL];
+    return rolTipo === 'ambos' || rolTipo === role;
+  });
 
   const FormComponent = tipo ? FORM_MAP[tipo] : null;
 
@@ -57,7 +65,7 @@ export default function NuevoDocumentoDialog({ open, onOpenChange, obraId, onCre
             <Select value={tipo} onValueChange={setTipo}>
               <SelectTrigger><SelectValue placeholder="Seleccionar tipo..." /></SelectTrigger>
               <SelectContent>
-                {Object.entries(TIPO_LABELS).map(([key, label]) => (
+                {tiposDisponibles.map(([key, label]) => (
                   <SelectItem key={key} value={key}>{label}</SelectItem>
                 ))}
               </SelectContent>

@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
 import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
+import { TIPO_DOCUMENTO_LABELS } from '@/types/documentos';
 
 export type Documento = Tables<'documentos_obra'>;
 export type Asistente = Tables<'asistentes_reunion'>;
@@ -12,17 +13,8 @@ export type EmpresaAcceso = Tables<'empresas_acceso_obra'>;
 export type TipoDocumento = Documento['tipo'];
 export type EstadoDocumento = Documento['estado'];
 
-export const TIPO_LABELS: Record<string, string> = {
-  acta_nombramiento_cae: 'Acta Nombramiento CAE',
-  acta_nombramiento_proyecto: 'Acta Nombramiento Proyecto',
-  acta_aprobacion_dgpo: 'Acta Aprobación DGPO',
-  acta_aprobacion_plan_sys: 'Acta Aprobación Plan SYS',
-  acta_reunion_cae: 'Acta Reunión CAE',
-  acta_reunion_inicial: 'Acta Reunión Inicial',
-  acta_reunion_sys: 'Acta Reunión SYS',
-  informe_css: 'Informe CSS',
-  informe_at: 'Informe AT',
-};
+// Re-export for backward compatibility
+export const TIPO_LABELS = TIPO_DOCUMENTO_LABELS as Record<string, string>;
 
 export const ESTADO_LABELS: Record<string, string> = {
   pendiente: 'Pendiente',
