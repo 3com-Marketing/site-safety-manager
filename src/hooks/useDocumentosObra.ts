@@ -49,33 +49,35 @@ export function useDocumentosObra(obraId: string) {
     mutationFn: async (payload: {
       tipo: TipoDocumento;
       datos: Record<string, unknown>;
-      asistentes?: Array<Record<string, string>>;
-      actividades?: Array<Record<string, string>>;
-      empresas?: Array<Record<string, string>>;
+      asistentes?: Array<{ nombre: string; apellidos?: string; cargo?: string; empresa?: string; dni_nie?: string }>;
+      actividades?: Array<{ actividad: string; numero_pedido?: string | null }>;
+      empresas?: Array<{ empresa: string; persona_contacto?: string; email_referencia?: string }>;
     }) => {
       const { asistentes, actividades, empresas, datos, tipo } = payload;
 
+      const insertPayload: TablesInsert<'documentos_obra'> = {
+        obra_id: obraId,
+        tipo,
+        estado: 'generado' as EstadoDocumento,
+        fecha_documento: (datos.fecha_firma as string) || new Date().toISOString().split('T')[0],
+        nombre_coordinador: (datos.nombre_coordinador as string) || null,
+        dni_coordinador: (datos.dni_coordinador as string) || null,
+        titulacion_colegiado: (datos.titulacion_colegiado as string) || null,
+        empresa_coordinacion: (datos.empresa_coordinacion as string) || null,
+        cif_empresa: (datos.cif_empresa as string) || null,
+        domicilio_empresa: (datos.domicilio_empresa as string) || null,
+        movil_coordinador: (datos.movil_coordinador as string) || null,
+        email_coordinador: (datos.email_coordinador as string) || null,
+        nombre_promotor: (datos.nombre_promotor as string) || null,
+        cif_promotor: (datos.cif_promotor as string) || null,
+        domicilio_promotor: (datos.domicilio_promotor as string) || null,
+        datos_extra: datos as any,
+        titulo: (datos.titulo as string) || null,
+      };
+
       const { data: doc, error } = await supabase
         .from('documentos_obra')
-        .insert({
-          obra_id: obraId,
-          tipo,
-          estado: 'generado' as EstadoDocumento,
-          fecha_documento: datos.fecha_firma as string || new Date().toISOString().split('T')[0],
-          nombre_coordinador: datos.nombre_coordinador as string,
-          dni_coordinador: datos.dni_coordinador as string,
-          titulacion_colegiado: datos.titulacion_colegiado as string,
-          empresa_coordinacion: datos.empresa_coordinacion as string,
-          cif_empresa: datos.cif_empresa as string,
-          domicilio_empresa: datos.domicilio_empresa as string,
-          movil_coordinador: datos.movil_coordinador as string,
-          email_coordinador: datos.email_coordinador as string,
-          nombre_promotor: datos.nombre_promotor as string,
-          cif_promotor: datos.cif_promotor as string,
-          domicilio_promotor: datos.domicilio_promotor as string,
-          datos_extra: datos,
-          titulo: datos.titulo as string || null,
-        })
+        .insert(insertPayload)
         .select()
         .single();
 
@@ -83,19 +85,19 @@ export function useDocumentosObra(obraId: string) {
 
       if (asistentes?.length && doc) {
         await supabase.from('asistentes_reunion').insert(
-          asistentes.map((a) => ({ ...a, documento_id: doc.id }))
+          asistentes.map((a) => ({ nombre: a.nombre, apellidos: a.apellidos || null, cargo: a.cargo || null, empresa: a.empresa || null, dni_nie: a.dni_nie || null, documento_id: doc.id }))
         );
       }
 
       if (actividades?.length && doc) {
         await supabase.from('actividades_reunion_cae').insert(
-          actividades.map((a, i) => ({ ...a, documento_id: doc.id, orden: i }))
+          actividades.map((a, i) => ({ actividad: a.actividad, numero_pedido: a.numero_pedido || null, documento_id: doc.id, orden: i }))
         );
       }
 
       if (empresas?.length && doc) {
         await supabase.from('empresas_acceso_obra').insert(
-          empresas.map(e => ({ ...e, documento_id: doc.id }))
+          empresas.map(e => ({ empresa: e.empresa, persona_contacto: e.persona_contacto || null, email_referencia: e.email_referencia || null, documento_id: doc.id }))
         );
       }
 
