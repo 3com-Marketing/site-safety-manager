@@ -1,76 +1,63 @@
 
 
-# Plan: Paso 6 — NuevoDocumentoDialog con wizard de 2 pasos y pre-relleno
+# Plan: Paso 7 — Formularios específicos completos
 
-## Cambios
+Reescribir los 4 formularios con todos los campos especificados, pre-relleno desde `defaultValues`, y lógica condicional por subtipo.
 
-### 1. `src/components/documentos/NuevoDocumentoDialog.tsx` — Reescritura completa
+## 1. `FormActaNombramiento.tsx` — Reescritura
 
-**Paso 1 — Selector de tipo por categoría:**
-- 4 grupos de tarjetas seleccionables (cards clickables con borde resaltado al seleccionar):
-  - **Nombramientos** (solo si rol es admin): `acta_nombramiento_cae`, `acta_nombramiento_proyecto`
-  - **Aprobaciones** (solo si rol es admin): `acta_aprobacion_dgpo`, `acta_aprobacion_plan_sys`
-  - **Reuniones** (si rol es tecnico o ambos): `acta_reunion_cae`, `acta_reunion_inicial`, `acta_reunion_sys`
-  - **Informes** (si rol es tecnico o ambos): `informe_css`, `informe_at`
-- Botón "Siguiente" habilitado solo cuando hay tipo seleccionado
-- Botón "Atrás" en paso 2 para volver al selector
+**Campos nuevos** (almacenados en `datos_extra`):
+- Datos proyecto: Denominación, Emplazamiento, Tipo de obra
+- Selector: "CAE (obra sin proyecto)" / "Con proyecto" (radio/select)
+- Lugar firma (default "Maspalomas")
 
-**Paso 2 — Formulario específico:**
-- Renderiza el `FormComponent` del `FORM_MAP` existente
-- Pre-rellena datos de la obra y técnico asignado
+**Campos existentes** que se mantienen: nombre/dni/titulación coordinador, empresa/cif/domicilio empresa, móvil, email, promotor/cif/domicilio promotor, fecha.
 
-**Pre-relleno automático:**
-- Hacer query a `obras` (join `clientes`) para obtener nombre obra, dirección, nombre cliente, CIF cliente
-- Hacer query a `tecnicos` (join `tecnicos_obras`) para obtener nombre, email, teléfono del técnico asignado
-- Pasar estos datos como prop `defaultValues` a los formularios
+**Pre-relleno**: `denominacion` ← obra nombre, `emplazamiento` ← obra dirección (necesita añadir `nombre_obra` y `direccion_obra` al `defaultValues` en `NuevoDocumentoDialog`).
 
-### 2. Formularios (`FormActaNombramiento`, `FormActaAprobacion`, `FormActaReunion`, `FormInforme`) — Añadir prop `defaultValues`
+## 2. `FormActaAprobacion.tsx` — Reescritura
 
-- Aceptar prop opcional `defaultValues?: Record<string, string>`
-- En el `useEffect`, si no hay `documento` pero hay `defaultValues`, pre-rellenar los campos correspondientes (ej. `nombrePromotor` ← `defaultValues.nombre_promotor`, `empresaCoordinacion` ← `defaultValues.empresa_coordinacion`)
+**Dos modos**: DGPO (`acta_aprobacion_dgpo`) vs Plan SYS (`acta_aprobacion_plan_sys`), detectado via `tipo` prop.
 
-### 3. Queries de pre-relleno (dentro de NuevoDocumentoDialog)
+**Campos comunes** (en `datos_extra`): Actuación/Obra, Localidad y situación, Promotor, Autor del Proyecto, Coordinador SS durante Proyecto, Autor Estudio SS, Director de obra, Lugar y fecha firma.
 
-```typescript
-// Fetch obra + cliente
-const { data: obra } = useQuery({
-  queryKey: ['obra-detalle', obraId],
-  queryFn: async () => {
-    const { data } = await supabase
-      .from('obras')
-      .select('*, clientes(*)')
-      .eq('id', obraId)
-      .single();
-    return data;
-  },
-  enabled: !!obraId,
-});
+**Solo DGPO**: Coordinadora de actividades empresariales, Empresa Contratista Titular.
+**Solo Plan SYS**: Coordinador SS durante la Obra, Empresa Contratista Titular del Plan.
 
-// Fetch técnico asignado
-const { data: tecnicoAsignado } = useQuery({
-  queryKey: ['tecnico-obra', obraId],
-  queryFn: async () => {
-    const { data } = await supabase
-      .from('tecnicos_obras')
-      .select('*, tecnicos(*)')
-      .eq('obra_id', obraId)
-      .limit(1)
-      .single();
-    return data?.tecnicos;
-  },
-  enabled: !!obraId,
-});
-```
+**Pre-relleno**: actuación ← obra nombre, localidad ← obra dirección, promotor ← cliente nombre.
 
-Mapeo de campos pre-rellenados:
-- `nombre_promotor` ← `obra.clientes.nombre`
-- `cif_promotor` ← `obra.clientes.cif`
-- `domicilio_promotor` ← `obra.clientes.ciudad`
-- `empresa_coordinacion` ← `tecnicoAsignado.nombre` (o campo empresa si existe)
-- `email_coordinador` ← `tecnicoAsignado.email`
-- `movil_coordinador` ← `tecnicoAsignado.telefono`
+## 3. `FormActaReunion.tsx` — Reescritura
+
+**Tres modos**: CAE, Inicial, SYS — detectado via `tipo` prop.
+
+**Campos comunes**: Obra/Título actuación, Localidad, Promotor, Lugar reunión, Fecha y hora, Tabla asistentes (dinámica), Excusados/ausentes (texto).
+
+**Solo CAE**: Mes reunión, Tabla actividades (dinámica), Tabla empresas acceso (dinámica), Riesgos previstos (checkboxes: Atrapamiento, Arrollamiento, Caída de altura, Espacios confinados, Riesgo eléctrico, Otros), Plataforma CAE (default "metacontratas").
+
+**Solo SYS**: Número de acta (correlativo).
+
+**Asistentes en modo creación**: se gestionan como state local (array), se pasan en `onSave` para que `crearDocumento` los inserte. En modo edición (con `documento`), se usan las mutations del hook como ahora.
+
+## 4. `FormInforme.tsx` — Reescritura
+
+**Campos** (todos en `datos_extra`): Fecha visita, Título obra, Nombre técnico, 8 secciones textarea (Estado general, Orden y limpieza, Señalización, Trabajos en altura, EPC, EPI, Maquinaria, Medios auxiliares), Recomendaciones adicionales.
+
+**Pre-relleno**: título obra ← obra nombre, nombre técnico ← técnico nombre.
+
+**Botón "Importar desde última visita"**: Query a `visitas` → `informes` → `checklist_bloques` + `anotaciones` para la obra, agrupa por categoría y pre-rellena los textareas correspondientes. Solo visible si hay visitas para esa obra.
+
+## 5. `NuevoDocumentoDialog.tsx` — Ampliar `defaultValues`
+
+Añadir al mapeo:
+- `nombre_obra` ← `obra.nombre`
+- `direccion_obra` ← `obra.direccion`
+- `nombre_tecnico` ← `tecnicoAsignado.nombre`
 
 ## Archivos afectados
-- **Reescrito**: `NuevoDocumentoDialog.tsx`
-- **Editados**: `FormActaNombramiento.tsx`, `FormActaAprobacion.tsx`, `FormActaReunion.tsx`, `FormInforme.tsx` (añadir `defaultValues` prop)
+- **Reescritos**: `FormActaNombramiento.tsx`, `FormActaAprobacion.tsx`, `FormActaReunion.tsx`, `FormInforme.tsx`
+- **Editado**: `NuevoDocumentoDialog.tsx` (ampliar defaultValues)
+
+## Almacenamiento de datos
+
+Todos los campos específicos de cada formulario que no tienen columna propia en `documentos_obra` se guardan en el campo `datos_extra` (jsonb). Los campos con columna propia (`nombre_coordinador`, `dni_coordinador`, etc.) se guardan directamente.
 
