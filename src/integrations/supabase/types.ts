@@ -258,6 +258,8 @@ export type Database = {
           registro_mercantil: string
           swift_bic: string
           telefono: string
+          texto_acta_aprobacion_dgpo: string
+          texto_acta_aprobacion_sys: string
           texto_normativa: string
           texto_recomendaciones: string
           titulacion: string
@@ -281,6 +283,8 @@ export type Database = {
           registro_mercantil?: string
           swift_bic?: string
           telefono?: string
+          texto_acta_aprobacion_dgpo?: string
+          texto_acta_aprobacion_sys?: string
           texto_normativa?: string
           texto_recomendaciones?: string
           titulacion?: string
@@ -304,6 +308,8 @@ export type Database = {
           registro_mercantil?: string
           swift_bic?: string
           telefono?: string
+          texto_acta_aprobacion_dgpo?: string
+          texto_acta_aprobacion_sys?: string
           texto_normativa?: string
           texto_recomendaciones?: string
           titulacion?: string

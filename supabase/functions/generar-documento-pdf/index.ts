@@ -160,25 +160,68 @@ function templateActaNombramiento(doc: any, extra: any, obra: any, cliente: any,
 
 function templateActaAprobacion(doc: any, extra: any, obra: any, cliente: any, safeworkLogo: string) {
   const isDGPO = doc.tipo === "acta_aprobacion_dgpo";
-  return `
-    ${logoHeader(safeworkLogo, cliente?.logo_url, TIPO_LABELS[doc.tipo])}
-    <h2>Datos de la Obra</h2>
-    <div class="meta-grid">
-      ${metaItem("Actuación / Obra", extra.actuacion)}
-      ${metaItem("Localidad", extra.localidad)}
-      ${metaItem("Promotor", doc.nombre_promotor)}
+  const titulo = isDGPO
+    ? "ACTA DE APROBACIÓN DGPO<br/><span style='font-size:12pt;font-weight:normal;'>(Documento de Gestión Preventiva de la Obra)</span>"
+    : "ACTA DE APROBACIÓN DEL PLAN DE SEGURIDAD Y SALUD";
+  const firmaLabel = isDGPO
+    ? "La Coordinadora de actividades empresariales CAE."
+    : "La Coordinadora de Seguridad y Salud durante la ejecución de las obras.";
+  const fechaStr = doc.fecha_documento
+    ? new Date(doc.fecha_documento).toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" })
+    : "_______________";
+
+  const rows = [
+    [isDGPO ? "Actuación:" : "Obra/Instalación:", extra.actuacion || ""],
+    ["Localidad y situación:", extra.localidad || ""],
+    ["Promotor (propiedad):", doc.nombre_promotor || ""],
+    ["Autor del Proyecto:", extra.autor_proyecto || ""],
+    ["Coordinador de Seguridad y Salud durante el Proyecto:", extra.coord_ss_proyecto || ""],
+    ["Autor del Estudio de Seguridad y Salud o del Estudio Básico:", extra.autor_estudio_ss || ""],
+    ["Director de obra:", extra.director_obra || ""],
+  ];
+  if (isDGPO) {
+    rows.push(["Coordinadora de actividades empresariales:", extra.coord_actividades_empresariales || ""]);
+    rows.push(["Empresa Contratista Titular:", extra.empresa_contratista_dgpo || ""]);
+  } else {
+    rows.push(["Coordinador de Seguridad y Salud durante la Obra/Instalación:", extra.coord_ss_obra || ""]);
+    rows.push(["Empresa Contratista Titular del Plan:", extra.empresa_contratista_plan || ""]);
+  }
+
+  let html = `
+    <div style="text-align:center;margin-bottom:24pt;">
+      ${safeworkLogo ? `<img src="${safeworkLogo}" alt="Logo" style="max-height:80pt;max-width:240pt;object-fit:contain;margin-bottom:16pt;" />` : ""}
+      <h1 style="font-size:14pt;color:#1a1a1a;font-weight:bold;margin:0;">${titulo}</h1>
     </div>
-    <h2>Agentes del Proyecto</h2>
-    <div class="meta-grid">
-      ${metaItem("Autor del Proyecto", extra.autor_proyecto)}
-      ${metaItem("Coordinador SS durante el Proyecto", extra.coord_ss_proyecto)}
-      ${metaItem("Autor del Estudio SS", extra.autor_estudio_ss)}
-      ${metaItem("Director de obra", extra.director_obra)}
-      ${isDGPO ? metaItem("Coordinadora Actividades Empresariales", extra.coord_actividades_empresariales) : metaItem("Coordinador SS durante la Obra", extra.coord_ss_obra)}
-      ${isDGPO ? metaItem("Empresa Contratista", extra.empresa_contratista_dgpo) : metaItem("Empresa Contratista del Plan", extra.empresa_contratista_plan)}
-    </div>
-    ${firmaSection(extra.lugar_firma, doc.fecha_documento, ["El Promotor", "El Coordinador/a de SS", "El Director de Obra"])}
   `;
+
+  html += `<table style="width:100%;border-collapse:collapse;margin:16pt 0;">`;
+  for (const [label, value] of rows) {
+    html += `<tr>
+      <td style="border:1px solid #999;padding:6pt 10pt;font-size:9pt;font-weight:bold;width:40%;vertical-align:middle;background:#f5f5f5;">${label}</td>
+      <td style="border:1px solid #999;padding:6pt 10pt;font-size:9pt;vertical-align:middle;">${value}</td>
+    </tr>`;
+  }
+  html += `</table>`;
+
+  // Legal text
+  const textoLegal = extra.texto_legal || "";
+  if (textoLegal) {
+    html += `<div style="margin-top:20pt;font-size:10pt;line-height:1.6;text-align:justify;">${textoLegal.replace(/\n/g, "<br/>")}</div>`;
+  }
+
+  // Lugar y fecha
+  html += `<p style="margin-top:24pt;font-size:10pt;">En ${extra.lugar_firma || "_______________"}, a ${fechaStr}.</p>`;
+
+  // Firma
+  html += `
+    <div style="margin-top:60pt;text-align:center;">
+      <div style="border-top:1px solid #333;width:300pt;margin:0 auto;padding-top:8pt;font-size:9pt;">
+        ${firmaLabel}
+      </div>
+    </div>
+  `;
+
+  return html;
 }
 
 function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safeworkLogo: string, asistentes: any[], actividades: any[], empresas: any[]) {
