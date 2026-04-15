@@ -121,7 +121,23 @@ export default function AdminDocumentos() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <h2 className="font-heading text-xl font-bold">Documentos de Obra</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="font-heading text-xl font-bold">Documentos de Obra</h2>
+          <Button
+            onClick={() => {
+              if (filterObra !== '__all') {
+                setNuevoObraId(filterObra);
+                setNuevoOpen(true);
+              } else {
+                setSelectObraTemp('');
+                setSelectObraOpen(true);
+              }
+            }}
+            className="h-12 rounded-xl gap-2"
+          >
+            <Plus className="h-5 w-5" /> Nuevo documento
+          </Button>
+        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
