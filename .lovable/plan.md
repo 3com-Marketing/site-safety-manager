@@ -1,33 +1,74 @@
 
-# Plan: Paso 3 — Tipos TypeScript para documentos
 
-## Situación actual
+# Plan: Paso 4 — Reescribir useDocumentosObra con react-query
 
-Ya existen tipos básicos en `src/hooks/useDocumentosObra.ts` (`TipoDocumento`, `EstadoDocumento`, `TIPO_LABELS`, `ESTADO_LABELS`) derivados de los tipos auto-generados de Supabase. El usuario quiere añadir tipos más ricos: labels mejorados, rol por tipo, colores por estado, e interfaces detalladas para cada formulario.
+## Cambio principal
 
-## Cambios
+Reemplazar el hook actual (useState/callbacks manuales) por la versión react-query que el usuario ha proporcionado. Esto cambia la API del hook:
 
-### 1. Crear `src/types/documentos.ts`
-Archivo nuevo con todo lo que el usuario ha especificado:
-- `TipoDocumento` y `EstadoDocumento` como union types explícitos
-- `TIPO_DOCUMENTO_LABELS` con labels mejorados (ej. "Acta Nombramiento (Obra con Proyecto)")
-- `TIPO_DOCUMENTO_ROL` — qué rol puede crear cada tipo
-- `ESTADO_DOCUMENTO_COLORS` — clases CSS por estado (los colores cambian: pendiente pasa a rojo)
-- Interfaces: `DatosActaNombramiento`, `DatosActaAprobacionDGPO`, `DatosActaAprobacionPlanSYS`, `DatosActaReunionCAE`, `DatosActaReunionInicial`, `DatosInforme`
-
-### 2. Actualizar imports en archivos existentes
-Migrar los componentes para usar los nuevos tipos centralizados:
-
-| Archivo | Cambio |
+| Antes | Después |
 |---|---|
-| `useDocumentosObra.ts` | Importar `TIPO_DOCUMENTO_LABELS` como `TIPO_LABELS`, mantener re-export para compatibilidad |
-| `DocumentoStatusBadge.tsx` | Usar `ESTADO_DOCUMENTO_COLORS` del nuevo archivo en vez de colores locales |
-| `NuevoDocumentoDialog.tsx` | Importar `TIPO_DOCUMENTO_LABELS` y `TIPO_DOCUMENTO_ROL` para filtrar tipos según rol del usuario |
-| `TechDocumentos.tsx` | Filtrar tipos visibles usando `TIPO_DOCUMENTO_ROL` |
+| `useDocumentosObra()` (sin params) | `useDocumentosObra(obraId)` |
+| `documentos`, `loading`, `fetchDocumentos(obraId)` | `documentos`, `isLoading` (auto-fetch) |
+| `createDocumento(payload)` | `crearDocumento.mutateAsync(payload)` |
+| `updateDocumento(id, updates)` | `actualizarEstado.mutateAsync({id, estado})` |
+| `deleteDocumento(id)` | `eliminarDocumento.mutateAsync(id)` |
+| `uploadArchivo(docId, file)` | `adjuntarArchivo.mutateAsync({id, file})` |
+| `fetchAsistentes`, `addAsistente`, etc. | Incluidos en el select join, no se necesitan funciones separadas |
 
-### 3. Filtrado por rol en NuevoDocumentoDialog
-Usar `TIPO_DOCUMENTO_ROL` + `useAuth().role` para mostrar solo los tipos de documento que corresponden al rol actual (admin ve los de admin + ambos, técnico ve los de técnico + ambos).
+## Archivos a modificar
 
-## Archivos afectados
-- **Nuevo**: `src/types/documentos.ts`
-- **Editados**: `useDocumentosObra.ts`, `DocumentoStatusBadge.tsx`, `NuevoDocumentoDialog.tsx`, `TechDocumentos.tsx`
+### 1. `src/hooks/useDocumentosObra.ts`
+Reescribir completamente con el código proporcionado. Mantener exports de tipos (`Documento`, `Asistente`, etc.) y `TIPO_LABELS`/`ESTADO_LABELS` para compatibilidad.
+
+### 2. `src/pages/AdminDocumentos.tsx`
+- Pasar `obraId` al hook: `useDocumentosObra(obraId)`
+- Eliminar `fetchDocumentos` manual y `useEffect` — react-query lo hace automático
+- Cambiar `loading` → `isLoading`
+
+### 3. `src/pages/AdminDocumentoDetalle.tsx`
+- Necesita el `obra_id` del documento para instanciar el hook → cargar documento primero con query directa, luego usar hook con `obra_id`
+- Cambiar `updateDocumento` → `actualizarEstado` o adaptar
+
+### 4. `src/pages/TechDocumentos.tsx`
+- Cambiar la lógica: el hook ahora requiere `obraId`, pero el técnico tiene múltiples obras → mantener la query manual existente o crear un hook auxiliar `useDocumentosTecnico`
+
+### 5. `src/components/documentos/NuevoDocumentoDialog.tsx`
+- Recibir `obraId` como prop y pasar al hook
+- Cambiar `createDocumento` → `crearDocumento.mutateAsync`
+
+### 6. `src/components/documentos/AdjuntarDocumentoDialog.tsx`
+- Necesita `obraId` del documento → recibirlo como prop
+- Cambiar `uploadArchivo` → `adjuntarArchivo.mutateAsync`
+
+### 7. `src/components/documentos/DocumentosList.tsx`
+- Solo usa `TIPO_LABELS` y `Documento` type — cambio mínimo de imports
+
+### 8. `src/components/documentos/DocumentoStatusBadge.tsx`
+- Usa `ESTADO_LABELS` — mantener export en hook para compatibilidad
+
+### 9. `src/components/documentos/formularios/FormActaReunion.tsx`
+- Usa `fetchAsistentes`, `addAsistente`, etc. — estas funciones ya no existen en el nuevo hook
+- Los datos de asistentes/actividades/empresas vienen en el join del query principal
+- Adaptar para recibir datos como props y usar mutations inline o un mini-hook
+
+### 10. Formularios restantes (`FormActaNombramiento`, `FormActaAprobacion`, `FormInforme`)
+- Solo usan `type Documento` — cambio mínimo
+
+## Decisión de diseño: TechDocumentos
+
+El nuevo hook requiere un `obraId` fijo, pero los técnicos ven documentos de múltiples obras. Opciones:
+- **A**: Crear un hook separado `useDocumentosTecnico()` que hace la query multi-obra
+- **B**: Mantener query manual en `TechDocumentos.tsx`
+
+Recomiendo **B** (mantener query manual) para no complicar el hook principal.
+
+## Orden de implementación
+1. Reescribir `useDocumentosObra.ts` (mantener re-exports de tipos)
+2. Actualizar `AdminDocumentos.tsx`
+3. Actualizar `AdminDocumentoDetalle.tsx`
+4. Actualizar `NuevoDocumentoDialog.tsx` + `AdjuntarDocumentoDialog.tsx`
+5. Actualizar `FormActaReunion.tsx` (el más complejo)
+6. Dejar `TechDocumentos.tsx` con query manual
+7. Ajustes menores en imports de otros archivos
+
