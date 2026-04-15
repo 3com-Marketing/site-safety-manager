@@ -54,11 +54,13 @@ export default function AdminDocumentoDetalle() {
   };
 
   const isInforme = documento?.tipo === 'informe_css' || documento?.tipo === 'informe_at';
+  const isActaAprobacion = documento?.tipo === 'acta_aprobacion_dgpo' || documento?.tipo === 'acta_aprobacion_plan_sys';
+  const usesPreview = isInforme || isActaAprobacion;
 
   const handleGeneratePdf = async () => {
     if (!documento) return;
     // For informes, navigate to preview page
-    if (isInforme) {
+    if (usesPreview) {
       navigate(`/admin/documento/${documento.id}/preview`);
       return;
     }

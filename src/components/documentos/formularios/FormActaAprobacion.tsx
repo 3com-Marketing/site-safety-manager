@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 import type { Documento } from '@/hooks/useDocumentosObra';
 import type { Json } from '@/integrations/supabase/types';
 
@@ -27,6 +29,7 @@ export default function FormActaAprobacion({ documento, obraId, tipo, onSave, sa
   const [directorObra, setDirectorObra] = useState('');
   const [lugarFirma, setLugarFirma] = useState('Maspalomas');
   const [fechaDocumento, setFechaDocumento] = useState('');
+  const [textoLegal, setTextoLegal] = useState('');
 
   // DGPO specific
   const [coordActividadesEmpresariales, setCoordActividadesEmpresariales] = useState('');
@@ -35,6 +38,18 @@ export default function FormActaAprobacion({ documento, obraId, tipo, onSave, sa
   // Plan SYS specific
   const [coordSSObra, setCoordSSObra] = useState('');
   const [empresaContratistaPlan, setEmpresaContratistaPlan] = useState('');
+
+  // Load default legal text from company config for new documents
+  useEffect(() => {
+    if (!documento) {
+      const field = isDGPO ? 'texto_acta_aprobacion_dgpo' : 'texto_acta_aprobacion_sys';
+      supabase.from('configuracion_empresa').select(field).limit(1).single().then(({ data }) => {
+        if (data && (data as any)[field] && !textoLegal) {
+          setTextoLegal((data as any)[field]);
+        }
+      });
+    }
+  }, [documento, isDGPO]);
 
   useEffect(() => {
     if (documento) {
@@ -48,6 +63,7 @@ export default function FormActaAprobacion({ documento, obraId, tipo, onSave, sa
       setDirectorObra(extra.director_obra || '');
       setLugarFirma(extra.lugar_firma || 'Maspalomas');
       setFechaDocumento(documento.fecha_documento || '');
+      setTextoLegal(extra.texto_legal || '');
       setCoordActividadesEmpresariales(extra.coord_actividades_empresariales || '');
       setEmpresaContratistaDGPO(extra.empresa_contratista_dgpo || '');
       setCoordSSObra(extra.coord_ss_obra || '');
@@ -68,6 +84,7 @@ export default function FormActaAprobacion({ documento, obraId, tipo, onSave, sa
         actuacion, localidad, autor_proyecto: autorProyecto,
         coord_ss_proyecto: coordSSProyecto, autor_estudio_ss: autorEstudioSS,
         director_obra: directorObra, lugar_firma: lugarFirma,
+        texto_legal: textoLegal,
         ...(isDGPO
           ? { coord_actividades_empresariales: coordActividadesEmpresariales, empresa_contratista_dgpo: empresaContratistaDGPO }
           : { coord_ss_obra: coordSSObra, empresa_contratista_plan: empresaContratistaPlan }),
@@ -143,6 +160,19 @@ export default function FormActaAprobacion({ documento, obraId, tipo, onSave, sa
           </div>
         </>
       )}
+
+      {/* Texto legal editable */}
+      <p className="text-sm font-semibold text-muted-foreground pt-2">Texto legal del acta</p>
+      <div className="space-y-2">
+        <Label>{isDGPO ? 'Texto legal DGPO' : 'Texto legal Plan de Seguridad y Salud'}</Label>
+        <Textarea
+          value={textoLegal}
+          onChange={e => setTextoLegal(e.target.value)}
+          rows={12}
+          placeholder="Texto legal que aparecerá en el acta de aprobación..."
+          className="text-xs"
+        />
+      </div>
 
       <p className="text-sm font-semibold text-muted-foreground pt-2">Firma</p>
       <div className="grid grid-cols-2 gap-4">

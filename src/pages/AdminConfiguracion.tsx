@@ -29,6 +29,8 @@ interface ConfigEmpresa {
   swift_bic: string;
   texto_recomendaciones: string;
   texto_normativa: string;
+  texto_acta_aprobacion_sys: string;
+  texto_acta_aprobacion_dgpo: string;
 }
 
 const EMPTY_CONFIG: ConfigEmpresa = {
@@ -37,6 +39,7 @@ const EMPTY_CONFIG: ConfigEmpresa = {
   cargo_responsable: '', titulacion: '', num_colegiado: '',
   registro_mercantil: '', iban: '', banco: '', swift_bic: '',
   texto_recomendaciones: '', texto_normativa: '',
+  texto_acta_aprobacion_sys: '', texto_acta_aprobacion_dgpo: '',
 };
 
 export default function AdminConfiguracion() {
@@ -236,6 +239,26 @@ export default function AdminConfiguracion() {
                 onChange={e => update('texto_normativa', e.target.value)}
                 rows={10}
                 placeholder="Lista de normativa aplicable que se precargará en nuevos informes CSS/AT..."
+                className="text-xs mt-1"
+              />
+            </div>
+            <div>
+              <Label>Texto Acta Aprobación Plan SyS</Label>
+              <Textarea
+                value={config.texto_acta_aprobacion_sys}
+                onChange={e => update('texto_acta_aprobacion_sys', e.target.value)}
+                rows={10}
+                placeholder="Texto legal por defecto para actas de aprobación del Plan de Seguridad y Salud..."
+                className="text-xs mt-1"
+              />
+            </div>
+            <div>
+              <Label>Texto Acta Aprobación DGPO</Label>
+              <Textarea
+                value={config.texto_acta_aprobacion_dgpo}
+                onChange={e => update('texto_acta_aprobacion_dgpo', e.target.value)}
+                rows={10}
+                placeholder="Texto legal por defecto para actas de aprobación DGPO..."
                 className="text-xs mt-1"
               />
             </div>
