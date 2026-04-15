@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Documento } from '@/hooks/useDocumentosObra';
+import type { Json } from '@/integrations/supabase/types';
 
 interface Props {
   documento?: Documento | null;
@@ -14,8 +16,18 @@ interface Props {
 }
 
 export default function FormActaNombramiento({ documento, obraId, tipo, onSave, saving, defaultValues }: Props) {
-  const [titulo, setTitulo] = useState('');
-  const [fechaDocumento, setFechaDocumento] = useState('');
+  // Datos proyecto
+  const [denominacion, setDenominacion] = useState('');
+  const [emplazamiento, setEmplazamiento] = useState('');
+  const [tipoObra, setTipoObra] = useState('');
+  const [modalidad, setModalidad] = useState<'cae' | 'proyecto'>('cae');
+
+  // Datos promotor
+  const [nombrePromotor, setNombrePromotor] = useState('');
+  const [cifPromotor, setCifPromotor] = useState('');
+  const [domicilioPromotor, setDomicilioPromotor] = useState('');
+
+  // Datos coordinador
   const [nombreCoordinador, setNombreCoordinador] = useState('');
   const [dniCoordinador, setDniCoordinador] = useState('');
   const [titulacionColegiado, setTitulacionColegiado] = useState('');
@@ -24,13 +36,19 @@ export default function FormActaNombramiento({ documento, obraId, tipo, onSave, 
   const [domicilioEmpresa, setDomicilioEmpresa] = useState('');
   const [movilCoordinador, setMovilCoordinador] = useState('');
   const [emailCoordinador, setEmailCoordinador] = useState('');
-  const [nombrePromotor, setNombrePromotor] = useState('');
-  const [cifPromotor, setCifPromotor] = useState('');
-  const [domicilioPromotor, setDomicilioPromotor] = useState('');
+
+  // Firma
+  const [lugarFirma, setLugarFirma] = useState('Maspalomas');
+  const [fechaDocumento, setFechaDocumento] = useState('');
 
   useEffect(() => {
     if (documento) {
-      setTitulo(documento.titulo || '');
+      const extra = (documento.datos_extra as Record<string, any>) || {};
+      setDenominacion(extra.denominacion || '');
+      setEmplazamiento(extra.emplazamiento || '');
+      setTipoObra(extra.tipo_obra || '');
+      setModalidad(extra.modalidad || 'cae');
+      setLugarFirma(extra.lugar_firma || 'Maspalomas');
       setFechaDocumento(documento.fecha_documento || '');
       setNombreCoordinador(documento.nombre_coordinador || '');
       setDniCoordinador(documento.dni_coordinador || '');
@@ -44,6 +62,8 @@ export default function FormActaNombramiento({ documento, obraId, tipo, onSave, 
       setCifPromotor(documento.cif_promotor || '');
       setDomicilioPromotor(documento.domicilio_promotor || '');
     } else if (defaultValues) {
+      setDenominacion(defaultValues.nombre_obra || '');
+      setEmplazamiento(defaultValues.direccion_obra || '');
       setNombreCoordinador(defaultValues.nombre_coordinador || '');
       setEmailCoordinador(defaultValues.email_coordinador || '');
       setMovilCoordinador(defaultValues.movil_coordinador || '');
@@ -55,33 +75,80 @@ export default function FormActaNombramiento({ documento, obraId, tipo, onSave, 
 
   const handleSubmit = () => {
     onSave({
-      titulo, fecha_documento: fechaDocumento || null,
-      nombre_coordinador: nombreCoordinador, dni_coordinador: dniCoordinador,
-      titulacion_colegiado: titulacionColegiado, empresa_coordinacion: empresaCoordinacion,
-      cif_empresa: cifEmpresa, domicilio_empresa: domicilioEmpresa,
-      movil_coordinador: movilCoordinador, email_coordinador: emailCoordinador,
-      nombre_promotor: nombrePromotor, cif_promotor: cifPromotor, domicilio_promotor: domicilioPromotor,
+      titulo: denominacion || 'Acta de nombramiento',
+      fecha_documento: fechaDocumento || null,
+      nombre_coordinador: nombreCoordinador,
+      dni_coordinador: dniCoordinador,
+      titulacion_colegiado: titulacionColegiado,
+      empresa_coordinacion: empresaCoordinacion,
+      cif_empresa: cifEmpresa,
+      domicilio_empresa: domicilioEmpresa,
+      movil_coordinador: movilCoordinador,
+      email_coordinador: emailCoordinador,
+      nombre_promotor: nombrePromotor,
+      cif_promotor: cifPromotor,
+      domicilio_promotor: domicilioPromotor,
+      datos_extra: {
+        denominacion, emplazamiento, tipo_obra: tipoObra,
+        modalidad, lugar_firma: lugarFirma,
+      } as unknown as Json,
       ...(obraId ? { obra_id: obraId, tipo } : {}),
     });
   };
 
   return (
     <div className="space-y-4">
+      {/* Modalidad */}
+      <div className="space-y-2">
+        <Label>Tipo de nombramiento</Label>
+        <Select value={modalidad} onValueChange={(v: 'cae' | 'proyecto') => setModalidad(v)}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="cae">CAE (obra sin proyecto)</SelectItem>
+            <SelectItem value="proyecto">Con proyecto</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Datos proyecto */}
+      <p className="text-sm font-semibold text-muted-foreground pt-2">Datos del proyecto</p>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Título</Label>
-          <Input value={titulo} onChange={e => setTitulo(e.target.value)} placeholder="Título del acta" />
+          <Label>Denominación</Label>
+          <Input value={denominacion} onChange={e => setDenominacion(e.target.value)} placeholder="Nombre de la obra" />
         </div>
         <div className="space-y-2">
-          <Label>Fecha del documento</Label>
-          <Input type="date" value={fechaDocumento} onChange={e => setFechaDocumento(e.target.value)} />
+          <Label>Emplazamiento</Label>
+          <Input value={emplazamiento} onChange={e => setEmplazamiento(e.target.value)} placeholder="Dirección" />
+        </div>
+        <div className="col-span-2 space-y-2">
+          <Label>Tipo de obra</Label>
+          <Input value={tipoObra} onChange={e => setTipoObra(e.target.value)} placeholder="Ej: Edificación, Reforma..." />
         </div>
       </div>
 
-      <p className="text-sm font-semibold text-muted-foreground pt-2">Datos del Coordinador</p>
+      {/* Datos promotor */}
+      <p className="text-sm font-semibold text-muted-foreground pt-2">Datos del Promotor</p>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Nombre</Label>
+          <Label>Nombre / Razón Social</Label>
+          <Input value={nombrePromotor} onChange={e => setNombrePromotor(e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label>CIF</Label>
+          <Input value={cifPromotor} onChange={e => setCifPromotor(e.target.value)} />
+        </div>
+        <div className="col-span-2 space-y-2">
+          <Label>Domicilio</Label>
+          <Input value={domicilioPromotor} onChange={e => setDomicilioPromotor(e.target.value)} />
+        </div>
+      </div>
+
+      {/* Datos coordinador */}
+      <p className="text-sm font-semibold text-muted-foreground pt-2">Datos del Coordinador/a</p>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Nombre y apellidos</Label>
           <Input value={nombreCoordinador} onChange={e => setNombreCoordinador(e.target.value)} />
         </div>
         <div className="space-y-2">
@@ -89,7 +156,7 @@ export default function FormActaNombramiento({ documento, obraId, tipo, onSave, 
           <Input value={dniCoordinador} onChange={e => setDniCoordinador(e.target.value)} />
         </div>
         <div className="space-y-2">
-          <Label>Titulación / Colegiado</Label>
+          <Label>Titulación / Nº Colegiado</Label>
           <Input value={titulacionColegiado} onChange={e => setTitulacionColegiado(e.target.value)} />
         </div>
         <div className="space-y-2">
@@ -114,19 +181,16 @@ export default function FormActaNombramiento({ documento, obraId, tipo, onSave, 
         </div>
       </div>
 
-      <p className="text-sm font-semibold text-muted-foreground pt-2">Datos del Promotor</p>
+      {/* Firma */}
+      <p className="text-sm font-semibold text-muted-foreground pt-2">Firma</p>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Nombre promotor</Label>
-          <Input value={nombrePromotor} onChange={e => setNombrePromotor(e.target.value)} />
+          <Label>Lugar</Label>
+          <Input value={lugarFirma} onChange={e => setLugarFirma(e.target.value)} />
         </div>
         <div className="space-y-2">
-          <Label>CIF promotor</Label>
-          <Input value={cifPromotor} onChange={e => setCifPromotor(e.target.value)} />
-        </div>
-        <div className="col-span-2 space-y-2">
-          <Label>Domicilio promotor</Label>
-          <Input value={domicilioPromotor} onChange={e => setDomicilioPromotor(e.target.value)} />
+          <Label>Fecha</Label>
+          <Input type="date" value={fechaDocumento} onChange={e => setFechaDocumento(e.target.value)} />
         </div>
       </div>
 

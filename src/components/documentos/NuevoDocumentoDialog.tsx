@@ -97,6 +97,8 @@ export default function NuevoDocumentoDialog({ open, onOpenChange, obraId, onCre
   const defaultValues = useMemo(() => {
     const vals: Record<string, string> = {};
     if (obra) {
+      vals.nombre_obra = (obra as any).nombre || '';
+      vals.direccion_obra = (obra as any).direccion || '';
       const cliente = (obra as any).clientes;
       if (cliente) {
         vals.nombre_promotor = cliente.nombre || '';
@@ -108,6 +110,7 @@ export default function NuevoDocumentoDialog({ open, onOpenChange, obraId, onCre
       vals.nombre_coordinador = tecnicoAsignado.nombre || '';
       vals.email_coordinador = tecnicoAsignado.email || '';
       vals.movil_coordinador = tecnicoAsignado.telefono || '';
+      vals.nombre_tecnico = tecnicoAsignado.nombre || '';
     }
     return vals;
   }, [obra, tecnicoAsignado]);
@@ -119,7 +122,14 @@ export default function NuevoDocumentoDialog({ open, onOpenChange, obraId, onCre
   const FormComponent = tipo ? FORM_MAP[tipo] : null;
 
   const handleSave = async (data: Record<string, any>) => {
-    await crearDocumento.mutateAsync({ tipo: tipo as any, datos: data });
+    const { _asistentes, _actividades, _empresas, ...datos } = data;
+    await crearDocumento.mutateAsync({
+      tipo: tipo as any,
+      datos,
+      asistentes: _asistentes,
+      actividades: _actividades,
+      empresas: _empresas,
+    });
     onOpenChange(false);
     resetState();
     onCreated();
