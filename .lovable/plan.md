@@ -1,55 +1,39 @@
 
 
-# Plan: Paso 9 — Integración de documentos en vistas existentes
+# Plan: Paso 10 — Reescritura completa de AdminDocumentos.tsx
 
-## Resumen
+Reemplazar la vista actual (simple selector de obra + DocumentosList) por una tabla completa con filtros, estadísticas y acciones inline.
 
-Crear un helper reutilizable para calcular el estado del expediente documental (semáforo 🔴🟡🟢), e integrarlo en 3 vistas: AdminObras, AdminInformes y TechHome.
+## Cambio
 
-## 1. Nuevo archivo: `src/lib/expedienteStatus.ts`
+### `src/pages/AdminDocumentos.tsx` — Reescritura completa
 
-Función pura que recibe un array de documentos y retorna el estado del expediente:
+**Query directa**: En lugar de usar `useDocumentosObra` (que requiere un `obraId`), hacer una query directa a `documentos_obra` con join a `obras` para obtener el nombre de la obra:
 
-```text
-Inputs: documentos[], tipoObra ('sin_proyecto' | 'con_proyecto')
-Output: 'rojo' | 'amarillo' | 'verde' | 'sin_datos'
-
-Lógica:
-- Docs obligatorios sin_proyecto: ['acta_nombramiento_cae']
-- Docs obligatorios con_proyecto: ['acta_nombramiento_proyecto', 'acta_aprobacion_plan_sys']
-- Si algún obligatorio está en 'pendiente' o falta → rojo
-- Si todos obligatorios están generados/adjuntados pero ninguno firmado → amarillo
-- Si todos obligatorios están firmados → verde
-```
-
-Como la tabla `obras` no tiene campo `tipo_obra`, la función inferirá el tipo a partir de los documentos existentes: si hay `acta_nombramiento_proyecto` → con_proyecto, si hay `acta_nombramiento_cae` → sin_proyecto. Si no hay ninguno, default a sin_proyecto (solo necesita 1 doc obligatorio).
-
-## 2. `AdminObras.tsx` — Sección Documentación en el dialog de vista
-
-En el dialog "Ficha de la obra" (`viewObra`):
-- Añadir `<DocumentosList obraId={viewObra.id} />` debajo de los datos existentes
-- En la lista de obras, añadir un indicador (dot coloreado) junto al nombre de cada obra. Esto requiere una query adicional al montar la página que traiga los documentos agrupados por obra_id para calcular el semáforo de cada una.
-
-Query adicional en `fetchData`:
 ```sql
-SELECT obra_id, tipo, estado FROM documentos_obra
+SELECT *, obras(nombre) FROM documentos_obra ORDER BY created_at DESC
 ```
-Procesamos en el cliente para generar un `Map<obraId, 'rojo'|'amarillo'|'verde'>`.
 
-## 3. `AdminInformes.tsx` — Columna "Docs" en informes
+**4 stat cards en cabecera**: Total, Pendientes (rojo), Generados (amarillo), Firmados (verde) — calculados del array filtrado.
 
-- Añadir la misma query de documentos por obra al `fetchAll`
-- Extraer el `obra_id` de cada informe (via `visitas.obra_id` — necesita añadir `obra_id` al select de visitas)
-- Mostrar un dot coloreado en cada fila de informe
+**Filtros** (fila debajo de las stats):
+- Por obra: Select simple con todas las obras
+- Por tipo: Select con checkboxes (multi-select simulado con state array)
+- Por estado: Select con checkboxes (multi-select simulado)
+- Por rango de fechas: Dos date pickers (desde/hasta)
 
-## 4. `TechHome.tsx` — Sección "Documentos pendientes"
+**Tabla** con columnas:
+- Obra (nombre de la obra)
+- Tipo (label legible desde `TIPO_DOCUMENTO_LABELS`)
+- Estado (`DocumentoStatusBadge`)
+- Fecha documento
+- Coordinador
+- Archivo (icono Download/link si `archivo_url` existe)
+- Acciones: Ver detalle (navega a `/admin/documento/:id`), Marcar firmado (mutation inline), Eliminar (con confirmación)
 
-- Nueva query: documentos en estado `pendiente` o `generado` cuyo tipo sea de rol `tecnico` o `ambos` (reuniones e informes), filtrados por las obras asignadas al técnico
-- Query: `documentos_obra` where `tipo in (acta_reunion_cae, acta_reunion_inicial, acta_reunion_sys, informe_css, informe_at)` and `estado in (pendiente)`, joined con obra nombre
-- Mostrar como lista de cards con nombre de obra y tipo de documento pendiente
-- Al hacer click, navegar a `/documentos` (o abrir un dialog)
+**Mutations**: Para "Marcar firmado" y "Eliminar", como no usamos `useDocumentosObra` (necesita obraId fijo), hacer mutations directas con `supabase.from('documentos_obra').update/delete` + invalidar la query.
 
 ## Archivos afectados
-- **Nuevo**: `src/lib/expedienteStatus.ts`
-- **Editados**: `AdminObras.tsx`, `AdminInformes.tsx`, `TechHome.tsx`
+- **Reescrito**: `src/pages/AdminDocumentos.tsx`
+- La ruta `/admin/documentos` y el enlace en `AdminLayout.tsx` ya existen — no requieren cambios.
 
