@@ -9,12 +9,15 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import DocumentoStatusBadge from '@/components/documentos/DocumentoStatusBadge';
+import NuevoDocumentoDialog from '@/components/documentos/NuevoDocumentoDialog';
+import AdjuntarDocumentoDialog from '@/components/documentos/AdjuntarDocumentoDialog';
 import { TIPO_DOCUMENTO_LABELS, TipoDocumento } from '@/types/documentos';
 import { ESTADO_LABELS } from '@/hooks/useDocumentosObra';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CalendarIcon, Download, Eye, CheckCircle, Trash2 } from 'lucide-react';
+import { CalendarIcon, Download, Eye, CheckCircle, Trash2, Plus, Paperclip } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import {
