@@ -17,7 +17,6 @@ export default function TechDocumentos() {
 
   const fetchAll = async () => {
     if (!user) return;
-    // Get technician's obras
     const { data: tecData } = await supabase.from('tecnicos').select('id').eq('user_id', user.id).single();
     if (!tecData) { setLoading(false); return; }
     const { data: links } = await supabase.from('tecnicos_obras').select('obra_id').eq('tecnico_id', tecData.id);
@@ -47,7 +46,7 @@ export default function TechDocumentos() {
           <DocumentosList documentos={documentos} basePath="/documentos" onAttach={doc => setAttachDoc(doc)} />
         )}
       </div>
-      <AdjuntarDocumentoDialog open={!!attachDoc} onOpenChange={open => !open && setAttachDoc(null)} documento={attachDoc} onUploaded={fetchAll} />
+      <AdjuntarDocumentoDialog open={!!attachDoc} onOpenChange={open => !open && setAttachDoc(null)} documento={attachDoc} obraId={attachDoc?.obra_id || ''} />
     </div>
   );
 }
