@@ -18,6 +18,7 @@ import AdminVisitaDetalle from "./pages/AdminVisitaDetalle";
 import AdminDocumentos from "./pages/AdminDocumentos";
 import AdminDocumentoDetalle from "./pages/AdminDocumentoDetalle";
 import TechDocumentos from "./pages/TechDocumentos";
+import AdminConfiguracion from "./pages/AdminConfiguracion";
 import RoleSwitcher from "./components/RoleSwitcher";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/admin/documentos" element={<AdminDocumentos />} />
             <Route path="/admin/documento/:id" element={<AdminDocumentoDetalle />} />
             <Route path="/documentos" element={<TechDocumentos />} />
+            <Route path="/admin/configuracion" element={<AdminConfiguracion />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

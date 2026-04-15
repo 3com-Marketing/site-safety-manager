@@ -240,6 +240,60 @@ export type Database = {
         }
         Relationships: []
       }
+      configuracion_empresa: {
+        Row: {
+          cargo_responsable: string
+          cif: string
+          ciudad: string
+          created_at: string | null
+          direccion: string
+          email: string
+          id: string
+          logo_url: string | null
+          nombre: string
+          nombre_responsable: string
+          num_colegiado: string
+          telefono: string
+          titulacion: string
+          updated_at: string | null
+          web: string
+        }
+        Insert: {
+          cargo_responsable?: string
+          cif?: string
+          ciudad?: string
+          created_at?: string | null
+          direccion?: string
+          email?: string
+          id?: string
+          logo_url?: string | null
+          nombre?: string
+          nombre_responsable?: string
+          num_colegiado?: string
+          telefono?: string
+          titulacion?: string
+          updated_at?: string | null
+          web?: string
+        }
+        Update: {
+          cargo_responsable?: string
+          cif?: string
+          ciudad?: string
+          created_at?: string | null
+          direccion?: string
+          email?: string
+          id?: string
+          logo_url?: string | null
+          nombre?: string
+          nombre_responsable?: string
+          num_colegiado?: string
+          telefono?: string
+          titulacion?: string
+          updated_at?: string | null
+          web?: string
+        }
+        Relationships: []
+      }
       contactos_cliente: {
         Row: {
           cargo: string
