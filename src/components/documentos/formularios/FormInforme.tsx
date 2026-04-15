@@ -68,7 +68,11 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
 
   useEffect(() => {
     if (documento) {
-      const extra = (documento.datos_extra as Record<string, any>) || {};
+      const rawExtra = (documento.datos_extra as Record<string, any>) || {};
+      // Normalize: handle legacy double-nested datos_extra
+      const extra = rawExtra.datos_extra && typeof rawExtra.datos_extra === 'object' && !Array.isArray(rawExtra.datos_extra)
+        ? { ...rawExtra, ...(rawExtra.datos_extra as Record<string, any>) }
+        : rawExtra;
       setFechaVisita(documento.fecha_documento || '');
       setTituloObra(extra.titulo_obra || '');
       setNombreTecnico(extra.nombre_tecnico || '');

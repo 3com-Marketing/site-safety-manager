@@ -509,7 +509,11 @@ serve(async (req) => {
 
     const obra = (doc as any).obras;
     const cliente = obra?.clientes;
-    const extra = (doc.datos_extra as Record<string, any>) || {};
+    const rawExtra = (doc.datos_extra as Record<string, any>) || {};
+    // Normalize: handle legacy double-nested datos_extra
+    const extra = rawExtra.datos_extra && typeof rawExtra.datos_extra === 'object' && !Array.isArray(rawExtra.datos_extra)
+      ? { ...rawExtra, ...(rawExtra.datos_extra as Record<string, any>) }
+      : rawExtra;
     
     const { data: empresaConfig } = await supabase
       .from("configuracion_empresa")
