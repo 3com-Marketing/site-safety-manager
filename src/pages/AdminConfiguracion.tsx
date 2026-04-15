@@ -232,92 +232,74 @@ export default function AdminConfiguracion() {
           <CardContent className="space-y-4">
             <div>
               <Label>Recomendaciones (sección 2 del informe)</Label>
-              <Textarea
+              <RichTextEditor
                 value={config.texto_recomendaciones}
-                onChange={e => update('texto_recomendaciones', e.target.value)}
-                rows={10}
+                onChange={v => update('texto_recomendaciones', v)}
                 placeholder="Texto legal de recomendaciones que se precargará en nuevos informes CSS/AT..."
-                className="text-xs mt-1"
               />
             </div>
             <div>
               <Label>Normativa aplicable (sección 11 del informe)</Label>
-              <Textarea
+              <RichTextEditor
                 value={config.texto_normativa}
-                onChange={e => update('texto_normativa', e.target.value)}
-                rows={10}
+                onChange={v => update('texto_normativa', v)}
                 placeholder="Lista de normativa aplicable que se precargará en nuevos informes CSS/AT..."
-                className="text-xs mt-1"
               />
             </div>
             <div>
               <Label>Texto Acta Aprobación Plan SyS</Label>
-              <Textarea
+              <RichTextEditor
                 value={config.texto_acta_aprobacion_sys}
-                onChange={e => update('texto_acta_aprobacion_sys', e.target.value)}
-                rows={10}
+                onChange={v => update('texto_acta_aprobacion_sys', v)}
                 placeholder="Texto legal por defecto para actas de aprobación del Plan de Seguridad y Salud..."
-                className="text-xs mt-1"
               />
             </div>
             <div>
               <Label>Texto Acta Aprobación DGPO</Label>
-              <Textarea
+              <RichTextEditor
                 value={config.texto_acta_aprobacion_dgpo}
-                onChange={e => update('texto_acta_aprobacion_dgpo', e.target.value)}
-                rows={10}
+                onChange={v => update('texto_acta_aprobacion_dgpo', v)}
                 placeholder="Texto legal por defecto para actas de aprobación DGPO..."
-                className="text-xs mt-1"
               />
             </div>
             <div>
               <Label>Texto Acta Reunión Inicial</Label>
-              <Textarea
+              <RichTextEditor
                 value={config.texto_acta_reunion_inicial}
-                onChange={e => update('texto_acta_reunion_inicial', e.target.value)}
-                rows={10}
-                placeholder="Texto legal por defecto para actas de reunión inicial (puntos a-o coordinación)..."
-                className="text-xs mt-1"
+                onChange={v => update('texto_acta_reunion_inicial', v)}
+                placeholder="Texto legal por defecto para actas de reunión inicial..."
               />
             </div>
             <div>
               <Label>Texto Acta Reunión CAE</Label>
-              <Textarea
+              <RichTextEditor
                 value={config.texto_acta_reunion_cae}
-                onChange={e => update('texto_acta_reunion_cae', e.target.value)}
-                rows={10}
-                placeholder="Texto legal por defecto para actas de reunión CAE (13 secciones)..."
-                className="text-xs mt-1"
+                onChange={v => update('texto_acta_reunion_cae', v)}
+                placeholder="Texto legal por defecto para actas de reunión CAE..."
               />
             </div>
             <div>
               <Label>Texto Acta Reunión SyS</Label>
-              <Textarea
+              <RichTextEditor
                 value={config.texto_acta_reunion_sys}
-                onChange={e => update('texto_acta_reunion_sys', e.target.value)}
-                rows={10}
+                onChange={v => update('texto_acta_reunion_sys', v)}
                 placeholder="Texto legal por defecto para actas de reunión de seguridad y salud..."
-                className="text-xs mt-1"
               />
             </div>
             <div>
               <Label>Texto Acta Nombramiento CAE</Label>
-              <Textarea
+              <RichTextEditor
                 value={config.texto_acta_nombramiento_cae}
-                onChange={e => update('texto_acta_nombramiento_cae', e.target.value)}
-                rows={10}
-                placeholder="Texto legal por defecto para actas de nombramiento CAE (RD 171/2004)..."
-                className="text-xs mt-1"
+                onChange={v => update('texto_acta_nombramiento_cae', v)}
+                placeholder="Texto legal por defecto para actas de nombramiento CAE..."
               />
             </div>
             <div>
               <Label>Texto Acta Nombramiento Con Proyecto</Label>
-              <Textarea
+              <RichTextEditor
                 value={config.texto_acta_nombramiento_proyecto}
-                onChange={e => update('texto_acta_nombramiento_proyecto', e.target.value)}
-                rows={10}
-                placeholder="Texto legal por defecto para actas de nombramiento con proyecto (RD 1627/1997)..."
-                className="text-xs mt-1"
+                onChange={v => update('texto_acta_nombramiento_proyecto', v)}
+                placeholder="Texto legal por defecto para actas de nombramiento con proyecto..."
               />
             </div>
           </CardContent>

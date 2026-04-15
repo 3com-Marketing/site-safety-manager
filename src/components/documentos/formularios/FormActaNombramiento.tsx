@@ -202,12 +202,10 @@ export default function FormActaNombramiento({ documento, obraId, tipo, onSave, 
 
       {/* Texto legal */}
       <p className="text-sm font-semibold text-muted-foreground pt-2">Texto legal</p>
-      <Textarea
+      <RichTextEditor
         value={textoLegal}
-        onChange={e => setTextoLegal(e.target.value)}
-        rows={10}
+        onChange={setTextoLegal}
         placeholder="Texto legal del acta de nombramiento..."
-        className="text-xs"
       />
 
       {/* Firma */}

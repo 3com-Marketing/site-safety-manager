@@ -381,12 +381,10 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       {/* Texto legal editable */}
       <div className="space-y-2 pt-2">
         <Label>Texto legal / Contenido del acta</Label>
-        <Textarea
+        <RichTextEditor
           value={textoLegal}
-          onChange={e => setTextoLegal(e.target.value)}
-          rows={15}
+          onChange={setTextoLegal}
           placeholder="Texto legal que aparecerá en el documento generado. Se precarga desde la configuración de empresa..."
-          className="text-xs"
         />
         <p className="text-xs text-muted-foreground">Este texto se incluirá en el PDF generado y puede editarse libremente antes de guardar.</p>
       </div>

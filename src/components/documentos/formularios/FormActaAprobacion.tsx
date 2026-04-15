@@ -166,12 +166,10 @@ export default function FormActaAprobacion({ documento, obraId, tipo, onSave, sa
       <p className="text-sm font-semibold text-muted-foreground pt-2">Texto legal del acta</p>
       <div className="space-y-2">
         <Label>{isDGPO ? 'Texto legal DGPO' : 'Texto legal Plan de Seguridad y Salud'}</Label>
-        <Textarea
+        <RichTextEditor
           value={textoLegal}
-          onChange={e => setTextoLegal(e.target.value)}
-          rows={12}
+          onChange={setTextoLegal}
           placeholder="Texto legal que aparecerá en el acta de aprobación..."
-          className="text-xs"
         />
       </div>
 
