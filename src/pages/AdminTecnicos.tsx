@@ -9,39 +9,45 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Users, Plus, Pencil, Trash2, Eye, Phone, Mail, Hash, HardHat } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Users, Plus, Pencil, Trash2, Eye, Phone, Mail, Hash, HardHat, Building2, CreditCard, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Tecnico {
   id: string;
   user_id: string | null;
   nombre: string;
+  apellidos: string;
+  dni: string;
   direccion: string;
   telefono: string;
+  movil: string;
   email: string;
   codigo_tecnico: string;
+  titulacion: string;
+  num_colegiado: string;
+  empresa: string;
+  cif_empresa: string;
   notas: string;
+  tipo: string;
 }
 
-interface ProfileMin {
-  user_id: string;
-  nombre: string;
-  email: string;
-}
+interface ProfileMin { user_id: string; nombre: string; email: string; }
+interface ObraMin { id: string; nombre: string; }
 
-interface ObraMin {
-  id: string;
-  nombre: string;
-}
-
-const emptyForm = { nombre: '', direccion: '', telefono: '', email: '', codigo_tecnico: '', notas: '', user_id: '' };
+const emptyForm = {
+  nombre: '', apellidos: '', dni: '', direccion: '', telefono: '', movil: '',
+  email: '', codigo_tecnico: '', titulacion: '', num_colegiado: '',
+  empresa: '', cif_empresa: '', notas: '', user_id: '', tipo: 'tecnico',
+};
 
 export default function AdminTecnicos() {
   const [tecnicos, setTecnicos] = useState<Tecnico[]>([]);
   const [profiles, setProfiles] = useState<ProfileMin[]>([]);
   const [obras, setObras] = useState<ObraMin[]>([]);
-  const [tecnicoObras, setTecnicoObras] = useState<Record<string, string[]>>({}); // tecnico_id -> obra_id[]
+  const [tecnicoObras, setTecnicoObras] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('tecnico');
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -59,11 +65,9 @@ export default function AdminTecnicos() {
       supabase.from('obras').select('id, nombre').order('nombre'),
       supabase.from('tecnicos_obras').select('tecnico_id, obra_id'),
     ]);
-
     setTecnicos((tecs || []) as Tecnico[]);
     setProfiles((profs || []) as ProfileMin[]);
     setObras((obrasData || []) as ObraMin[]);
-
     const map: Record<string, string[]> = {};
     (links || []).forEach((l: any) => {
       if (!map[l.tecnico_id]) map[l.tecnico_id] = [];
@@ -75,10 +79,19 @@ export default function AdminTecnicos() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const openCreate = () => { setEditId(null); setForm(emptyForm); setSelectedObras([]); setDialogOpen(true); };
+  const filteredTecnicos = tecnicos.filter(t => (t.tipo || 'tecnico') === activeTab);
+
+  const openCreate = (tipo: string) => { setEditId(null); setForm({ ...emptyForm, tipo }); setSelectedObras([]); setDialogOpen(true); };
   const openEdit = (t: Tecnico) => {
     setEditId(t.id);
-    setForm({ nombre: t.nombre, direccion: t.direccion, telefono: t.telefono, email: t.email, codigo_tecnico: t.codigo_tecnico, notas: t.notas, user_id: t.user_id || '' });
+    setForm({
+      nombre: t.nombre, apellidos: t.apellidos || '', dni: t.dni || '',
+      direccion: t.direccion, telefono: t.telefono, movil: t.movil || '',
+      email: t.email, codigo_tecnico: t.codigo_tecnico,
+      titulacion: t.titulacion || '', num_colegiado: t.num_colegiado || '',
+      empresa: t.empresa || '', cif_empresa: t.cif_empresa || '',
+      notas: t.notas, user_id: t.user_id || '', tipo: t.tipo || 'tecnico',
+    });
     setSelectedObras(tecnicoObras[t.id] || []);
     setDialogOpen(true);
   };
@@ -89,18 +102,16 @@ export default function AdminTecnicos() {
   };
 
   const handleSave = async () => {
-    const payload = {
-      nombre: form.nombre,
-      direccion: form.direccion,
-      telefono: form.telefono,
-      email: form.email,
-      codigo_tecnico: form.codigo_tecnico,
-      notas: form.notas,
-      user_id: form.user_id || null,
+    const payload: any = {
+      nombre: form.nombre, apellidos: form.apellidos, dni: form.dni,
+      direccion: form.direccion, telefono: form.telefono, movil: form.movil,
+      email: form.email, codigo_tecnico: form.codigo_tecnico,
+      titulacion: form.titulacion, num_colegiado: form.num_colegiado,
+      empresa: form.empresa, cif_empresa: form.cif_empresa,
+      notas: form.notas, user_id: form.user_id || null, tipo: form.tipo,
     };
 
     let tecnicoId = editId;
-
     if (editId) {
       const { error } = await supabase.from('tecnicos').update(payload).eq('id', editId);
       if (error) { toast.error('Error al actualizar'); return; }
@@ -110,21 +121,17 @@ export default function AdminTecnicos() {
       tecnicoId = data.id;
     }
 
-    // Sync obras links
     await supabase.from('tecnicos_obras').delete().eq('tecnico_id', tecnicoId!);
     if (selectedObras.length > 0) {
-      await supabase.from('tecnicos_obras').insert(
-        selectedObras.map(obra_id => ({ tecnico_id: tecnicoId!, obra_id }))
-      );
+      await supabase.from('tecnicos_obras').insert(selectedObras.map(obra_id => ({ tecnico_id: tecnicoId!, obra_id })));
     }
 
-    // Assign tecnico role if linked to user
     if (form.user_id) {
       await supabase.from('user_roles').delete().eq('user_id', form.user_id);
       await supabase.from('user_roles').insert({ user_id: form.user_id, role: 'tecnico' as any });
     }
 
-    toast.success(editId ? 'Técnico actualizado' : 'Técnico creado');
+    toast.success(editId ? 'Actualizado' : 'Creado');
     setDialogOpen(false);
     fetchData();
   };
@@ -133,7 +140,7 @@ export default function AdminTecnicos() {
     if (!deleteTarget) return;
     const { error } = await supabase.from('tecnicos').delete().eq('id', deleteTarget.id);
     if (error) toast.error('Error al eliminar');
-    else toast.success('Técnico eliminado');
+    else toast.success('Eliminado');
     setDeleteTarget(null);
     fetchData();
   };
@@ -141,72 +148,107 @@ export default function AdminTecnicos() {
   const unlinkedProfiles = profiles.filter(p => !tecnicos.some(t => t.user_id === p.user_id));
   const obraNames = (tecId: string) => (tecnicoObras[tecId] || []).map(oid => obras.find(o => o.id === oid)?.nombre).filter(Boolean);
 
+  const isCoord = form.tipo === 'coordinador';
+  const labelTipo = isCoord ? 'coordinador' : 'técnico';
+
   return (
     <AdminLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="font-heading text-xl font-bold">Técnicos</h2>
-          <Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" /> Nuevo técnico</Button>
+          <h2 className="font-heading text-xl font-bold">Técnicos y Coordinadores</h2>
         </div>
 
-        {loading ? (
-          <p className="text-muted-foreground">Cargando...</p>
-        ) : tecnicos.length === 0 ? (
-          <p className="text-muted-foreground">No hay técnicos registrados</p>
-        ) : (
-          <div className="space-y-2">
-            {tecnicos.map(t => {
-              const linkedObras = obraNames(t.id);
-              return (
-                <div key={t.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                      <Users className="h-5 w-5 text-secondary-foreground" />
-                    </div>
-                    <div>
-                      <p className="font-heading font-semibold">{t.nombre || 'Sin nombre'}</p>
-                      <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
-                        {t.codigo_tecnico && <span className="flex items-center gap-1"><Hash className="h-3 w-3" />{t.codigo_tecnico}</span>}
-                        {t.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{t.email}</span>}
-                        {t.telefono && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{t.telefono}</span>}
-                      </div>
-                      {linkedObras.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {linkedObras.map((name, i) => (
-                            <span key={i} className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                              <HardHat className="h-3 w-3" />{name}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => openView(t)}><Eye className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(t)}><Pencil className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(t)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                  </div>
-                </div>
-              );
-            })}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <div className="flex items-center justify-between">
+            <TabsList>
+              <TabsTrigger value="tecnico">Técnicos</TabsTrigger>
+              <TabsTrigger value="coordinador">Coordinadores</TabsTrigger>
+            </TabsList>
+            <Button onClick={() => openCreate(activeTab)} className="gap-2">
+              <Plus className="h-4 w-4" /> Nuevo {activeTab === 'coordinador' ? 'coordinador' : 'técnico'}
+            </Button>
           </div>
-        )}
+
+          {['tecnico', 'coordinador'].map(tab => (
+            <TabsContent key={tab} value={tab}>
+              {loading ? (
+                <p className="text-muted-foreground">Cargando...</p>
+              ) : filteredTecnicos.length === 0 ? (
+                <p className="text-muted-foreground">No hay {tab === 'coordinador' ? 'coordinadores' : 'técnicos'} registrados</p>
+              ) : (
+                <div className="space-y-2">
+                  {filteredTecnicos.map(t => {
+                    const linkedObras = obraNames(t.id);
+                    return (
+                      <div key={t.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
+                        <div className="flex items-center gap-4">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
+                            <Users className="h-5 w-5 text-secondary-foreground" />
+                          </div>
+                          <div>
+                            <p className="font-heading font-semibold">{t.nombre} {t.apellidos || ''}</p>
+                            <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
+                              {t.dni && <span className="flex items-center gap-1"><CreditCard className="h-3 w-3" />{t.dni}</span>}
+                              {t.codigo_tecnico && <span className="flex items-center gap-1"><Hash className="h-3 w-3" />{t.codigo_tecnico}</span>}
+                              {t.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{t.email}</span>}
+                              {t.telefono && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{t.telefono}</span>}
+                              {t.empresa && <span className="flex items-center gap-1"><Building2 className="h-3 w-3" />{t.empresa}</span>}
+                            </div>
+                            {linkedObras.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {linkedObras.map((name, i) => (
+                                  <span key={i} className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                                    <HardHat className="h-3 w-3" />{name}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button variant="ghost" size="icon" onClick={() => openView(t)}><Eye className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(t)}><Pencil className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(t)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+          ))}
+        </Tabs>
       </div>
 
       {/* Create / Edit dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editId ? 'Editar técnico' : 'Nuevo técnico'}</DialogTitle>
+            <DialogTitle>{editId ? `Editar ${labelTipo}` : `Nuevo ${labelTipo}`}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div><Label>Nombre *</Label><Input value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} /></div>
-            <div><Label>Código de técnico</Label><Input value={form.codigo_tecnico} onChange={e => setForm({ ...form, codigo_tecnico: e.target.value })} /></div>
             <div className="grid grid-cols-2 gap-4">
+              <div><Label>Nombre *</Label><Input value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} /></div>
+              <div><Label>Apellidos</Label><Input value={form.apellidos} onChange={e => setForm({ ...form, apellidos: e.target.value })} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>DNI / NIE</Label><Input value={form.dni} onChange={e => setForm({ ...form, dni: e.target.value })} /></div>
+              <div><Label>Código de técnico</Label><Input value={form.codigo_tecnico} onChange={e => setForm({ ...form, codigo_tecnico: e.target.value })} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Titulación</Label><Input value={form.titulacion} onChange={e => setForm({ ...form, titulacion: e.target.value })} placeholder="Ej: Ingeniera Técnica Industrial" /></div>
+              <div><Label>Nº Colegiado</Label><Input value={form.num_colegiado} onChange={e => setForm({ ...form, num_colegiado: e.target.value })} placeholder="Ej: 1903 (COGITILPA)" /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Empresa</Label><Input value={form.empresa} onChange={e => setForm({ ...form, empresa: e.target.value })} /></div>
+              <div><Label>CIF Empresa</Label><Input value={form.cif_empresa} onChange={e => setForm({ ...form, cif_empresa: e.target.value })} /></div>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
               <div><Label>Teléfono</Label><Input value={form.telefono} onChange={e => setForm({ ...form, telefono: e.target.value })} /></div>
+              <div><Label>Móvil</Label><Input value={form.movil} onChange={e => setForm({ ...form, movil: e.target.value })} /></div>
               <div><Label>Email</Label><Input value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
             </div>
-            <div><Label>Dirección</Label><Input value={form.direccion} onChange={e => setForm({ ...form, direccion: e.target.value })} /></div>
+            <div><Label>Dirección / Domicilio</Label><Input value={form.direccion} onChange={e => setForm({ ...form, direccion: e.target.value })} /></div>
             <div><Label>Notas</Label><Textarea value={form.notas} onChange={e => setForm({ ...form, notas: e.target.value })} rows={2} /></div>
             <div>
               <Label>Vincular a usuario registrado</Label>
@@ -224,8 +266,6 @@ export default function AdminTecnicos() {
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Obras assignment */}
             <div>
               <Label className="mb-2 block">Obras asignadas</Label>
               {obras.length === 0 ? (
@@ -234,10 +274,7 @@ export default function AdminTecnicos() {
                 <div className="space-y-2 max-h-40 overflow-y-auto rounded-lg border border-border p-3">
                   {obras.map(o => (
                     <label key={o.id} className="flex items-center gap-2 cursor-pointer">
-                      <Checkbox
-                        checked={selectedObras.includes(o.id)}
-                        onCheckedChange={() => toggleObra(o.id)}
-                      />
+                      <Checkbox checked={selectedObras.includes(o.id)} onCheckedChange={() => toggleObra(o.id)} />
                       <span className="text-sm">{o.nombre}</span>
                     </label>
                   ))}
@@ -256,14 +293,20 @@ export default function AdminTecnicos() {
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Ficha del técnico</DialogTitle>
+            <DialogTitle>Ficha {viewTecnico?.tipo === 'coordinador' ? 'del coordinador' : 'del técnico'}</DialogTitle>
           </DialogHeader>
           {viewTecnico && (
             <div className="space-y-3 text-sm">
-              <div><span className="font-semibold">Nombre:</span> {viewTecnico.nombre}</div>
+              <div><span className="font-semibold">Nombre:</span> {viewTecnico.nombre} {viewTecnico.apellidos}</div>
+              <div><span className="font-semibold">DNI:</span> {viewTecnico.dni || '—'}</div>
               <div><span className="font-semibold">Código:</span> {viewTecnico.codigo_tecnico || '—'}</div>
+              <div><span className="font-semibold">Titulación:</span> {viewTecnico.titulacion || '—'}</div>
+              <div><span className="font-semibold">Nº Colegiado:</span> {viewTecnico.num_colegiado || '—'}</div>
+              <div><span className="font-semibold">Empresa:</span> {viewTecnico.empresa || '—'}</div>
+              <div><span className="font-semibold">CIF Empresa:</span> {viewTecnico.cif_empresa || '—'}</div>
               <div><span className="font-semibold">Email:</span> {viewTecnico.email || '—'}</div>
               <div><span className="font-semibold">Teléfono:</span> {viewTecnico.telefono || '—'}</div>
+              <div><span className="font-semibold">Móvil:</span> {viewTecnico.movil || '—'}</div>
               <div><span className="font-semibold">Dirección:</span> {viewTecnico.direccion || '—'}</div>
               <div><span className="font-semibold">Notas:</span> {viewTecnico.notas || '—'}</div>
               {(() => {
@@ -291,8 +334,8 @@ export default function AdminTecnicos() {
       <AlertDialog open={!!deleteTarget} onOpenChange={open => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar técnico?</AlertDialogTitle>
-            <AlertDialogDescription>Se eliminará «{deleteTarget?.nombre}» permanentemente.</AlertDialogDescription>
+            <AlertDialogTitle>¿Eliminar?</AlertDialogTitle>
+            <AlertDialogDescription>Se eliminará «{deleteTarget?.nombre} {deleteTarget?.apellidos}» permanentemente.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
