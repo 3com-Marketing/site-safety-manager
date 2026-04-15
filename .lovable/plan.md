@@ -1,55 +1,41 @@
 
 
-# Plan: Editor de texto enriquecido (tipo Google Docs) para textos legales
+# Plan: Corregir precarga de recomendaciones y normativa en informes CSS/AT
 
-## Resumen
+## Problema
 
-Reemplazar los `<Textarea>` de los textos legales en Configuración (y en los formularios de documentos) por un editor WYSIWYG con formato: negrita, cursiva, listas numeradas/con viñetas, encabezados, etc. El contenido se almacenará como HTML, que se renderizará directamente en los PDFs.
+Hay una condición de carrera en `FormInforme.tsx`. El `RichTextEditor` emite un `onChange` al inicializarse (con contenido vacío tipo `<p></p>`), lo que hace que `recomendaciones` y `normativa` dejen de ser strings vacíos antes de que la consulta async a `configuracion_empresa` se resuelva. Cuando llega la respuesta, la condición `!recomendaciones` es `false` y no se aplican los valores por defecto.
 
-## Enfoque técnico
+## Solución
 
-**Editor**: TipTap (basado en ProseMirror) — es el editor rico más popular para React, ligero y extensible.
+1. **`FormInforme.tsx`**: Cambiar la lógica de carga de configuración para que no dependa del estado actual de `recomendaciones`/`normativa`. Usar un flag `configLoaded` con `useRef` para asegurar que los valores de configuración se cargan exactamente una vez al crear un documento nuevo, sin competir con el editor.
 
-**Almacenamiento**: Los campos `texto_*` en `configuracion_empresa` y `datos_extra` pasarán de texto plano a HTML. No requiere cambio de esquema (siguen siendo columnas `text`).
+2. **Garantizar persistencia**: Los valores ya se guardan correctamente en `datos_extra` (líneas 115-116 del `handleSubmit`). El PDF ya los lee de `extra.recomendaciones` y `extra.normativa`. Solo falta asegurar que se cargan bien al crear.
 
-**PDF**: La función `generar-documento-pdf` ya genera HTML. En lugar de hacer `.replace(/\n/g, "<br/>")`, se insertará el HTML del editor directamente (ya formateado).
+## Cambio concreto
 
-## Cambios
+En `FormInforme.tsx`, reemplazar el `useEffect` de carga de configuración (líneas 56-65):
 
-### 1. Instalar dependencias TipTap
-- `@tiptap/react`, `@tiptap/starter-kit` (incluye negrita, cursiva, listas, encabezados, historial)
-- `@tiptap/extension-underline` (subrayado)
+```typescript
+const configLoaded = useRef(false);
 
-### 2. Crear componente `RichTextEditor`
-- Nuevo archivo: `src/components/ui/rich-text-editor.tsx`
-- Barra de herramientas con botones: **B**, *I*, U, H2, H3, lista con viñetas, lista numerada, deshacer/rehacer
-- Estilo coherente con el diseño existente (bordes, colores)
-- Props: `value` (HTML string), `onChange` (HTML string), `placeholder`
+useEffect(() => {
+  if (documento || configLoaded.current) return;
+  configLoaded.current = true;
+  supabase.from('configuracion_empresa')
+    .select('texto_recomendaciones, texto_normativa')
+    .limit(1).single()
+    .then(({ data }) => {
+      if (data) {
+        if (data.texto_recomendaciones) setRecomendaciones(data.texto_recomendaciones);
+        if (data.texto_normativa) setNormativa(data.texto_normativa);
+      }
+    });
+}, [documento]);
+```
 
-### 3. Actualizar `AdminConfiguracion.tsx`
-- Reemplazar los 9 `<Textarea>` de textos legales por `<RichTextEditor>`
-- La función `update()` sigue igual — ahora recibe HTML en vez de texto plano
-
-### 4. Actualizar formularios de documentos
-- `FormInforme.tsx`: campos recomendaciones y normativa → `RichTextEditor`
-- `FormActaReunion.tsx`: campo texto legal → `RichTextEditor`
-- `FormActaNombramiento.tsx`: campo texto legal → `RichTextEditor`
-- `FormActaAprobacion.tsx`: campo texto legal → `RichTextEditor`
-
-### 5. Actualizar generación PDF
-- `generar-documento-pdf/index.ts`: donde se renderiza texto con `.replace(/\n/g, "<br/>")` o `white-space: pre-wrap`, cambiar a insertar el HTML directamente
-- Añadir estilos CSS para `ul`, `ol`, `strong`, `em`, `u`, `h2`, `h3` dentro de `.section-text` y `.legal-text`
-
-### 6. Migración de datos existentes
-- Los textos planos existentes seguirán funcionando porque el editor TipTap puede cargar texto plano y mostrarlo correctamente. Se envuelven en `<p>` tags al cargar si no contienen HTML.
+Se elimina la comprobación `!recomendaciones` / `!normativa` — si es un documento nuevo, siempre se sobreescriben con los valores de configuración. Esto es el comportamiento esperado: "el texto de configuración debe aparecer siempre por defecto".
 
 ## Archivos afectados
-- **Nuevo**: `src/components/ui/rich-text-editor.tsx`
-- **Editado**: `src/pages/AdminConfiguracion.tsx` (9 Textareas → RichTextEditor)
-- **Editado**: `src/components/documentos/formularios/FormInforme.tsx`
-- **Editado**: `src/components/documentos/formularios/FormActaReunion.tsx`
-- **Editado**: `src/components/documentos/formularios/FormActaNombramiento.tsx`
-- **Editado**: `src/components/documentos/formularios/FormActaAprobacion.tsx`
-- **Editado**: `supabase/functions/generar-documento-pdf/index.ts` (renderizado HTML)
-- **Dependencias**: `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-underline`
+- **Editado**: `src/components/documentos/formularios/FormInforme.tsx` (corregir useEffect de carga de config)
 
