@@ -31,6 +31,9 @@ interface ConfigEmpresa {
   texto_normativa: string;
   texto_acta_aprobacion_sys: string;
   texto_acta_aprobacion_dgpo: string;
+  texto_acta_reunion_inicial: string;
+  texto_acta_reunion_cae: string;
+  texto_acta_reunion_sys: string;
 }
 
 const EMPTY_CONFIG: ConfigEmpresa = {
@@ -40,6 +43,7 @@ const EMPTY_CONFIG: ConfigEmpresa = {
   registro_mercantil: '', iban: '', banco: '', swift_bic: '',
   texto_recomendaciones: '', texto_normativa: '',
   texto_acta_aprobacion_sys: '', texto_acta_aprobacion_dgpo: '',
+  texto_acta_reunion_inicial: '', texto_acta_reunion_cae: '', texto_acta_reunion_sys: '',
 };
 
 export default function AdminConfiguracion() {
