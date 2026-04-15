@@ -1,62 +1,60 @@
 
-
-# Plan: Generación de PDF de documentos con logotipos
+# Plan: Configuración de empresa propia + mejora de logos en clientes
 
 ## Resumen
 
-Crear una edge function `generar-documento-pdf` que genera HTML con logotipos (SafeWork + cliente) para cada tipo de documento, y añadir un botón "Generar PDF" en la vista de detalle. También necesitamos que clientes puedan tener un logo subido.
+Dos cosas: (1) verificar que la subida de logos de clientes funciona correctamente, y (2) crear una nueva pestaña "Configuración" con los datos de la empresa propia (SafeWork) incluyendo logo.
 
-## Cambios necesarios
+## Cambios
 
-### 1. Migración BD — Añadir `logo_url` a `clientes`
+### 1. Nueva tabla `configuracion_empresa`
+
+Tabla singleton (una sola fila) para almacenar los datos de la empresa propia:
 
 ```sql
-ALTER TABLE public.clientes ADD COLUMN logo_url text DEFAULT '';
+CREATE TABLE public.configuracion_empresa (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre text NOT NULL DEFAULT '',
+  cif text NOT NULL DEFAULT '',
+  direccion text NOT NULL DEFAULT '',
+  ciudad text NOT NULL DEFAULT '',
+  telefono text NOT NULL DEFAULT '',
+  email text NOT NULL DEFAULT '',
+  web text NOT NULL DEFAULT '',
+  logo_url text DEFAULT '',
+  nombre_responsable text NOT NULL DEFAULT '',
+  cargo_responsable text NOT NULL DEFAULT '',
+  titulacion text NOT NULL DEFAULT '',
+  num_colegiado text NOT NULL DEFAULT '',
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- RLS: solo admins pueden gestionar, todos los autenticados pueden leer
+ALTER TABLE public.configuracion_empresa ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admins manage config" ON public.configuracion_empresa FOR ALL TO authenticated USING (has_role(auth.uid(), 'admin'));
+CREATE POLICY "Auth can view config" ON public.configuracion_empresa FOR SELECT TO authenticated USING (true);
 ```
 
-Esto permite almacenar la URL del logotipo de cada cliente (subido al bucket existente o a uno nuevo `logos`).
+### 2. Nueva página `AdminConfiguracion.tsx`
 
-### 2. AdminClientes.tsx — Campo para subir logo del cliente
+Formulario con los campos de la empresa: nombre, CIF, dirección, ciudad, teléfono, email, web, logo (upload al bucket `logos`), datos del responsable (nombre, cargo, titulación, nº colegiado). Usa upsert para guardar (si no existe fila, la crea; si existe, la actualiza).
 
-En el diálogo de crear/editar cliente, añadir un input de archivo para subir el logo al bucket de storage. Se guarda la URL pública en `logo_url`.
+### 3. AdminLayout.tsx — Nueva pestaña
 
-### 3. Logo SafeWork — Subir al proyecto
+Añadir pestaña "Configuración" con icono `Settings` apuntando a `/admin/configuracion`.
 
-Añadir el logotipo de SafeWork como archivo estático en `public/logo-safework.png` (o SVG). Se referenciará en los PDFs con la URL pública del proyecto.
+### 4. App.tsx — Nueva ruta
 
-### 4. Nueva edge function `generar-documento-pdf`
+Añadir `<Route path="/admin/configuracion" element={<AdminConfiguracion />} />`.
 
-Recibe `{ documento_id }` y:
-- Consulta `documentos_obra` con sus relaciones (obra → cliente con `logo_url`)
-- Según el `tipo`, genera el HTML correspondiente con:
-  - **Cabecera**: logo SafeWork (izquierda) + logo cliente (derecha) si existe
-  - **Cuerpo**: datos del formulario mapeados desde `datos_extra` y campos directos del documento
-  - **Pie**: lugar y fecha de firma, espacios para firmas
-- Devuelve `{ html, filename }` para que el frontend haga `window.print()` o use iframe
+### 5. Edge function `generar-documento-pdf` — Usar datos de empresa
 
-Plantillas por tipo:
-- **Acta Nombramiento**: datos proyecto, promotor, coordinador, cláusulas legales
-- **Acta Aprobación DGPO/Plan SYS**: agentes del proyecto, párrafo de aprobación
-- **Acta Reunión CAE**: asistentes (tabla), actividades, empresas acceso, riesgos
-- **Acta Reunión Inicial/SYS**: asistentes, notas
-- **Informe CSS/AT**: secciones de inspección con campos de texto
-
-### 5. AdminDocumentoDetalle.tsx — Botón "Generar PDF"
-
-Añadir botón junto a "Adjuntar firmado" que:
-- Llama a `supabase.functions.invoke('generar-documento-pdf', { body: { documento_id } })`
-- Abre una ventana con el HTML recibido y dispara `window.print()`
-- Actualiza el estado del documento a `generado` si estaba en `pendiente`
-
-### 6. Storage bucket para logos (opcional)
-
-Crear bucket `logos` público, o reutilizar `documentos-obra` para almacenar los logos de clientes.
+Modificar la edge function para que consulte `configuracion_empresa` y use el logo y datos de la empresa propia en la cabecera del PDF en lugar de valores hardcodeados.
 
 ## Archivos afectados
-- **Migración**: añadir `logo_url` a `clientes`, crear bucket `logos`
-- **Nuevo**: `supabase/functions/generar-documento-pdf/index.ts`
-- **Nuevo**: `public/logo-safework.png` (el usuario deberá proporcionar el archivo)
-- **Editado**: `src/pages/AdminClientes.tsx` (campo upload logo)
-- **Editado**: `src/pages/AdminDocumentoDetalle.tsx` (botón generar PDF)
-- **Editado**: `src/pages/AdminDocumentos.tsx` (botón generar PDF en tabla)
-
+- **Migración**: crear tabla `configuracion_empresa`
+- **Nuevo**: `src/pages/AdminConfiguracion.tsx`
+- **Editado**: `src/components/admin/AdminLayout.tsx` (nueva pestaña)
+- **Editado**: `src/App.tsx` (nueva ruta)
+- **Editado**: `supabase/functions/generar-documento-pdf/index.ts` (usar datos dinámicos)
