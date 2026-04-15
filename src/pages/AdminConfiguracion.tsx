@@ -34,6 +34,8 @@ interface ConfigEmpresa {
   texto_acta_reunion_inicial: string;
   texto_acta_reunion_cae: string;
   texto_acta_reunion_sys: string;
+  texto_acta_nombramiento_cae: string;
+  texto_acta_nombramiento_proyecto: string;
 }
 
 const EMPTY_CONFIG: ConfigEmpresa = {
@@ -44,6 +46,7 @@ const EMPTY_CONFIG: ConfigEmpresa = {
   texto_recomendaciones: '', texto_normativa: '',
   texto_acta_aprobacion_sys: '', texto_acta_aprobacion_dgpo: '',
   texto_acta_reunion_inicial: '', texto_acta_reunion_cae: '', texto_acta_reunion_sys: '',
+  texto_acta_nombramiento_cae: '', texto_acta_nombramiento_proyecto: '',
 };
 
 export default function AdminConfiguracion() {
@@ -293,6 +296,26 @@ export default function AdminConfiguracion() {
                 onChange={e => update('texto_acta_reunion_sys', e.target.value)}
                 rows={10}
                 placeholder="Texto legal por defecto para actas de reunión de seguridad y salud..."
+                className="text-xs mt-1"
+              />
+            </div>
+            <div>
+              <Label>Texto Acta Nombramiento CAE</Label>
+              <Textarea
+                value={config.texto_acta_nombramiento_cae}
+                onChange={e => update('texto_acta_nombramiento_cae', e.target.value)}
+                rows={10}
+                placeholder="Texto legal por defecto para actas de nombramiento CAE (RD 171/2004)..."
+                className="text-xs mt-1"
+              />
+            </div>
+            <div>
+              <Label>Texto Acta Nombramiento Con Proyecto</Label>
+              <Textarea
+                value={config.texto_acta_nombramiento_proyecto}
+                onChange={e => update('texto_acta_nombramiento_proyecto', e.target.value)}
+                rows={10}
+                placeholder="Texto legal por defecto para actas de nombramiento con proyecto (RD 1627/1997)..."
                 className="text-xs mt-1"
               />
             </div>
