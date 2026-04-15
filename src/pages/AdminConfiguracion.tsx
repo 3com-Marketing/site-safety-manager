@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Save, Upload, Loader2, Building2, User, Landmark, CreditCard } from 'lucide-react';
+import { Save, Upload, Loader2, Building2, User, Landmark, CreditCard, FileText } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
 interface ConfigEmpresa {
@@ -26,6 +27,8 @@ interface ConfigEmpresa {
   iban: string;
   banco: string;
   swift_bic: string;
+  texto_recomendaciones: string;
+  texto_normativa: string;
 }
 
 const EMPTY_CONFIG: ConfigEmpresa = {
@@ -33,6 +36,7 @@ const EMPTY_CONFIG: ConfigEmpresa = {
   email: '', web: '', logo_url: '', nombre_responsable: '',
   cargo_responsable: '', titulacion: '', num_colegiado: '',
   registro_mercantil: '', iban: '', banco: '', swift_bic: '',
+  texto_recomendaciones: '', texto_normativa: '',
 };
 
 export default function AdminConfiguracion() {
@@ -205,6 +209,36 @@ export default function AdminConfiguracion() {
             <div className="md:col-span-2"><Label>IBAN</Label><Input placeholder="ES00 0000 0000 0000 0000 0000" value={config.iban} onChange={e => update('iban', e.target.value)} /></div>
             <div><Label>Banco</Label><Input value={config.banco} onChange={e => update('banco', e.target.value)} /></div>
             <div><Label>SWIFT / BIC</Label><Input value={config.swift_bic} onChange={e => update('swift_bic', e.target.value)} /></div>
+          </CardContent>
+        </Card>
+        {/* Textos legales por defecto */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <FileText className="h-4 w-4" /> Textos Legales por Defecto (Informes)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label>Recomendaciones (sección 2 del informe)</Label>
+              <Textarea
+                value={config.texto_recomendaciones}
+                onChange={e => update('texto_recomendaciones', e.target.value)}
+                rows={10}
+                placeholder="Texto legal de recomendaciones que se precargará en nuevos informes CSS/AT..."
+                className="text-xs mt-1"
+              />
+            </div>
+            <div>
+              <Label>Normativa aplicable (sección 11 del informe)</Label>
+              <Textarea
+                value={config.texto_normativa}
+                onChange={e => update('texto_normativa', e.target.value)}
+                rows={10}
+                placeholder="Lista de normativa aplicable que se precargará en nuevos informes CSS/AT..."
+                className="text-xs mt-1"
+              />
+            </div>
           </CardContent>
         </Card>
       </div>

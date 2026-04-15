@@ -53,8 +53,16 @@ export default function AdminDocumentoDetalle() {
     await actualizarDocumento.mutateAsync({ id: documento.id, updates });
   };
 
+  const isInforme = documento?.tipo === 'informe_css' || documento?.tipo === 'informe_at';
+
   const handleGeneratePdf = async () => {
     if (!documento) return;
+    // For informes, navigate to preview page
+    if (isInforme) {
+      navigate(`/admin/documento/${documento.id}/preview`);
+      return;
+    }
+    // For other types, keep direct print behavior
     setGeneratingPdf(true);
     try {
       const { data, error } = await supabase.functions.invoke('generar-documento-pdf', {
@@ -63,7 +71,6 @@ export default function AdminDocumentoDetalle() {
       if (error) throw error;
       if (!data?.html) throw new Error('No se recibió HTML');
 
-      // Open print window
       const printWindow = window.open('', '_blank');
       if (printWindow) {
         printWindow.document.write(data.html);
@@ -72,7 +79,6 @@ export default function AdminDocumentoDetalle() {
         setTimeout(() => printWindow.print(), 500);
       }
 
-      // Update status to 'generado' if pending
       if (documento.estado === 'pendiente') {
         await actualizarDocumento.mutateAsync({
           id: documento.id,
