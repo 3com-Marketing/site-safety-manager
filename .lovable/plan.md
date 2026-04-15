@@ -1,31 +1,46 @@
 
 
-# Plan: Ampliar campos de configuración de empresa
+# Plan: Insertar datos ficticios de prueba
 
 ## Resumen
 
-Añadir campos adicionales a la tabla `configuracion_empresa` para datos bancarios y registro mercantil.
+Insertar datos ficticios completos en todas las tablas principales para poder probar la generación de PDFs y el flujo completo de documentos.
 
-## Cambios
+## Datos a insertar
 
-### 1. Migración BD — Nuevos campos
+### 1. Clientes (3 nuevos)
+- **Grupo Inmobiliario Mediterráneo S.A.** — CIF: A12345678, Madrid
+- **Ayuntamiento de Valencia** — CIF: P4625000B, Valencia  
+- **Ferrovial Construcción S.A.** — CIF: A28855260, Madrid
 
-```sql
-ALTER TABLE public.configuracion_empresa
-  ADD COLUMN registro_mercantil text NOT NULL DEFAULT '',
-  ADD COLUMN iban text NOT NULL DEFAULT '',
-  ADD COLUMN banco text NOT NULL DEFAULT '',
-  ADD COLUMN swift_bic text NOT NULL DEFAULT '';
-```
+### 2. Obras (4 nuevas, repartidas entre clientes)
+- Rehabilitación Edificio Gran Vía 42 (Grupo Mediterráneo)
+- Centro Deportivo Municipal Malvarrosa (Ayuntamiento Valencia)
+- Ampliación Estación Norte (Ferrovial)
+- Urbanización Costa Blanca Fase II (Grupo Mediterráneo)
 
-### 2. AdminConfiguracion.tsx — Nuevas tarjetas
+### 3. Técnicos — Vincular los 2 existentes a las nuevas obras via `tecnicos_obras`
 
-Añadir dos nuevas secciones (Cards) al formulario:
+### 4. Visitas (4 completadas) — Una por obra, estado `finalizada`, con el usuario actual
 
-- **Datos Mercantiles**: campo "Registro Mercantil" (ej: "Tomo X, Folio Y, Hoja Z")
-- **Datos Bancarios**: campos IBAN, Banco, SWIFT/BIC
+### 5. Documentos completados (8-10 documentos)
+Todos con `datos_extra` rellenos para que los PDFs se generen con contenido real:
+- Acta Nombramiento CAE (firmado)
+- Acta Nombramiento Proyecto (firmado)
+- Acta Aprobación DGPO (generado)
+- Acta Aprobación Plan SyS (firmado)
+- Acta Reunión CAE con asistentes y empresas (generado)
+- Acta Reunión Inicial con asistentes (firmado)
+- Informe CSS (generado)
+- Informe AT (firmado)
 
-### Archivos afectados
-- **Migración**: añadir 4 columnas a `configuracion_empresa`
-- **Editado**: `src/pages/AdminConfiguracion.tsx` (nuevos campos en el formulario)
+### 6. Datos relacionados
+- Asistentes de reunión (3-4 por acta de reunión)
+- Actividades y empresas para la reunión CAE
+
+## Método
+Usar la herramienta de inserción de datos (no migraciones) para todos los INSERT.
+
+## Resultado esperado
+Al terminar, podrás navegar a cualquier documento y generar su PDF con datos completos y realistas.
 
