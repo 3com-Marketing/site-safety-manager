@@ -73,7 +73,7 @@ export default function DocumentosList({ obraId, readOnly = false }: Props) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Badge style={{ backgroundColor: colors.bg, color: colors.text }} className="border-0">
+                  <Badge className={`border-0 ${colors}`}>
                     {ESTADO_LABELS[doc.estado as EstadoDocumento] || doc.estado}
                   </Badge>
 

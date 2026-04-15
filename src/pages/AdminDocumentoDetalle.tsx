@@ -84,7 +84,7 @@ export default function AdminDocumentoDetalle() {
         </div>
       </div>
 
-      <AdjuntarDocumentoDialog open={attachOpen} onOpenChange={setAttachOpen} documento={documento} obraId={obraId} />
+      <AdjuntarDocumentoDialog open={attachOpen} onOpenChange={setAttachOpen} documentoId={documento?.id || ''} obraId={obraId} />
     </AdminLayout>
   );
 }
