@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import type { Documento } from '@/hooks/useDocumentosObra';
 import type { Json } from '@/integrations/supabase/types';
@@ -29,16 +29,13 @@ const SECCIONES = [
   { key: 'medios_auxiliares', label: 'Medios auxiliares' },
 ];
 
-// Map checklist_bloques categories to our section keys
+// Map checklist_bloques categories to form section keys
 const CATEGORY_MAP: Record<string, string> = {
-  'Estado general': 'estado_general',
-  'Orden y limpieza': 'orden_limpieza',
-  'Señalización': 'senalizacion',
-  'Trabajos en altura': 'trabajos_altura',
-  'Protección colectiva': 'epc',
-  'Protección individual': 'epi',
-  'Maquinaria': 'maquinaria',
-  'Medios auxiliares': 'medios_auxiliares',
+  'EPIs': 'epi',
+  'orden_limpieza': 'orden_limpieza',
+  'altura': 'trabajos_altura',
+  'señalizacion': 'senalizacion',
+  'maquinaria': 'maquinaria',
 };
 
 export default function FormInforme({ documento, obraId, tipo, onSave, saving, defaultValues }: Props) {
@@ -49,34 +46,9 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
     Object.fromEntries(SECCIONES.map(s => [s.key, '']))
   );
   const [recomendaciones, setRecomendaciones] = useState('');
+  const [importing, setImporting] = useState(false);
 
   const effectiveObraId = obraId || documento?.obra_id || '';
-
-  // Query last visit for import
-  const { data: ultimaVisitaData } = useQuery({
-    queryKey: ['ultima-visita-checklist', effectiveObraId],
-    queryFn: async () => {
-      const { data: visita } = await supabase
-        .from('visitas')
-        .select('id, informes(id)')
-        .eq('obra_id', effectiveObraId)
-        .order('fecha', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (!visita) return null;
-      const informeId = (visita as any).informes?.[0]?.id;
-      if (!informeId) return null;
-
-      const { data: bloques } = await supabase
-        .from('checklist_bloques')
-        .select('id, categoria, estado, anotaciones(*)')
-        .eq('informe_id', informeId);
-
-      return bloques;
-    },
-    enabled: !!effectiveObraId && !documento,
-  });
 
   useEffect(() => {
     if (documento) {
@@ -94,19 +66,83 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
     }
   }, [documento, defaultValues]);
 
-  const handleImport = () => {
-    if (!ultimaVisitaData) return;
-    const newSections = { ...secciones };
-    for (const bloque of ultimaVisitaData as any[]) {
-      const sectionKey = CATEGORY_MAP[bloque.categoria];
-      if (!sectionKey) continue;
-      const anotaciones = bloque.anotaciones || [];
-      const textos = anotaciones.map((a: any) => a.texto).filter(Boolean);
-      if (textos.length) {
-        newSections[sectionKey] = textos.join('\n');
+  const handleImport = async () => {
+    if (!effectiveObraId) return;
+    setImporting(true);
+    try {
+      // Find last finalizada visit for this obra
+      const { data: visita, error: visitaError } = await supabase
+        .from('visitas')
+        .select('id, fecha, fecha_fin')
+        .eq('obra_id', effectiveObraId)
+        .eq('estado', 'finalizada')
+        .order('fecha_fin', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (visitaError) throw visitaError;
+      if (!visita) {
+        toast.error('No hay visitas finalizadas para esta obra');
+        return;
       }
+
+      // Get the informe for that visit
+      const { data: informe } = await supabase
+        .from('informes')
+        .select('id, notas_generales')
+        .eq('visita_id', visita.id)
+        .limit(1)
+        .maybeSingle();
+
+      if (!informe) {
+        toast.error('No hay visitas finalizadas para esta obra');
+        return;
+      }
+
+      // Get checklist_bloques with anotaciones
+      const { data: bloques } = await supabase
+        .from('checklist_bloques')
+        .select('categoria, estado, anotaciones(*)')
+        .eq('informe_id', informe.id);
+
+      const newSections = { ...secciones };
+
+      // Map notas_generales to estado_general
+      if (informe.notas_generales) {
+        newSections.estado_general = informe.notas_generales;
+      }
+
+      // Map bloques
+      if (bloques) {
+        for (const bloque of bloques) {
+          const sectionKey = CATEGORY_MAP[bloque.categoria];
+          if (!sectionKey) continue;
+          const anotaciones = (bloque as any).anotaciones || [];
+          const parts: string[] = [];
+          if (bloque.estado && bloque.estado !== 'pendiente') {
+            parts.push(`Estado: ${bloque.estado}`);
+          }
+          for (const a of anotaciones) {
+            if (a.texto) parts.push(a.texto);
+          }
+          if (parts.length) {
+            newSections[sectionKey] = parts.join('\n');
+          }
+        }
+      }
+
+      setSecciones(newSections);
+
+      const fechaStr = visita.fecha_fin
+        ? new Date(visita.fecha_fin).toLocaleDateString('es-ES')
+        : new Date(visita.fecha).toLocaleDateString('es-ES');
+      toast.success(`Datos importados desde la visita del ${fechaStr}`);
+    } catch (err) {
+      console.error(err);
+      toast.error('Error al importar datos de la visita');
+    } finally {
+      setImporting(false);
     }
-    setSecciones(newSections);
   };
 
   const handleSubmit = () => {
@@ -140,10 +176,11 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
         </div>
       </div>
 
-      {/* Import button */}
-      {!documento && ultimaVisitaData && (ultimaVisitaData as any[]).length > 0 && (
-        <Button variant="outline" onClick={handleImport} className="gap-2">
-          <Download className="h-4 w-4" /> Importar desde última visita
+      {/* Import button — always shown on creation when there's an obra */}
+      {!documento && effectiveObraId && (
+        <Button variant="outline" onClick={handleImport} disabled={importing} className="gap-2">
+          <Download className="h-4 w-4" />
+          {importing ? 'Importando...' : 'Importar desde última visita'}
         </Button>
       )}
 
