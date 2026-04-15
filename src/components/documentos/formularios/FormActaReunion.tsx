@@ -5,7 +5,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Trash2 } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Plus, Trash2, ChevronDown } from 'lucide-react';
 import { useDocumentosObra, type DocumentoConRelaciones } from '@/hooks/useDocumentosObra';
 import ImportarVisitaButton, { type VisitaImportData } from '@/components/documentos/ImportarVisitaButton';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,6 +31,20 @@ const TIPO_TO_CONFIG_FIELD: Record<string, string> = {
   acta_reunion_cae: 'texto_acta_reunion_cae',
   acta_reunion_sys: 'texto_acta_reunion_sys',
 };
+
+function SectionCollapsible({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  return (
+    <Collapsible defaultOpen={defaultOpen}>
+      <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm font-semibold hover:bg-muted/60 transition-colors">
+        {title}
+        <ChevronDown className="h-4 w-4 transition-transform [[data-state=open]>&]:rotate-180" />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="pt-3 space-y-3">
+        {children}
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
 
 export default function FormActaReunion({ documento, obraId, tipo, onSave, saving, defaultValues }: Props) {
   const tipoActual = documento?.tipo || tipo || '';
@@ -56,6 +71,20 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   // SYS specific
   const [numeroActa, setNumeroActa] = useState('');
 
+  // NEW CAE fields (sections 3.1, 3.2, 3.3, 4, 10-13)
+  const [empresasIntervienen, setEmpresasIntervienen] = useState<Array<{ razon_social: string; acronimo: string; responsable: string }>>([]);
+  const [duracionTrabajos, setDuracionTrabajos] = useState<Array<{ titulo: string; inicio: string; fin: string; observaciones: string }>>([]);
+  const [textoTrabajosRealizar, setTextoTrabajosRealizar] = useState('');
+  const [textoRecursoPreventivo, setTextoRecursoPreventivo] = useState('');
+  const [interferenciasEmpresasAplica, setInterferenciasEmpresasAplica] = useState(false);
+  const [interferenciasEmpresasTexto, setInterferenciasEmpresasTexto] = useState('');
+  const [interferenciasTercerosAplica, setInterferenciasTercerosAplica] = useState(false);
+  const [interferenciasTercerosTexto, setInterferenciasTercerosTexto] = useState('');
+  const [medioAmbienteAplica, setMedioAmbienteAplica] = useState(false);
+  const [medioAmbienteTexto, setMedioAmbienteTexto] = useState('');
+  const [ruegosAplica, setRuegosAplica] = useState(false);
+  const [ruegosTexto, setRuegosTexto] = useState('');
+
   // Local arrays for creation mode
   const [localAsistentes, setLocalAsistentes] = useState<Array<{ nombre: string; apellidos: string; cargo: string; empresa: string; dni_nie: string }>>([]);
   const [localActividades, setLocalActividades] = useState<Array<{ actividad: string; numero_pedido: string }>>([]);
@@ -65,6 +94,8 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   const [nuevoAsistente, setNuevoAsistente] = useState({ nombre: '', apellidos: '', cargo: '', empresa: '', dni_nie: '' });
   const [nuevaActividad, setNuevaActividad] = useState({ actividad: '', numero_pedido: '' });
   const [nuevaEmpresa, setNuevaEmpresa] = useState({ empresa: '', persona_contacto: '', email_referencia: '' });
+  const [nuevaEmpresaInterviene, setNuevaEmpresaInterviene] = useState({ razon_social: '', acronimo: '', responsable: '' });
+  const [nuevaDuracion, setNuevaDuracion] = useState({ titulo: '', inicio: '', fin: '', observaciones: '' });
 
   // Load default legal text from configuracion_empresa for new documents
   useEffect(() => {
@@ -95,6 +126,19 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       setOtrosRiesgos(extra.otros_riesgos || '');
       setPlataformaCAE(extra.plataforma_cae || 'metacontratas');
       setNumeroActa(extra.numero_acta || '');
+      // New CAE fields
+      setEmpresasIntervienen(extra.empresas_intervienen || []);
+      setDuracionTrabajos(extra.duracion_trabajos || []);
+      setTextoTrabajosRealizar(extra.texto_trabajos_realizar || '');
+      setTextoRecursoPreventivo(extra.texto_recurso_preventivo || '');
+      setInterferenciasEmpresasAplica(extra.interferencias_empresas_aplica || false);
+      setInterferenciasEmpresasTexto(extra.interferencias_empresas_texto || '');
+      setInterferenciasTercerosAplica(extra.interferencias_terceros_aplica || false);
+      setInterferenciasTercerosTexto(extra.interferencias_terceros_texto || '');
+      setMedioAmbienteAplica(extra.medio_ambiente_aplica || false);
+      setMedioAmbienteTexto(extra.medio_ambiente_texto || '');
+      setRuegosAplica(extra.ruegos_aplica || false);
+      setRuegosTexto(extra.ruegos_texto || '');
     } else if (defaultValues) {
       setObraActuacion(defaultValues.nombre_obra || '');
       setLocalidad(defaultValues.direccion_obra || '');
@@ -197,6 +241,20 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
     }
   };
 
+  // --- Empresas intervienen (local only, stored in datos_extra) ---
+  const handleAddEmpresaInterviene = () => {
+    if (!nuevaEmpresaInterviene.razon_social.trim()) return;
+    setEmpresasIntervienen(prev => [...prev, { ...nuevaEmpresaInterviene }]);
+    setNuevaEmpresaInterviene({ razon_social: '', acronimo: '', responsable: '' });
+  };
+
+  // --- Duración trabajos (local only, stored in datos_extra) ---
+  const handleAddDuracion = () => {
+    if (!nuevaDuracion.titulo.trim()) return;
+    setDuracionTrabajos(prev => [...prev, { ...nuevaDuracion }]);
+    setNuevaDuracion({ titulo: '', inicio: '', fin: '', observaciones: '' });
+  };
+
   const toggleRiesgo = (r: string) => {
     setRiesgos(prev => prev.includes(r) ? prev.filter(x => x !== r) : [...prev, r]);
   };
@@ -211,6 +269,19 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       datosExtra.riesgos = riesgos;
       datosExtra.otros_riesgos = otrosRiesgos;
       datosExtra.plataforma_cae = plataformaCAE;
+      // New CAE fields
+      datosExtra.empresas_intervienen = empresasIntervienen;
+      datosExtra.duracion_trabajos = duracionTrabajos;
+      datosExtra.texto_trabajos_realizar = textoTrabajosRealizar;
+      datosExtra.texto_recurso_preventivo = textoRecursoPreventivo;
+      datosExtra.interferencias_empresas_aplica = interferenciasEmpresasAplica;
+      datosExtra.interferencias_empresas_texto = interferenciasEmpresasTexto;
+      datosExtra.interferencias_terceros_aplica = interferenciasTercerosAplica;
+      datosExtra.interferencias_terceros_texto = interferenciasTercerosTexto;
+      datosExtra.medio_ambiente_aplica = medioAmbienteAplica;
+      datosExtra.medio_ambiente_texto = medioAmbienteTexto;
+      datosExtra.ruegos_aplica = ruegosAplica;
+      datosExtra.ruegos_texto = ruegosTexto;
     }
     if (isSYS) {
       datosExtra.numero_acta = numeroActa;
@@ -375,6 +446,120 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
             <Label>Plataforma CAE</Label>
             <Input value={plataformaCAE} onChange={e => setPlataformaCAE(e.target.value)} />
           </div>
+        </div>
+      )}
+
+      {/* ===== NEW CAE SECTIONS ===== */}
+      {isCAE && (
+        <div className="space-y-4 pt-4">
+          <p className="text-base font-bold text-primary">Secciones ampliadas del Acta CAE</p>
+
+          {/* 3.1 Empresas que intervienen */}
+          <SectionCollapsible title="3.1 — Empresas que intervienen en la obra">
+            {empresasIntervienen.map((e, i) => (
+              <div key={i} className="flex items-center justify-between rounded-lg border border-border p-3">
+                <div className="text-sm">
+                  <span className="font-medium">{e.razon_social}</span>
+                  {e.acronimo && <span className="text-muted-foreground"> ({e.acronimo})</span>}
+                  {e.responsable && <span className="text-muted-foreground"> · {e.responsable}</span>}
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setEmpresasIntervienen(prev => prev.filter((_, idx) => idx !== i))}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            ))}
+            <div className="grid grid-cols-4 gap-2">
+              <Input placeholder="Razón social" value={nuevaEmpresaInterviene.razon_social} onChange={e => setNuevaEmpresaInterviene(p => ({ ...p, razon_social: e.target.value }))} />
+              <Input placeholder="Acrónimo" value={nuevaEmpresaInterviene.acronimo} onChange={e => setNuevaEmpresaInterviene(p => ({ ...p, acronimo: e.target.value }))} />
+              <Input placeholder="Persona responsable" value={nuevaEmpresaInterviene.responsable} onChange={e => setNuevaEmpresaInterviene(p => ({ ...p, responsable: e.target.value }))} />
+              <Button size="sm" onClick={handleAddEmpresaInterviene} disabled={!nuevaEmpresaInterviene.razon_social.trim()} className="gap-1"><Plus className="h-4 w-4" /> Añadir</Button>
+            </div>
+          </SectionCollapsible>
+
+          {/* 3.2 Duración y ubicación de trabajos */}
+          <SectionCollapsible title="3.2 — Duración y ubicación de los trabajos">
+            {duracionTrabajos.map((d, i) => (
+              <div key={i} className="flex items-center justify-between rounded-lg border border-border p-3">
+                <div className="text-sm">
+                  <span className="font-medium">{d.titulo}</span>
+                  <span className="text-muted-foreground"> · {d.inicio} — {d.fin}</span>
+                  {d.observaciones && <span className="text-muted-foreground"> · {d.observaciones}</span>}
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setDuracionTrabajos(prev => prev.filter((_, idx) => idx !== i))}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            ))}
+            <div className="grid grid-cols-5 gap-2">
+              <Input placeholder="Título trabajo" value={nuevaDuracion.titulo} onChange={e => setNuevaDuracion(p => ({ ...p, titulo: e.target.value }))} />
+              <Input placeholder="Inicio" value={nuevaDuracion.inicio} onChange={e => setNuevaDuracion(p => ({ ...p, inicio: e.target.value }))} />
+              <Input placeholder="Fin" value={nuevaDuracion.fin} onChange={e => setNuevaDuracion(p => ({ ...p, fin: e.target.value }))} />
+              <Input placeholder="Observaciones" value={nuevaDuracion.observaciones} onChange={e => setNuevaDuracion(p => ({ ...p, observaciones: e.target.value }))} />
+              <Button size="sm" onClick={handleAddDuracion} disabled={!nuevaDuracion.titulo.trim()} className="gap-1"><Plus className="h-4 w-4" /> Añadir</Button>
+            </div>
+          </SectionCollapsible>
+
+          {/* 3.3 Trabajos a realizar */}
+          <SectionCollapsible title="3.3 — Trabajos a realizar (descripción)">
+            <RichTextEditor
+              value={textoTrabajosRealizar}
+              onChange={setTextoTrabajosRealizar}
+              placeholder="Descripción de los trabajos a realizar..."
+            />
+          </SectionCollapsible>
+
+          {/* 4. Recurso preventivo */}
+          <SectionCollapsible title="4 — Recurso preventivo">
+            <RichTextEditor
+              value={textoRecursoPreventivo}
+              onChange={setTextoRecursoPreventivo}
+              placeholder="Indicar recurso preventivo designado, funciones, etc."
+            />
+          </SectionCollapsible>
+
+          {/* 10. Interferencias entre empresas */}
+          <SectionCollapsible title="10 — Interferencias entre empresas">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={interferenciasEmpresasAplica} onCheckedChange={(v) => setInterferenciasEmpresasAplica(!!v)} />
+              ¿Se detectan interferencias entre empresas?
+            </label>
+            {interferenciasEmpresasAplica && (
+              <Textarea value={interferenciasEmpresasTexto} onChange={e => setInterferenciasEmpresasTexto(e.target.value)} rows={3} placeholder="Describir las interferencias detectadas..." />
+            )}
+          </SectionCollapsible>
+
+          {/* 11. Interferencias con terceros */}
+          <SectionCollapsible title="11 — Interferencias con terceros">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={interferenciasTercerosAplica} onCheckedChange={(v) => setInterferenciasTercerosAplica(!!v)} />
+              ¿Se detectan interferencias con terceros?
+            </label>
+            {interferenciasTercerosAplica && (
+              <Textarea value={interferenciasTercerosTexto} onChange={e => setInterferenciasTercerosTexto(e.target.value)} rows={3} placeholder="Describir las interferencias con terceros..." />
+            )}
+          </SectionCollapsible>
+
+          {/* 12. Medio ambiente */}
+          <SectionCollapsible title="12 — Medio ambiente">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={medioAmbienteAplica} onCheckedChange={(v) => setMedioAmbienteAplica(!!v)} />
+              ¿Aplica consideración medioambiental?
+            </label>
+            {medioAmbienteAplica && (
+              <Textarea value={medioAmbienteTexto} onChange={e => setMedioAmbienteTexto(e.target.value)} rows={3} placeholder="Descripción de las consideraciones medioambientales..." />
+            )}
+          </SectionCollapsible>
+
+          {/* 13. Ruegos y sugerencias */}
+          <SectionCollapsible title="13 — Ruegos y sugerencias">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={ruegosAplica} onCheckedChange={(v) => setRuegosAplica(!!v)} />
+              ¿Hay ruegos o sugerencias?
+            </label>
+            {ruegosAplica && (
+              <Textarea value={ruegosTexto} onChange={e => setRuegosTexto(e.target.value)} rows={3} placeholder="Indicar ruegos y sugerencias..." />
+            )}
+          </SectionCollapsible>
         </div>
       )}
 
