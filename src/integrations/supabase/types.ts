@@ -258,6 +258,8 @@ export type Database = {
           registro_mercantil: string
           swift_bic: string
           telefono: string
+          texto_normativa: string
+          texto_recomendaciones: string
           titulacion: string
           updated_at: string | null
           web: string
@@ -279,6 +281,8 @@ export type Database = {
           registro_mercantil?: string
           swift_bic?: string
           telefono?: string
+          texto_normativa?: string
+          texto_recomendaciones?: string
           titulacion?: string
           updated_at?: string | null
           web?: string
@@ -300,6 +304,8 @@ export type Database = {
           registro_mercantil?: string
           swift_bic?: string
           telefono?: string
+          texto_normativa?: string
+          texto_recomendaciones?: string
           titulacion?: string
           updated_at?: string | null
           web?: string
