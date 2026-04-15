@@ -1,60 +1,31 @@
 
-# Plan: Configuración de empresa propia + mejora de logos en clientes
+
+# Plan: Ampliar campos de configuración de empresa
 
 ## Resumen
 
-Dos cosas: (1) verificar que la subida de logos de clientes funciona correctamente, y (2) crear una nueva pestaña "Configuración" con los datos de la empresa propia (SafeWork) incluyendo logo.
+Añadir campos adicionales a la tabla `configuracion_empresa` para datos bancarios y registro mercantil.
 
 ## Cambios
 
-### 1. Nueva tabla `configuracion_empresa`
-
-Tabla singleton (una sola fila) para almacenar los datos de la empresa propia:
+### 1. Migración BD — Nuevos campos
 
 ```sql
-CREATE TABLE public.configuracion_empresa (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  nombre text NOT NULL DEFAULT '',
-  cif text NOT NULL DEFAULT '',
-  direccion text NOT NULL DEFAULT '',
-  ciudad text NOT NULL DEFAULT '',
-  telefono text NOT NULL DEFAULT '',
-  email text NOT NULL DEFAULT '',
-  web text NOT NULL DEFAULT '',
-  logo_url text DEFAULT '',
-  nombre_responsable text NOT NULL DEFAULT '',
-  cargo_responsable text NOT NULL DEFAULT '',
-  titulacion text NOT NULL DEFAULT '',
-  num_colegiado text NOT NULL DEFAULT '',
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
-
--- RLS: solo admins pueden gestionar, todos los autenticados pueden leer
-ALTER TABLE public.configuracion_empresa ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Admins manage config" ON public.configuracion_empresa FOR ALL TO authenticated USING (has_role(auth.uid(), 'admin'));
-CREATE POLICY "Auth can view config" ON public.configuracion_empresa FOR SELECT TO authenticated USING (true);
+ALTER TABLE public.configuracion_empresa
+  ADD COLUMN registro_mercantil text NOT NULL DEFAULT '',
+  ADD COLUMN iban text NOT NULL DEFAULT '',
+  ADD COLUMN banco text NOT NULL DEFAULT '',
+  ADD COLUMN swift_bic text NOT NULL DEFAULT '';
 ```
 
-### 2. Nueva página `AdminConfiguracion.tsx`
+### 2. AdminConfiguracion.tsx — Nuevas tarjetas
 
-Formulario con los campos de la empresa: nombre, CIF, dirección, ciudad, teléfono, email, web, logo (upload al bucket `logos`), datos del responsable (nombre, cargo, titulación, nº colegiado). Usa upsert para guardar (si no existe fila, la crea; si existe, la actualiza).
+Añadir dos nuevas secciones (Cards) al formulario:
 
-### 3. AdminLayout.tsx — Nueva pestaña
+- **Datos Mercantiles**: campo "Registro Mercantil" (ej: "Tomo X, Folio Y, Hoja Z")
+- **Datos Bancarios**: campos IBAN, Banco, SWIFT/BIC
 
-Añadir pestaña "Configuración" con icono `Settings` apuntando a `/admin/configuracion`.
+### Archivos afectados
+- **Migración**: añadir 4 columnas a `configuracion_empresa`
+- **Editado**: `src/pages/AdminConfiguracion.tsx` (nuevos campos en el formulario)
 
-### 4. App.tsx — Nueva ruta
-
-Añadir `<Route path="/admin/configuracion" element={<AdminConfiguracion />} />`.
-
-### 5. Edge function `generar-documento-pdf` — Usar datos de empresa
-
-Modificar la edge function para que consulte `configuracion_empresa` y use el logo y datos de la empresa propia en la cabecera del PDF en lugar de valores hardcodeados.
-
-## Archivos afectados
-- **Migración**: crear tabla `configuracion_empresa`
-- **Nuevo**: `src/pages/AdminConfiguracion.tsx`
-- **Editado**: `src/components/admin/AdminLayout.tsx` (nueva pestaña)
-- **Editado**: `src/App.tsx` (nueva ruta)
-- **Editado**: `supabase/functions/generar-documento-pdf/index.ts` (usar datos dinámicos)
