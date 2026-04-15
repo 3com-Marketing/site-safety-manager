@@ -12,9 +12,10 @@ interface Props {
   tipo?: string;
   onSave: (data: Record<string, any>) => Promise<void>;
   saving?: boolean;
+  defaultValues?: Record<string, string>;
 }
 
-export default function FormInforme({ documento, obraId, tipo, onSave, saving }: Props) {
+export default function FormInforme({ documento, obraId, tipo, onSave, saving, defaultValues }: Props) {
   const [titulo, setTitulo] = useState('');
   const [fechaDocumento, setFechaDocumento] = useState('');
   const [nombreCoordinador, setNombreCoordinador] = useState('');
@@ -37,8 +38,12 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving }:
       const extra = (documento.datos_extra as Record<string, any>) || {};
       setContenido(extra.contenido || '');
       setConclusiones(extra.conclusiones || '');
+    } else if (defaultValues) {
+      setNombreCoordinador(defaultValues.nombre_coordinador || '');
+      setEmpresaCoordinacion(defaultValues.empresa_coordinacion || '');
+      setNombrePromotor(defaultValues.nombre_promotor || '');
     }
-  }, [documento]);
+  }, [documento, defaultValues]);
 
   const handleSubmit = () => {
     onSave({

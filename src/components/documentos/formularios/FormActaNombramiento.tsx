@@ -10,9 +10,10 @@ interface Props {
   tipo?: string;
   onSave: (data: Record<string, any>) => Promise<void>;
   saving?: boolean;
+  defaultValues?: Record<string, string>;
 }
 
-export default function FormActaNombramiento({ documento, obraId, tipo, onSave, saving }: Props) {
+export default function FormActaNombramiento({ documento, obraId, tipo, onSave, saving, defaultValues }: Props) {
   const [titulo, setTitulo] = useState('');
   const [fechaDocumento, setFechaDocumento] = useState('');
   const [nombreCoordinador, setNombreCoordinador] = useState('');
@@ -42,8 +43,15 @@ export default function FormActaNombramiento({ documento, obraId, tipo, onSave, 
       setNombrePromotor(documento.nombre_promotor || '');
       setCifPromotor(documento.cif_promotor || '');
       setDomicilioPromotor(documento.domicilio_promotor || '');
+    } else if (defaultValues) {
+      setNombreCoordinador(defaultValues.nombre_coordinador || '');
+      setEmailCoordinador(defaultValues.email_coordinador || '');
+      setMovilCoordinador(defaultValues.movil_coordinador || '');
+      setNombrePromotor(defaultValues.nombre_promotor || '');
+      setCifPromotor(defaultValues.cif_promotor || '');
+      setDomicilioPromotor(defaultValues.domicilio_promotor || '');
     }
-  }, [documento]);
+  }, [documento, defaultValues]);
 
   const handleSubmit = () => {
     onSave({

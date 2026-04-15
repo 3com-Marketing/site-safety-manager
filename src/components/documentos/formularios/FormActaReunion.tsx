@@ -13,9 +13,10 @@ interface Props {
   tipo?: string;
   onSave: (data: Record<string, any>) => Promise<void>;
   saving?: boolean;
+  defaultValues?: Record<string, string>;
 }
 
-export default function FormActaReunion({ documento, obraId, tipo, onSave, saving }: Props) {
+export default function FormActaReunion({ documento, obraId, tipo, onSave, saving, defaultValues }: Props) {
   const tipoActual = documento?.tipo || tipo || '';
   const isCAE = tipoActual === 'acta_reunion_cae';
   const effectiveObraId = obraId || documento?.obra_id || '';
@@ -44,8 +45,12 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       setNombrePromotor(documento.nombre_promotor || '');
       const extra = (documento.datos_extra as Record<string, any>) || {};
       setObservaciones(extra.observaciones || '');
+    } else if (defaultValues) {
+      setNombreCoordinador(defaultValues.nombre_coordinador || '');
+      setEmpresaCoordinacion(defaultValues.empresa_coordinacion || '');
+      setNombrePromotor(defaultValues.nombre_promotor || '');
     }
-  }, [documento]);
+  }, [documento, defaultValues]);
 
   // Related data from the joined query
   const asistentes = documento?.asistentes_reunion || [];
