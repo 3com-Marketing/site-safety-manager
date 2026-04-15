@@ -1,69 +1,62 @@
 
 
-# Plan: Importar datos de visitas en todos los formularios de documentos
+# Plan: Generación de PDF de documentos con logotipos
 
-## Situación actual
+## Resumen
 
-- **FormInforme** ya tiene un botón "Importar desde última visita" que funciona correctamente, importando checklist_bloques y notas_generales.
-- **FormActaReunion**, **FormActaNombramiento** y **FormActaAprobacion** no tienen esta funcionalidad.
+Crear una edge function `generar-documento-pdf` que genera HTML con logotipos (SafeWork + cliente) para cada tipo de documento, y añadir un botón "Generar PDF" en la vista de detalle. También necesitamos que clientes puedan tener un logo subido.
 
-## Qué se va a hacer
+## Cambios necesarios
 
-Añadir la capacidad de importar datos de visitas a los formularios donde tiene sentido, y mejorar la experiencia permitiendo elegir qué visita importar (no solo la última).
+### 1. Migración BD — Añadir `logo_url` a `clientes`
 
-### 1. Nuevo componente reutilizable: `ImportarVisitaButton`
-
-Un componente compartido que encapsula la lógica de seleccionar e importar datos de una visita:
-
-- Al pulsar, consulta todas las visitas finalizadas de la obra
-- Si hay una sola, importa directamente
-- Si hay varias, abre un mini-selector (popover) para elegir cuál
-- Si no hay ninguna, muestra toast de error
-- Retorna los datos crudos de la visita (informe, checklist_bloques con anotaciones, incidencias, observaciones, amonestaciones) al componente padre via callback `onImport(data)`
-
-### 2. FormInforme — Refactorizar para usar el componente compartido
-
-Reemplazar la lógica inline actual de `handleImport` por `ImportarVisitaButton`, manteniendo el mismo mapeo de datos.
-
-### 3. FormActaReunion — Añadir importación
-
-Datos que se pueden importar desde una visita:
-- `empresas_presentes` del informe → pre-rellenar la lista de empresas con acceso a obra (split por comas)
-- `incidencias` → generar puntos del orden del día / actividades a desarrollar
-- `observaciones` → añadir como contexto en excusados o notas
-- Fecha de la visita → referencia para la fecha de reunión
-- `num_trabajadores` del informe → contexto
-
-### 4. FormActaAprobacion y FormActaNombramiento — No se modifican
-
-Estos formularios contienen datos administrativos (datos de promotor, coordinador, agentes del proyecto) que ya se pre-rellenan desde la obra y el cliente. Los datos de visitas no son relevantes para estos tipos de documento.
-
-## Archivos afectados
-- **Nuevo**: `src/components/documentos/ImportarVisitaButton.tsx`
-- **Editado**: `src/components/documentos/formularios/FormInforme.tsx` (refactor para usar componente compartido)
-- **Editado**: `src/components/documentos/formularios/FormActaReunion.tsx` (añadir importación)
-
-## Detalle técnico
-
-### ImportarVisitaButton
-
-```text
-Props: { obraId: string, onImport: (data: VisitaImportData) => void }
-
-VisitaImportData = {
-  visita: { id, fecha, fecha_fin }
-  informe: { notas_generales, empresas_presentes, num_trabajadores }
-  bloques: Array<{ categoria, estado, anotaciones: Array<{texto, etiqueta}> }>
-  incidencias: Array<{ titulo, descripcion, categoria }>
-  observaciones: Array<{ texto, etiqueta }>
-}
+```sql
+ALTER TABLE public.clientes ADD COLUMN logo_url text DEFAULT '';
 ```
 
-Query encadenada: visitas → informes → checklist_bloques + anotaciones + incidencias + observaciones.
+Esto permite almacenar la URL del logotipo de cada cliente (subido al bucket existente o a uno nuevo `logos`).
 
-### Mapeo en FormActaReunion
+### 2. AdminClientes.tsx — Campo para subir logo del cliente
 
-- `empresas_presentes` (string con comas) → split y crear entradas en `localEmpresas`
-- `incidencias` → crear entradas en `localActividades` con titulo como actividad
-- Fecha visita → sugerir en campo fecha
+En el diálogo de crear/editar cliente, añadir un input de archivo para subir el logo al bucket de storage. Se guarda la URL pública en `logo_url`.
+
+### 3. Logo SafeWork — Subir al proyecto
+
+Añadir el logotipo de SafeWork como archivo estático en `public/logo-safework.png` (o SVG). Se referenciará en los PDFs con la URL pública del proyecto.
+
+### 4. Nueva edge function `generar-documento-pdf`
+
+Recibe `{ documento_id }` y:
+- Consulta `documentos_obra` con sus relaciones (obra → cliente con `logo_url`)
+- Según el `tipo`, genera el HTML correspondiente con:
+  - **Cabecera**: logo SafeWork (izquierda) + logo cliente (derecha) si existe
+  - **Cuerpo**: datos del formulario mapeados desde `datos_extra` y campos directos del documento
+  - **Pie**: lugar y fecha de firma, espacios para firmas
+- Devuelve `{ html, filename }` para que el frontend haga `window.print()` o use iframe
+
+Plantillas por tipo:
+- **Acta Nombramiento**: datos proyecto, promotor, coordinador, cláusulas legales
+- **Acta Aprobación DGPO/Plan SYS**: agentes del proyecto, párrafo de aprobación
+- **Acta Reunión CAE**: asistentes (tabla), actividades, empresas acceso, riesgos
+- **Acta Reunión Inicial/SYS**: asistentes, notas
+- **Informe CSS/AT**: secciones de inspección con campos de texto
+
+### 5. AdminDocumentoDetalle.tsx — Botón "Generar PDF"
+
+Añadir botón junto a "Adjuntar firmado" que:
+- Llama a `supabase.functions.invoke('generar-documento-pdf', { body: { documento_id } })`
+- Abre una ventana con el HTML recibido y dispara `window.print()`
+- Actualiza el estado del documento a `generado` si estaba en `pendiente`
+
+### 6. Storage bucket para logos (opcional)
+
+Crear bucket `logos` público, o reutilizar `documentos-obra` para almacenar los logos de clientes.
+
+## Archivos afectados
+- **Migración**: añadir `logo_url` a `clientes`, crear bucket `logos`
+- **Nuevo**: `supabase/functions/generar-documento-pdf/index.ts`
+- **Nuevo**: `public/logo-safework.png` (el usuario deberá proporcionar el archivo)
+- **Editado**: `src/pages/AdminClientes.tsx` (campo upload logo)
+- **Editado**: `src/pages/AdminDocumentoDetalle.tsx` (botón generar PDF)
+- **Editado**: `src/pages/AdminDocumentos.tsx` (botón generar PDF en tabla)
 
