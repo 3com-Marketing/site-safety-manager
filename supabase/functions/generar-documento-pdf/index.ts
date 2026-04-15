@@ -16,7 +16,7 @@ const TIPO_LABELS: Record<string, string> = {
   acta_reunion_inicial: "ACTA DE REUNIÓN INICIAL",
   acta_reunion_sys: "ACTA DE REUNIÓN — SEGURIDAD Y SALUD",
   informe_css: "INFORME DE COORDINACIÓN DE SEGURIDAD Y SALUD",
-  informe_at: "INFORME DE ASISTENCIA TÉCNICA",
+  informe_at: "INFORME DE ASISTENCIA TÉCNICA DE SEGURIDAD Y SALUD",
 };
 
 function baseStyles() {
@@ -41,6 +41,58 @@ function baseStyles() {
     .firma-box { border-top: 1px solid #333; padding-top: 6pt; text-align: center; font-size: 9pt; }
     .footer { text-align: center; font-size: 7pt; color: #999; margin-top: 32pt; border-top: 1px solid #ddd; padding-top: 6pt; }
     p { margin: 4pt 0; }
+  `;
+}
+
+function informeStyles() {
+  return `
+    @page {
+      size: A4;
+      margin: 2.5cm 2cm 2.5cm 2cm;
+      @top-left { content: element(header-left); }
+      @top-right { content: element(header-right); }
+      @bottom-center { content: element(footer-center); }
+    }
+    @page :first { margin-top: 0; @top-left { content: none; } @top-right { content: none; } @bottom-center { content: none; } }
+    body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 10pt; color: #1a1a1a; line-height: 1.6; margin: 0; }
+
+    /* Cover page */
+    .cover { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; page-break-after: always; text-align: center; padding: 3cm 2cm; }
+    .cover img.cover-logo { max-height: 120pt; max-width: 280pt; object-fit: contain; margin-bottom: 40pt; }
+    .cover .cover-label { font-size: 11pt; color: #666; text-transform: uppercase; letter-spacing: 3pt; margin-bottom: 10pt; }
+    .cover .cover-tipo { font-size: 18pt; font-weight: bold; color: #F37520; margin-bottom: 20pt; text-transform: uppercase; }
+    .cover .cover-obra { font-size: 14pt; font-weight: bold; color: #1a1a1a; margin-bottom: 12pt; }
+    .cover .cover-contratista { font-size: 12pt; color: #333; margin-bottom: 20pt; }
+    .cover .cover-fecha { font-size: 11pt; color: #666; }
+    .cover .cover-line { width: 60%; height: 3px; background: #F37520; margin: 20pt auto; }
+
+    /* Running header */
+    .running-header-left { position: running(header-left); }
+    .running-header-right { position: running(header-right); }
+    .running-footer { position: running(footer-center); }
+    .rh-table { width: 100%; border-collapse: collapse; border-bottom: 2px solid #F37520; padding-bottom: 6pt; margin-bottom: 0; }
+    .rh-table td { border: none; padding: 2pt 0; font-size: 8pt; color: #666; vertical-align: middle; }
+    .rh-table img { max-height: 36pt; max-width: 120pt; object-fit: contain; }
+    .rh-tipo { font-weight: bold; color: #F37520; font-size: 9pt; }
+    .rf-text { font-size: 8pt; color: #999; text-align: center; border-top: 1px solid #ddd; padding-top: 4pt; }
+
+    /* Content */
+    h2 { font-size: 13pt; color: #F37520; border-bottom: 2px solid #F37520; padding-bottom: 4pt; margin-top: 24pt; margin-bottom: 10pt; text-transform: uppercase; }
+    h3 { font-size: 11pt; color: #333; margin-top: 14pt; margin-bottom: 6pt; }
+    .section-num { color: #F37520; font-weight: bold; margin-right: 6pt; }
+    .section-text { white-space: pre-wrap; margin: 6pt 0; line-height: 1.6; }
+    .legal-text { font-size: 9pt; line-height: 1.5; }
+    .legal-text ul { margin: 4pt 0 4pt 16pt; padding: 0; }
+    .legal-text li { margin-bottom: 3pt; }
+
+    /* TOC */
+    .toc { margin: 20pt 0; }
+    .toc-item { display: flex; justify-content: space-between; padding: 4pt 0; border-bottom: 1px dotted #ccc; font-size: 10pt; }
+    .toc-item .toc-num { color: #F37520; font-weight: bold; min-width: 30pt; }
+
+    .firma-section { margin-top: 60pt; text-align: center; }
+    .firma-line { border-top: 1px solid #333; width: 250pt; margin: 60pt auto 6pt auto; }
+    .firma-label { font-size: 9pt; color: #666; }
   `;
 }
 
@@ -144,7 +196,6 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
       ${extra.numero_acta ? metaItem("Nº Acta", extra.numero_acta) : ""}
     </div>`;
 
-  // Asistentes
   html += `<h2>Asistentes</h2>`;
   if (asistentes.length > 0) {
     html += `<table><tr><th>Nombre</th><th>Apellidos</th><th>Cargo</th><th>Empresa</th><th>DNI/NIE</th></tr>`;
@@ -160,7 +211,6 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
     html += `<h2>Excusados / Ausentes</h2><p class="section-text">${extra.excusados.replace(/\n/g, "<br/>")}</p>`;
   }
 
-  // Actividades (CAE)
   if (isCAE && actividades.length > 0) {
     html += `<h2>Actividades a Desarrollar</h2><table><tr><th>Actividad</th><th>Nº Pedido</th></tr>`;
     for (const a of actividades) {
@@ -169,7 +219,6 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
     html += `</table>`;
   }
 
-  // Empresas (CAE)
   if (isCAE && empresas.length > 0) {
     html += `<h2>Empresas con Acceso a Obra</h2><table><tr><th>Empresa</th><th>Persona de contacto</th><th>Email</th></tr>`;
     for (const e of empresas) {
@@ -178,7 +227,6 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
     html += `</table>`;
   }
 
-  // Riesgos (CAE)
   if (isCAE && extra.riesgos?.length > 0) {
     html += `<h2>Riesgos Previstos</h2><ul>`;
     for (const r of extra.riesgos) html += `<li>${r}</li>`;
@@ -191,40 +239,103 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
   return html;
 }
 
-function templateInforme(doc: any, extra: any, obra: any, cliente: any, safeworkLogo: string) {
+function templateInforme(doc: any, extra: any, obra: any, cliente: any, safeworkLogo: string, empresaConfig: any) {
+  const isCSS = doc.tipo === "informe_css";
+  const tipoLabel = isCSS ? "INFORME COORDINACIÓN DE SEGURIDAD Y SALUD" : "INFORME ASISTENCIA TÉCNICA DE SEGURIDAD Y SALUD";
+  const rolLabel = isCSS ? "COORDINADOR/A DE SEGURIDAD Y SALUD" : "TÉCNICO PRL";
+  const obraNombre = extra.titulo_obra || obra?.nombre || "";
+  const tecnicoNombre = extra.nombre_tecnico || "";
+  const fechaDoc = doc.fecha_documento
+    ? new Date(doc.fecha_documento).toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" })
+    : "";
+  const empresaContratista = extra.empresa_contratista || "";
+
   const SECCIONES = [
-    { key: "estado_general", label: "Estado general de la obra" },
-    { key: "orden_limpieza", label: "Orden y limpieza" },
-    { key: "senalizacion", label: "Señalización y balizamiento" },
-    { key: "trabajos_altura", label: "Trabajos en altura" },
-    { key: "epc", label: "Equipos de protección colectiva" },
-    { key: "epi", label: "Equipos de protección individual" },
-    { key: "maquinaria", label: "Maquinaria" },
-    { key: "medios_auxiliares", label: "Medios auxiliares" },
+    { num: 3, key: "estado_general", label: "Estado general de la obra" },
+    { num: 4, key: "orden_limpieza", label: "Orden y limpieza" },
+    { num: 5, key: "senalizacion", label: "Señalización y balizamiento" },
+    { num: 6, key: "trabajos_altura", label: "Trabajos en altura" },
+    { num: 7, key: "epc", label: "Equipos de protección colectiva" },
+    { num: 8, key: "epi", label: "Equipos de protección individual" },
+    { num: 9, key: "maquinaria", label: "Maquinaria" },
+    { num: 10, key: "medios_auxiliares", label: "Medios auxiliares" },
   ];
 
-  let html = logoHeader(safeworkLogo, cliente?.logo_url, TIPO_LABELS[doc.tipo]);
-  
-  html += `<h2>Datos Generales</h2>
-    <div class="meta-grid">
-      ${metaItem("Obra", extra.titulo_obra || obra?.nombre)}
-      ${metaItem("Fecha de visita", doc.fecha_documento ? new Date(doc.fecha_documento).toLocaleDateString("es-ES") : "—")}
-      ${metaItem("Técnico", extra.nombre_tecnico)}
-      ${metaItem("Dirección", obra?.direccion)}
-    </div>`;
+  // Cover page
+  let html = `
+    <div class="cover">
+      ${safeworkLogo ? `<img class="cover-logo" src="${safeworkLogo}" alt="Logo" />` : ""}
+      <div class="cover-label">SEGURIDAD Y SALUD LABORAL</div>
+      <div class="cover-line"></div>
+      ${!isCSS && empresaContratista ? `<div class="cover-contratista">Empresa contratista: ${empresaContratista}</div>` : ""}
+      <div class="cover-tipo">${tipoLabel}</div>
+      <div class="cover-obra">${obraNombre}</div>
+      <div class="cover-fecha">${fechaDoc}</div>
+    </div>
+  `;
 
+  // Running header (will be picked up by CSS @page)
+  html += `
+    <div class="running-header-left">
+      <table class="rh-table"><tr>
+        <td style="width:100pt">${safeworkLogo ? `<img src="${safeworkLogo}" alt="Logo" />` : ""}</td>
+        <td><span class="rh-tipo">${tipoLabel}</span><br/>${fechaDoc}</td>
+      </tr></table>
+    </div>
+    <div class="running-header-right">
+      <table class="rh-table"><tr>
+        <td style="text-align:right"><strong>${obraNombre}</strong><br/>${rolLabel}: ${tecnicoNombre}</td>
+      </tr></table>
+    </div>
+    <div class="running-footer">
+      <div class="rf-text">${obraNombre}</div>
+    </div>
+  `;
+
+  // 1. Índice
+  html += `<h2><span class="section-num">1.</span> ÍNDICE</h2>`;
+  html += `<div class="toc">`;
+  html += `<div class="toc-item"><span><span class="toc-num">1.</span> Índice</span></div>`;
+  html += `<div class="toc-item"><span><span class="toc-num">2.</span> Recomendaciones</span></div>`;
   for (const s of SECCIONES) {
+    html += `<div class="toc-item"><span><span class="toc-num">${s.num}.</span> ${s.label}</span></div>`;
+  }
+  html += `<div class="toc-item"><span><span class="toc-num">11.</span> Normativa aplicable</span></div>`;
+  html += `</div>`;
+
+  // 2. Recomendaciones
+  const recomendaciones = extra.recomendaciones || "";
+  html += `<h2><span class="section-num">2.</span> RECOMENDACIONES</h2>`;
+  if (recomendaciones) {
+    html += `<div class="legal-text">${recomendaciones.replace(/\n/g, "<br/>")}</div>`;
+  }
+
+  // 3-10. Secciones técnicas
+  for (const s of SECCIONES) {
+    html += `<h2><span class="section-num">${s.num}.</span> ${s.label.toUpperCase()}</h2>`;
     const val = extra[s.key];
     if (val) {
-      html += `<h2>${s.label}</h2><p class="section-text">${val.replace(/\n/g, "<br/>")}</p>`;
+      html += `<p class="section-text">${val.replace(/\n/g, "<br/>")}</p>`;
+    } else {
+      html += `<p style="color:#999;font-style:italic;">Sin observaciones.</p>`;
     }
   }
 
-  if (extra.recomendaciones) {
-    html += `<h2>Recomendaciones Adicionales</h2><p class="section-text">${extra.recomendaciones.replace(/\n/g, "<br/>")}</p>`;
+  // 11. Normativa aplicable
+  const normativa = extra.normativa || "";
+  html += `<h2><span class="section-num">11.</span> NORMATIVA APLICABLE</h2>`;
+  if (normativa) {
+    html += `<div class="legal-text">${normativa.replace(/\n/g, "<br/>")}</div>`;
   }
 
-  html += firmaSection("", doc.fecha_documento, ["El Coordinador/a de SS"]);
+  // Firma
+  html += `
+    <div class="firma-section">
+      <div class="firma-line"></div>
+      <div class="firma-label">${tecnicoNombre}<br/>${rolLabel}</div>
+    </div>
+  `;
+
   return html;
 }
 
@@ -244,7 +355,6 @@ serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Fetch document with obra and cliente
     const { data: doc, error: docErr } = await supabase
       .from("documentos_obra")
       .select("*, obras(nombre, direccion, clientes(nombre, logo_url))")
@@ -260,7 +370,6 @@ serve(async (req) => {
     const cliente = obra?.clientes;
     const extra = (doc.datos_extra as Record<string, any>) || {};
     
-    // Fetch company config for logo and data
     const { data: empresaConfig } = await supabase
       .from("configuracion_empresa")
       .select("*")
@@ -270,6 +379,7 @@ serve(async (req) => {
     const safeworkLogo = empresaConfig?.logo_url || `${supabaseUrl}/storage/v1/object/public/logos/safework-logo.png`;
 
     let bodyHtml = "";
+    let useInformeLayout = false;
     const tipo = doc.tipo;
 
     if (tipo.startsWith("acta_nombramiento")) {
@@ -277,7 +387,6 @@ serve(async (req) => {
     } else if (tipo.startsWith("acta_aprobacion")) {
       bodyHtml = templateActaAprobacion(doc, extra, obra, cliente, safeworkLogo);
     } else if (tipo.startsWith("acta_reunion")) {
-      // Fetch related data
       const [asistRes, actRes, empRes] = await Promise.all([
         supabase.from("asistentes_reunion").select("*").eq("documento_id", documento_id).order("created_at"),
         supabase.from("actividades_reunion_cae").select("*").eq("documento_id", documento_id).order("orden"),
@@ -286,7 +395,8 @@ serve(async (req) => {
       bodyHtml = templateActaReunion(doc, extra, obra, cliente, safeworkLogo,
         asistRes.data || [], actRes.data || [], empRes.data || []);
     } else if (tipo.startsWith("informe_")) {
-      bodyHtml = templateInforme(doc, extra, obra, cliente, safeworkLogo);
+      bodyHtml = templateInforme(doc, extra, obra, cliente, safeworkLogo, empresaConfig);
+      useInformeLayout = true;
     } else {
       return new Response(JSON.stringify({ error: `Tipo de documento no soportado: ${tipo}` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -296,17 +406,18 @@ serve(async (req) => {
       ? new Date(doc.fecha_documento).toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" })
       : new Date().toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" });
 
+    const styles = useInformeLayout ? informeStyles() : baseStyles();
+    const footer = useInformeLayout ? "" : `<div class="footer"><p>SafeWork · Documento generado automáticamente · ${fechaStr}</p></div>`;
+
     const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<style>${baseStyles()}</style>
+<style>${styles}</style>
 </head>
 <body>
 ${bodyHtml}
-<div class="footer">
-  <p>SafeWork · Documento generado automáticamente · ${fechaStr}</p>
-</div>
+${footer}
 </body></html>`;
 
     const filename = `${tipo}_${obra?.nombre || "doc"}_${fechaStr}.pdf`;
