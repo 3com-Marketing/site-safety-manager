@@ -99,3 +99,22 @@
 .animate-pulse-border {
   animation: pulse-border 2s ease-in-out infinite;
 }
+
+/* TipTap editor styles */
+.ProseMirror {
+  outline: none;
+  min-height: 120px;
+}
+.ProseMirror p { margin: 0.25em 0; }
+.ProseMirror ul, .ProseMirror ol { padding-left: 1.5em; margin: 0.25em 0; }
+.ProseMirror li { margin-bottom: 0.1em; }
+.ProseMirror h2 { font-size: 1.25em; font-weight: 600; margin: 0.5em 0 0.25em; }
+.ProseMirror h3 { font-size: 1.1em; font-weight: 600; margin: 0.4em 0 0.2em; }
+.ProseMirror u { text-decoration: underline; }
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: hsl(var(--muted-foreground));
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
