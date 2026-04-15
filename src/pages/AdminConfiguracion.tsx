@@ -296,6 +296,26 @@ export default function AdminConfiguracion() {
                 className="text-xs mt-1"
               />
             </div>
+            <div>
+              <Label>Texto Acta Nombramiento CAE</Label>
+              <Textarea
+                value={config.texto_acta_nombramiento_cae}
+                onChange={e => update('texto_acta_nombramiento_cae', e.target.value)}
+                rows={10}
+                placeholder="Texto legal por defecto para actas de nombramiento CAE (RD 171/2004)..."
+                className="text-xs mt-1"
+              />
+            </div>
+            <div>
+              <Label>Texto Acta Nombramiento Con Proyecto</Label>
+              <Textarea
+                value={config.texto_acta_nombramiento_proyecto}
+                onChange={e => update('texto_acta_nombramiento_proyecto', e.target.value)}
+                rows={10}
+                placeholder="Texto legal por defecto para actas de nombramiento con proyecto (RD 1627/1997)..."
+                className="text-xs mt-1"
+              />
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -128,82 +128,83 @@ function firmaSection(lugarFirma: string, fecha: string, firmas: string[]) {
 // --- Template generators ---
 
 function templateActaNombramiento(doc: any, extra: any, obra: any, cliente: any, safeworkLogo: string) {
-  const modalidad = extra.modalidad === "proyecto" ? "con proyecto" : "CAE (sin proyecto)";
-  return `
-    ${logoHeader(safeworkLogo, cliente?.logo_url, TIPO_LABELS[doc.tipo], `Modalidad: ${modalidad}`)}
-    <h2>Datos del Proyecto</h2>
-    <div class="meta-grid">
-      ${metaItem("Denominación", extra.denominacion)}
-      ${metaItem("Emplazamiento", extra.emplazamiento)}
-      ${metaItem("Tipo de obra", extra.tipo_obra)}
-    </div>
-    <h2>Datos del Promotor</h2>
-    <div class="meta-grid">
-      ${metaItem("Nombre / Razón Social", doc.nombre_promotor)}
-      ${metaItem("CIF", doc.cif_promotor)}
-      ${metaItem("Domicilio", doc.domicilio_promotor)}
-    </div>
-    <h2>Datos del Coordinador/a</h2>
-    <div class="meta-grid">
-      ${metaItem("Nombre", doc.nombre_coordinador)}
-      ${metaItem("DNI", doc.dni_coordinador)}
-      ${metaItem("Titulación / Nº Colegiado", doc.titulacion_colegiado)}
-      ${metaItem("Empresa", doc.empresa_coordinacion)}
-      ${metaItem("CIF Empresa", doc.cif_empresa)}
-      ${metaItem("Domicilio Empresa", doc.domicilio_empresa)}
-      ${metaItem("Móvil", doc.movil_coordinador)}
-      ${metaItem("Email", doc.email_coordinador)}
-    </div>
-    ${firmaSection(extra.lugar_firma, doc.fecha_documento, ["El Promotor", "El Coordinador/a de SS"])}
-  `;
-}
+  const isCAE = doc.tipo === "acta_nombramiento_cae" || extra.modalidad === "cae";
 
-function templateActaAprobacion(doc: any, extra: any, obra: any, cliente: any, safeworkLogo: string) {
-  const isDGPO = doc.tipo === "acta_aprobacion_dgpo";
-  const titulo = isDGPO
-    ? "ACTA DE APROBACIÓN DGPO<br/><span style='font-size:12pt;font-weight:normal;'>(Documento de Gestión Preventiva de la Obra)</span>"
-    : "ACTA DE APROBACIÓN DEL PLAN DE SEGURIDAD Y SALUD";
-  const firmaLabel = isDGPO
-    ? "La Coordinadora de actividades empresariales CAE."
-    : "La Coordinadora de Seguridad y Salud durante la ejecución de las obras.";
+  const subtitulo = isCAE
+    ? "COORDINACIÓN DE ACTIVIDADES EMPRESARIALES (CAE)"
+    : "COORDINACIÓN EN MATERIA DE SEGURIDAD Y SALUD EN FASE DE EJECUCIÓN";
+
+  const firmaLabel1 = "El Promotor";
+  const firmaLabel2 = isCAE ? "La Coordinadora CAE" : "La Coordinadora de SS en fase de ejecución";
+
   const fechaStr = doc.fecha_documento
     ? new Date(doc.fecha_documento).toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" })
     : "_______________";
 
-  const rows = [
-    [isDGPO ? "Actuación:" : "Obra/Instalación:", extra.actuacion || ""],
-    ["Localidad y situación:", extra.localidad || ""],
-    ["Promotor (propiedad):", doc.nombre_promotor || ""],
-    ["Autor del Proyecto:", extra.autor_proyecto || ""],
-    ["Coordinador de Seguridad y Salud durante el Proyecto:", extra.coord_ss_proyecto || ""],
-    ["Autor del Estudio de Seguridad y Salud o del Estudio Básico:", extra.autor_estudio_ss || ""],
-    ["Director de obra:", extra.director_obra || ""],
-  ];
-  if (isDGPO) {
-    rows.push(["Coordinadora de actividades empresariales:", extra.coord_actividades_empresariales || ""]);
-    rows.push(["Empresa Contratista Titular:", extra.empresa_contratista_dgpo || ""]);
-  } else {
-    rows.push(["Coordinador de Seguridad y Salud durante la Obra/Instalación:", extra.coord_ss_obra || ""]);
-    rows.push(["Empresa Contratista Titular del Plan:", extra.empresa_contratista_plan || ""]);
-  }
-
+  // Header
   let html = `
-    <div style="text-align:center;margin-bottom:24pt;">
+    <div style="text-align:center;margin-bottom:20pt;">
       ${safeworkLogo ? `<img src="${safeworkLogo}" alt="Logo" style="max-height:80pt;max-width:240pt;object-fit:contain;margin-bottom:16pt;" />` : ""}
-      <h1 style="font-size:14pt;color:#1a1a1a;font-weight:bold;margin:0;">${titulo}</h1>
+      <h1 style="font-size:16pt;color:#1a1a1a;font-weight:bold;margin:0;">ACTA DE NOMBRAMIENTO</h1>
+      <p style="font-size:10pt;color:#666;margin-top:6pt;">${subtitulo}</p>
     </div>
   `;
 
-  html += `<table style="width:100%;border-collapse:collapse;margin:16pt 0;">`;
-  for (const [label, value] of rows) {
+  // Datos del Proyecto
+  const datosProyecto = [
+    ["Denominación:", extra.denominacion || ""],
+    ["Emplazamiento:", extra.emplazamiento || ""],
+    ["Tipo de obra:", extra.tipo_obra || ""],
+  ];
+  html += `<h2 style="font-size:11pt;font-weight:bold;border-bottom:2px solid #F37520;padding-bottom:4pt;margin-top:20pt;">DATOS DEL PROYECTO</h2>`;
+  html += `<table style="width:100%;border-collapse:collapse;margin:8pt 0;">`;
+  for (const [label, value] of datosProyecto) {
     html += `<tr>
-      <td style="border:1px solid #999;padding:6pt 10pt;font-size:9pt;font-weight:bold;width:40%;vertical-align:middle;background:#f5f5f5;">${label}</td>
-      <td style="border:1px solid #999;padding:6pt 10pt;font-size:9pt;vertical-align:middle;">${value}</td>
+      <td style="border:1px solid #999;padding:6pt 10pt;font-size:9pt;font-weight:bold;width:35%;background:#f5f5f5;">${label}</td>
+      <td style="border:1px solid #999;padding:6pt 10pt;font-size:9pt;">${value}</td>
     </tr>`;
   }
   html += `</table>`;
 
-  // Legal text
+  // Datos del Promotor
+  const datosPromotor = [
+    ["Nombre / Razón Social:", doc.nombre_promotor || ""],
+    ["CIF:", doc.cif_promotor || ""],
+    ["Domicilio:", doc.domicilio_promotor || ""],
+  ];
+  html += `<h2 style="font-size:11pt;font-weight:bold;border-bottom:2px solid #F37520;padding-bottom:4pt;margin-top:20pt;">DATOS DEL PROMOTOR</h2>`;
+  html += `<table style="width:100%;border-collapse:collapse;margin:8pt 0;">`;
+  for (const [label, value] of datosPromotor) {
+    html += `<tr>
+      <td style="border:1px solid #999;padding:6pt 10pt;font-size:9pt;font-weight:bold;width:35%;background:#f5f5f5;">${label}</td>
+      <td style="border:1px solid #999;padding:6pt 10pt;font-size:9pt;">${value}</td>
+    </tr>`;
+  }
+  html += `</table>`;
+
+  // Datos del Coordinador/a
+  const coordTitle = isCAE ? "DATOS DEL COORDINADOR/A CAE" : "DATOS DE LA COORDINADORA";
+  const datosCoord = [
+    ["Nombre y apellidos:", doc.nombre_coordinador || ""],
+    ["DNI:", doc.dni_coordinador || ""],
+    ["Titulación / Nº Colegiado:", doc.titulacion_colegiado || ""],
+    ["Empresa de coordinación:", doc.empresa_coordinacion || ""],
+    ["CIF Empresa:", doc.cif_empresa || ""],
+    ["Domicilio Empresa:", doc.domicilio_empresa || ""],
+    ["Móvil:", doc.movil_coordinador || ""],
+    ["Email:", doc.email_coordinador || ""],
+  ];
+  html += `<h2 style="font-size:11pt;font-weight:bold;border-bottom:2px solid #F37520;padding-bottom:4pt;margin-top:20pt;">${coordTitle}</h2>`;
+  html += `<table style="width:100%;border-collapse:collapse;margin:8pt 0;">`;
+  for (const [label, value] of datosCoord) {
+    html += `<tr>
+      <td style="border:1px solid #999;padding:6pt 10pt;font-size:9pt;font-weight:bold;width:35%;background:#f5f5f5;">${label}</td>
+      <td style="border:1px solid #999;padding:6pt 10pt;font-size:9pt;">${value}</td>
+    </tr>`;
+  }
+  html += `</table>`;
+
+  // Texto legal
   const textoLegal = extra.texto_legal || "";
   if (textoLegal) {
     html += `<div style="margin-top:20pt;font-size:10pt;line-height:1.6;text-align:justify;">${textoLegal.replace(/\n/g, "<br/>")}</div>`;
@@ -212,11 +213,14 @@ function templateActaAprobacion(doc: any, extra: any, obra: any, cliente: any, s
   // Lugar y fecha
   html += `<p style="margin-top:24pt;font-size:10pt;">En ${extra.lugar_firma || "_______________"}, a ${fechaStr}.</p>`;
 
-  // Firma
+  // Firma doble
   html += `
-    <div style="margin-top:60pt;text-align:center;">
-      <div style="border-top:1px solid #333;width:300pt;margin:0 auto;padding-top:8pt;font-size:9pt;">
-        ${firmaLabel}
+    <div style="display:flex;justify-content:space-around;margin-top:60pt;">
+      <div style="text-align:center;">
+        <div style="border-top:1px solid #333;width:200pt;padding-top:8pt;font-size:9pt;">${firmaLabel1}</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="border-top:1px solid #333;width:200pt;padding-top:8pt;font-size:9pt;">${firmaLabel2}</div>
       </div>
     </div>
   `;

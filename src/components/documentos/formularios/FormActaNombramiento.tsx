@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
 import type { Documento } from '@/hooks/useDocumentosObra';
 import type { Json } from '@/integrations/supabase/types';
 
@@ -15,19 +17,21 @@ interface Props {
   defaultValues?: Record<string, string>;
 }
 
+const TIPO_TO_CONFIG_FIELD: Record<string, string> = {
+  acta_nombramiento_cae: 'texto_acta_nombramiento_cae',
+  acta_nombramiento_proyecto: 'texto_acta_nombramiento_proyecto',
+};
+
 export default function FormActaNombramiento({ documento, obraId, tipo, onSave, saving, defaultValues }: Props) {
-  // Datos proyecto
   const [denominacion, setDenominacion] = useState('');
   const [emplazamiento, setEmplazamiento] = useState('');
   const [tipoObra, setTipoObra] = useState('');
   const [modalidad, setModalidad] = useState<'cae' | 'proyecto'>('cae');
 
-  // Datos promotor
   const [nombrePromotor, setNombrePromotor] = useState('');
   const [cifPromotor, setCifPromotor] = useState('');
   const [domicilioPromotor, setDomicilioPromotor] = useState('');
 
-  // Datos coordinador
   const [nombreCoordinador, setNombreCoordinador] = useState('');
   const [dniCoordinador, setDniCoordinador] = useState('');
   const [titulacionColegiado, setTitulacionColegiado] = useState('');
@@ -37,9 +41,22 @@ export default function FormActaNombramiento({ documento, obraId, tipo, onSave, 
   const [movilCoordinador, setMovilCoordinador] = useState('');
   const [emailCoordinador, setEmailCoordinador] = useState('');
 
-  // Firma
+  const [textoLegal, setTextoLegal] = useState('');
   const [lugarFirma, setLugarFirma] = useState('Maspalomas');
   const [fechaDocumento, setFechaDocumento] = useState('');
+
+  // Load default legal text from config when creating new document
+  useEffect(() => {
+    if (documento) return; // don't override if editing existing
+    const docTipo = tipo || '';
+    const configField = TIPO_TO_CONFIG_FIELD[docTipo];
+    if (!configField) return;
+    supabase.from('configuracion_empresa').select(configField).limit(1).single().then(({ data }) => {
+      if (data && (data as any)[configField]) {
+        setTextoLegal((data as any)[configField]);
+      }
+    });
+  }, [documento, tipo]);
 
   useEffect(() => {
     if (documento) {
@@ -49,6 +66,7 @@ export default function FormActaNombramiento({ documento, obraId, tipo, onSave, 
       setTipoObra(extra.tipo_obra || '');
       setModalidad(extra.modalidad || 'cae');
       setLugarFirma(extra.lugar_firma || 'Maspalomas');
+      setTextoLegal(extra.texto_legal || '');
       setFechaDocumento(documento.fecha_documento || '');
       setNombreCoordinador(documento.nombre_coordinador || '');
       setDniCoordinador(documento.dni_coordinador || '');
@@ -90,7 +108,7 @@ export default function FormActaNombramiento({ documento, obraId, tipo, onSave, 
       domicilio_promotor: domicilioPromotor,
       datos_extra: {
         denominacion, emplazamiento, tipo_obra: tipoObra,
-        modalidad, lugar_firma: lugarFirma,
+        modalidad, lugar_firma: lugarFirma, texto_legal: textoLegal,
       } as unknown as Json,
       ...(obraId ? { obra_id: obraId, tipo } : {}),
     });
@@ -180,6 +198,16 @@ export default function FormActaNombramiento({ documento, obraId, tipo, onSave, 
           <Input value={emailCoordinador} onChange={e => setEmailCoordinador(e.target.value)} />
         </div>
       </div>
+
+      {/* Texto legal */}
+      <p className="text-sm font-semibold text-muted-foreground pt-2">Texto legal</p>
+      <Textarea
+        value={textoLegal}
+        onChange={e => setTextoLegal(e.target.value)}
+        rows={10}
+        placeholder="Texto legal del acta de nombramiento..."
+        className="text-xs"
+      />
 
       {/* Firma */}
       <p className="text-sm font-semibold text-muted-foreground pt-2">Firma</p>
