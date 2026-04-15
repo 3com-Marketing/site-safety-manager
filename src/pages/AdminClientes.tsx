@@ -289,8 +289,13 @@ export default function AdminClientes() {
       <Dialog open={!!viewCliente} onOpenChange={open => !open && setViewCliente(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" /> {viewCliente?.nombre}
+            <DialogTitle className="flex items-center gap-3">
+              {viewCliente?.logo_url ? (
+                <img src={viewCliente.logo_url} alt={viewCliente.nombre} className="h-8 w-8 rounded object-contain" />
+              ) : (
+                <Building2 className="h-5 w-5" />
+              )}
+              {viewCliente?.nombre}
               {viewCliente && tipoLabel(viewCliente.tipo_cliente)}
             </DialogTitle>
           </DialogHeader>
