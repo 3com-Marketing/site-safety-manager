@@ -253,6 +253,11 @@ export default function AdminDocumentos() {
                     <Button variant="ghost" size="icon" title="Ver detalle" onClick={() => navigate(`/admin/documento/${d.id}`)}>
                       <Eye className="h-4 w-4" />
                     </Button>
+                    {!d.archivo_url && (
+                      <Button variant="ghost" size="icon" title="Adjuntar archivo" onClick={() => { setAdjuntarDocId(d.id); setAdjuntarObraId(d.obra_id); setAdjuntarOpen(true); }}>
+                        <Paperclip className="h-4 w-4" />
+                      </Button>
+                    )}
                     {d.estado !== 'firmado' && (
                       <Button variant="ghost" size="icon" title="Marcar firmado" onClick={() => marcarFirmado(d.id)}>
                         <CheckCircle className="h-4 w-4 text-success" />
