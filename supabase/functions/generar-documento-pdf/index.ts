@@ -226,59 +226,130 @@ function templateActaAprobacion(doc: any, extra: any, obra: any, cliente: any, s
 
 function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safeworkLogo: string, asistentes: any[], actividades: any[], empresas: any[]) {
   const isCAE = doc.tipo === "acta_reunion_cae";
-  let html = logoHeader(safeworkLogo, cliente?.logo_url, TIPO_LABELS[doc.tipo]);
-  
-  html += `<h2>Datos Generales</h2>
-    <div class="meta-grid">
-      ${metaItem("Obra / Actuación", extra.obra_actuacion)}
-      ${metaItem("Localidad", extra.localidad)}
-      ${metaItem("Promotor", doc.nombre_promotor)}
-      ${metaItem("Lugar de reunión", extra.lugar_reunion)}
-      ${metaItem("Fecha", doc.fecha_documento ? new Date(doc.fecha_documento).toLocaleDateString("es-ES") : "—")}
-      ${isCAE ? metaItem("Mes de reunión", extra.mes_reunion) : ""}
-      ${extra.numero_acta ? metaItem("Nº Acta", extra.numero_acta) : ""}
-    </div>`;
+  const isSYS = doc.tipo === "acta_reunion_sys";
+  const isInicial = doc.tipo === "acta_reunion_inicial";
 
-  html += `<h2>Asistentes</h2>`;
+  const fechaStr = doc.fecha_documento
+    ? new Date(doc.fecha_documento).toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" })
+    : "_______________";
+
+  let titulo = "";
+  let firmaLabel1 = "";
+  let firmaLabel2 = "";
+
+  if (isInicial) {
+    titulo = "ACTA DE REUNIÓN INICIAL";
+    firmaLabel1 = "Empresa CSS";
+    firmaLabel2 = "La Coordinadora de Seguridad y Salud";
+  } else if (isCAE) {
+    titulo = "ACTA DE REUNIÓN DE COORDINACIÓN<br/>DE ACTIVIDADES EMPRESARIALES";
+    firmaLabel1 = "Empresa CSS";
+    firmaLabel2 = "La Coordinadora CAE";
+  } else {
+    titulo = `ACTA REUNIÓN N.º ${extra.numero_acta || "___"}`;
+    firmaLabel1 = "Empresa CSS";
+    firmaLabel2 = "La Coordinadora de Seguridad y Salud";
+  }
+
+  // Header with centered logo and title
+  let html = `
+    <div style="text-align:center;margin-bottom:20pt;">
+      ${safeworkLogo ? `<img src="${safeworkLogo}" alt="Logo" style="max-height:80pt;max-width:240pt;object-fit:contain;margin-bottom:12pt;" />` : ""}
+      <h1 style="font-size:14pt;color:#1a1a1a;font-weight:bold;margin:0;">${titulo}</h1>
+      ${isInicial ? `<p style="font-size:10pt;color:#666;margin-top:4pt;">Coordinación en materia de Seguridad y Salud</p>` : ""}
+      ${isCAE ? `<p style="font-size:9pt;color:#666;margin-top:4pt;">Protocolo CAE</p>` : ""}
+    </div>
+  `;
+
+  // Data table
+  const dataRows: [string, string][] = [
+    [isCAE ? "Actuación:" : "Obra/Instalación:", extra.obra_actuacion || ""],
+    ["Localidad y situación:", extra.localidad || ""],
+    ["Promotor:", doc.nombre_promotor || ""],
+    ["Fecha:", fechaStr],
+    ["Lugar de reunión:", extra.lugar_reunion || ""],
+  ];
+  if (isCAE) dataRows.push(["Mes:", extra.mes_reunion || ""]);
+
+  html += `<table style="width:100%;border-collapse:collapse;margin:12pt 0;">`;
+  for (const [label, value] of dataRows) {
+    html += `<tr>
+      <td style="border:1px solid #999;padding:5pt 8pt;font-size:9pt;font-weight:bold;width:35%;background:#f5f5f5;">${label}</td>
+      <td style="border:1px solid #999;padding:5pt 8pt;font-size:9pt;">${value}</td>
+    </tr>`;
+  }
+  html += `</table>`;
+
+  // Asistentes table
+  html += `<h2 style="font-size:11pt;margin-top:16pt;margin-bottom:6pt;border-bottom:2px solid #F37520;padding-bottom:3pt;">ASISTENTES</h2>`;
   if (asistentes.length > 0) {
-    html += `<table><tr><th>Nombre</th><th>Apellidos</th><th>Cargo</th><th>Empresa</th><th>DNI/NIE</th></tr>`;
-    for (const a of asistentes) {
-      html += `<tr><td>${a.nombre || ""}</td><td>${a.apellidos || ""}</td><td>${a.cargo || ""}</td><td>${a.empresa || ""}</td><td>${a.dni_nie || ""}</td></tr>`;
+    if (isSYS) {
+      html += `<table><tr><th>Empresa</th><th>Nombre</th><th>Apellidos</th><th style="width:120pt;">Firma</th></tr>`;
+      for (const a of asistentes) {
+        html += `<tr><td>${a.empresa || ""}</td><td>${a.nombre || ""}</td><td>${a.apellidos || ""}</td><td></td></tr>`;
+      }
+    } else {
+      html += `<table><tr><th>Nombre</th><th>Apellidos</th><th>Cargo</th><th>Empresa</th><th>DNI/NIE</th>${isInicial ? `<th style="width:80pt;">Firma</th>` : ""}</tr>`;
+      for (const a of asistentes) {
+        html += `<tr><td>${a.nombre || ""}</td><td>${a.apellidos || ""}</td><td>${a.cargo || ""}</td><td>${a.empresa || ""}</td><td>${a.dni_nie || ""}</td>${isInicial ? `<td></td>` : ""}</tr>`;
+      }
     }
     html += `</table>`;
   } else {
-    html += `<p style="color:#999;font-style:italic;">Sin asistentes registrados.</p>`;
+    html += `<p style="color:#999;font-style:italic;font-size:9pt;">Sin asistentes registrados.</p>`;
   }
 
+  // Excusados
   if (extra.excusados) {
-    html += `<h2>Excusados / Ausentes</h2><p class="section-text">${extra.excusados.replace(/\n/g, "<br/>")}</p>`;
+    html += `<h2 style="font-size:11pt;margin-top:16pt;margin-bottom:6pt;border-bottom:2px solid #F37520;padding-bottom:3pt;">EXCUSADOS / AUSENTES</h2>`;
+    html += `<p style="font-size:9pt;white-space:pre-wrap;">${extra.excusados.replace(/\n/g, "<br/>")}</p>`;
   }
 
+  // CAE: Actividades
   if (isCAE && actividades.length > 0) {
-    html += `<h2>Actividades a Desarrollar</h2><table><tr><th>Actividad</th><th>Nº Pedido</th></tr>`;
+    html += `<h2 style="font-size:11pt;margin-top:16pt;margin-bottom:6pt;border-bottom:2px solid #F37520;padding-bottom:3pt;">ACTIVIDADES A DESARROLLAR</h2>`;
+    html += `<table><tr><th>Actividad</th><th>Nº Pedido</th></tr>`;
     for (const a of actividades) {
       html += `<tr><td>${a.actividad}</td><td>${a.numero_pedido || "—"}</td></tr>`;
     }
     html += `</table>`;
   }
 
+  // CAE: Empresas
   if (isCAE && empresas.length > 0) {
-    html += `<h2>Empresas con Acceso a Obra</h2><table><tr><th>Empresa</th><th>Persona de contacto</th><th>Email</th></tr>`;
+    html += `<h2 style="font-size:11pt;margin-top:16pt;margin-bottom:6pt;border-bottom:2px solid #F37520;padding-bottom:3pt;">EMPRESAS CON ACCESO A OBRA</h2>`;
+    html += `<table><tr><th>Empresa</th><th>Persona de contacto</th><th>Email</th></tr>`;
     for (const e of empresas) {
       html += `<tr><td>${e.empresa}</td><td>${e.persona_contacto || "—"}</td><td>${e.email_referencia || "—"}</td></tr>`;
     }
     html += `</table>`;
   }
 
+  // CAE: Riesgos
   if (isCAE && extra.riesgos?.length > 0) {
-    html += `<h2>Riesgos Previstos</h2><ul>`;
+    html += `<h2 style="font-size:11pt;margin-top:16pt;margin-bottom:6pt;border-bottom:2px solid #F37520;padding-bottom:3pt;">RIESGOS PREVISTOS</h2>`;
+    html += `<ul style="font-size:9pt;">`;
     for (const r of extra.riesgos) html += `<li>${r}</li>`;
     if (extra.otros_riesgos) html += `<li>Otros: ${extra.otros_riesgos}</li>`;
     html += `</ul>`;
-    if (extra.plataforma_cae) html += `<p><strong>Plataforma CAE:</strong> ${extra.plataforma_cae}</p>`;
+    if (extra.plataforma_cae) html += `<p style="font-size:9pt;"><strong>Plataforma CAE:</strong> ${extra.plataforma_cae}</p>`;
   }
 
-  html += firmaSection(extra.lugar_firma || "", doc.fecha_documento, ["El Coordinador/a", "Representante"]);
+  // Legal text
+  const textoLegal = extra.texto_legal || "";
+  if (textoLegal) {
+    html += `<div style="margin-top:20pt;font-size:10pt;line-height:1.6;text-align:justify;">${textoLegal.replace(/\n/g, "<br/>")}</div>`;
+  }
+
+  // Lugar, fecha y firma
+  html += `<p style="margin-top:24pt;font-size:10pt;">En ${extra.localidad || "_______________"}, a ${fechaStr}.</p>`;
+  html += `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:40pt;margin-top:60pt;">
+      <div style="border-top:1px solid #333;padding-top:8pt;text-align:center;font-size:9pt;">${firmaLabel1}</div>
+      <div style="border-top:1px solid #333;padding-top:8pt;text-align:center;font-size:9pt;">${firmaLabel2}</div>
+    </div>
+  `;
+
   return html;
 }
 
