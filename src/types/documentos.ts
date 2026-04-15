@@ -29,10 +29,10 @@ export const TIPO_DOCUMENTO_ROL: Record<TipoDocumento, 'admin' | 'tecnico' | 'am
   acta_aprobacion_dgpo: 'admin',
   acta_aprobacion_plan_sys: 'admin',
   acta_reunion_cae: 'ambos',
-  acta_reunion_inicial: 'tecnico',
-  acta_reunion_sys: 'tecnico',
-  informe_css: 'tecnico',
-  informe_at: 'tecnico',
+  acta_reunion_inicial: 'ambos',
+  acta_reunion_sys: 'ambos',
+  informe_css: 'ambos',
+  informe_at: 'ambos',
 };
 
 export const ESTADO_DOCUMENTO_COLORS: Record<EstadoDocumento, string> = {
