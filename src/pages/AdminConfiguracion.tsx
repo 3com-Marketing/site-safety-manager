@@ -262,6 +262,36 @@ export default function AdminConfiguracion() {
                 className="text-xs mt-1"
               />
             </div>
+            <div>
+              <Label>Texto Acta Reunión Inicial</Label>
+              <Textarea
+                value={config.texto_acta_reunion_inicial}
+                onChange={e => update('texto_acta_reunion_inicial', e.target.value)}
+                rows={10}
+                placeholder="Texto legal por defecto para actas de reunión inicial (puntos a-o coordinación)..."
+                className="text-xs mt-1"
+              />
+            </div>
+            <div>
+              <Label>Texto Acta Reunión CAE</Label>
+              <Textarea
+                value={config.texto_acta_reunion_cae}
+                onChange={e => update('texto_acta_reunion_cae', e.target.value)}
+                rows={10}
+                placeholder="Texto legal por defecto para actas de reunión CAE (13 secciones)..."
+                className="text-xs mt-1"
+              />
+            </div>
+            <div>
+              <Label>Texto Acta Reunión SyS</Label>
+              <Textarea
+                value={config.texto_acta_reunion_sys}
+                onChange={e => update('texto_acta_reunion_sys', e.target.value)}
+                rows={10}
+                placeholder="Texto legal por defecto para actas de reunión de seguridad y salud..."
+                className="text-xs mt-1"
+              />
+            </div>
           </CardContent>
         </Card>
       </div>
