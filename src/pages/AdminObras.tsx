@@ -8,10 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Pencil, Trash2, HardHat, Users, Eye, Search, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, HardHat, Users, Eye, Search, Loader2, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import MapPicker from '@/components/MapPicker';
 import { geocodeAddress } from '@/lib/geo';
+import { calcExpedienteStatus, ExpedienteDot, type ExpedienteStatus } from '@/lib/expedienteStatus';
+import DocumentosList from '@/components/documentos/DocumentosList';
 
 interface Obra {
   id: string;
@@ -53,13 +55,15 @@ export default function AdminObras() {
   const [geocoding, setGeocoding] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Obra | null>(null);
   const [viewObra, setViewObra] = useState<Obra | null>(null);
+  const [expedienteMap, setExpedienteMap] = useState<Record<string, ExpedienteStatus>>({});
 
   const fetchData = async () => {
-    const [obrasRes, clientesRes, { data: tecData }, { data: links }] = await Promise.all([
+    const [obrasRes, clientesRes, { data: tecData }, { data: links }, { data: docsData }] = await Promise.all([
       supabase.from('obras').select('id, nombre, direccion, cliente_id, latitud, longitud, clientes(nombre)').order('nombre'),
       supabase.from('clientes').select('id, nombre').order('nombre'),
       supabase.from('tecnicos').select('id, nombre').order('nombre'),
       supabase.from('tecnicos_obras').select('tecnico_id, obra_id'),
+      supabase.from('documentos_obra').select('obra_id, tipo, estado'),
     ]);
 
     const tecList = (tecData || []) as TecnicoMin[];
@@ -92,6 +96,19 @@ export default function AdminObras() {
       }))
     );
     setClientes(clientesRes.data || []);
+
+    // Build expediente status map
+    const docsByObra: Record<string, { tipo: string; estado: string }[]> = {};
+    (docsData || []).forEach((d: any) => {
+      if (!docsByObra[d.obra_id]) docsByObra[d.obra_id] = [];
+      docsByObra[d.obra_id].push({ tipo: d.tipo, estado: d.estado });
+    });
+    const expMap: Record<string, ExpedienteStatus> = {};
+    Object.entries(docsByObra).forEach(([obraId, docs]) => {
+      expMap[obraId] = calcExpedienteStatus(docs);
+    });
+    setExpedienteMap(expMap);
+
     setLoading(false);
   };
 
@@ -185,8 +202,11 @@ export default function AdminObras() {
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
                     <HardHat className="h-5 w-5 text-secondary-foreground" />
                   </div>
-                  <div>
-                    <p className="font-heading font-semibold">{o.nombre}</p>
+                   <div>
+                    <div className="flex items-center gap-2">
+                      <ExpedienteDot status={expedienteMap[o.id] || 'sin_datos'} />
+                      <p className="font-heading font-semibold">{o.nombre}</p>
+                    </div>
                     <p className="text-xs text-muted-foreground">{o.cliente_nombre} · {o.direccion || 'Sin dirección'}</p>
                     {o.tecnicoNames && o.tecnicoNames.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
@@ -354,6 +374,9 @@ export default function AdminObras() {
                   <MapPicker lat={viewObra.latitud} lng={viewObra.longitud} readOnly className="mt-2" />
                 </div>
               )}
+              <div className="border-t border-border pt-4 mt-4">
+                <DocumentosList obraId={viewObra.id} readOnly />
+              </div>
             </div>
           )}
         </DialogContent>
