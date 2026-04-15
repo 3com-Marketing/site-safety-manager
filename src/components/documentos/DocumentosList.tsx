@@ -1,80 +1,119 @@
-import { useNavigate } from 'react-router-dom';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText, Paperclip } from 'lucide-react';
-import DocumentoStatusBadge from './DocumentoStatusBadge';
-import { TIPO_LABELS, type Documento } from '@/hooks/useDocumentosObra';
 import { useState } from 'react';
+import { FileText, Plus, Upload, CheckCircle, ExternalLink } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { useDocumentosObra } from '@/hooks/useDocumentosObra';
+import {
+  TIPO_DOCUMENTO_LABELS,
+  ESTADO_DOCUMENTO_COLORS,
+  type TipoDocumento,
+  type EstadoDocumento,
+} from '@/types/documentos';
+import NuevoDocumentoDialog from './NuevoDocumentoDialog';
+import AdjuntarDocumentoDialog from './AdjuntarDocumentoDialog';
 
 interface Props {
-  documentos: Documento[];
-  basePath?: string; // /admin/documento or /documentos
-  onAttach?: (doc: Documento) => void;
+  obraId: string;
+  readOnly?: boolean;
 }
 
-export default function DocumentosList({ documentos, basePath = '/admin/documento', onAttach }: Props) {
-  const navigate = useNavigate();
-  const [filtroTipo, setFiltroTipo] = useState<string>('all');
+const ESTADO_LABELS: Record<string, string> = {
+  pendiente: 'Pendiente',
+  generado: 'Generado',
+  adjuntado: 'Adjuntado',
+  firmado: 'Firmado',
+};
 
-  const filtered = filtroTipo === 'all' ? documentos : documentos.filter(d => d.tipo === filtroTipo);
+export default function DocumentosList({ obraId, readOnly = false }: Props) {
+  const { documentos, isLoading, actualizarEstado } = useDocumentosObra(obraId);
+  const [nuevoOpen, setNuevoOpen] = useState(false);
+  const [adjuntarDocId, setAdjuntarDocId] = useState<string | null>(null);
+
+  if (isLoading) return <p className="text-muted-foreground py-8 text-center">Cargando documentos...</p>;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <Select value={filtroTipo} onValueChange={setFiltroTipo}>
-          <SelectTrigger className="w-[260px]">
-            <SelectValue placeholder="Filtrar por tipo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los tipos</SelectItem>
-            {Object.entries(TIPO_LABELS).map(([key, label]) => (
-              <SelectItem key={key} value={key}>{label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <span className="text-sm text-muted-foreground">{filtered.length} documento(s)</span>
+      {!readOnly && (
+        <div className="flex items-center justify-between">
+          <h3 className="font-heading text-lg font-semibold">Documentación de la obra</h3>
+          <Button onClick={() => setNuevoOpen(true)} className="h-10 rounded-xl gap-2">
+            <Plus className="h-4 w-4" />
+            Nuevo documento
+          </Button>
+        </div>
+      )}
+
+      {(!documentos || documentos.length === 0) && (
+        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+          <FileText className="h-12 w-12 mb-3 opacity-40" />
+          <p className="text-sm">No hay documentos para esta obra todavía.</p>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        {documentos?.map((doc) => {
+          const colors = ESTADO_DOCUMENTO_COLORS[doc.estado as EstadoDocumento] || ESTADO_DOCUMENTO_COLORS.pendiente;
+          return (
+            <Card key={doc.id}>
+              <CardContent className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium">
+                      {TIPO_DOCUMENTO_LABELS[doc.tipo as TipoDocumento] || doc.tipo}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {doc.fecha_documento
+                        ? new Date(doc.fecha_documento).toLocaleDateString('es-ES')
+                        : 'Sin fecha'}
+                      {doc.nombre_coordinador && ` · ${doc.nombre_coordinador}`}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Badge className={`border-0 ${colors}`}>
+                    {ESTADO_LABELS[doc.estado as EstadoDocumento] || doc.estado}
+                  </Badge>
+
+                  {doc.archivo_url && (
+                    <a href={doc.archivo_url} target="_blank" rel="noopener noreferrer">
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </a>
+                  )}
+
+                  {!readOnly && (
+                    <>
+                      <Button variant="outline" size="sm" className="h-8 gap-1" onClick={() => setAdjuntarDocId(doc.id)}>
+                        <Upload className="h-3 w-3" />
+                        Adjuntar
+                      </Button>
+
+                      {doc.estado !== 'firmado' && (
+                        <Button variant="outline" size="sm" className="h-8 gap-1" onClick={() => actualizarEstado.mutate({ id: doc.id, estado: 'firmado' as EstadoDocumento })}>
+                          <CheckCircle className="h-3 w-3" />
+                          Firmar
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
-      {filtered.length === 0 ? (
-        <p className="text-muted-foreground text-sm py-8 text-center">No hay documentos</p>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Título</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead>Fecha</TableHead>
-              <TableHead className="w-[100px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map(doc => (
-              <TableRow key={doc.id} className="cursor-pointer" onClick={() => navigate(`${basePath}/${doc.id}`)}>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{TIPO_LABELS[doc.tipo] || doc.tipo}</span>
-                  </div>
-                </TableCell>
-                <TableCell className="text-sm">{doc.titulo || '—'}</TableCell>
-                <TableCell><DocumentoStatusBadge estado={doc.estado} /></TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {doc.fecha_documento ? new Date(doc.fecha_documento).toLocaleDateString('es-ES') : '—'}
-                </TableCell>
-                <TableCell>
-                  {onAttach && doc.estado !== 'firmado' && (
-                    <Button variant="ghost" size="icon" onClick={e => { e.stopPropagation(); onAttach(doc); }} title="Adjuntar archivo">
-                      <Paperclip className="h-4 w-4" />
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
+      <NuevoDocumentoDialog open={nuevoOpen} onOpenChange={setNuevoOpen} obraId={obraId} onCreated={() => {}} />
+      <AdjuntarDocumentoDialog
+        open={!!adjuntarDocId}
+        onOpenChange={(open) => !open && setAdjuntarDocId(null)}
+        documentoId={adjuntarDocId || ''}
+        obraId={obraId}
+      />
     </div>
   );
 }

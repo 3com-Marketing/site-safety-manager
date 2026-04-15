@@ -4,23 +4,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Upload } from 'lucide-react';
-import { useDocumentosObra, type Documento } from '@/hooks/useDocumentosObra';
+import { useDocumentosObra } from '@/hooks/useDocumentosObra';
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  documento: Documento | null;
+  documentoId: string;
   obraId: string;
 }
 
-export default function AdjuntarDocumentoDialog({ open, onOpenChange, documento, obraId }: Props) {
+export default function AdjuntarDocumentoDialog({ open, onOpenChange, documentoId, obraId }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { adjuntarArchivo } = useDocumentosObra(obraId);
 
   const handleUpload = async () => {
-    if (!file || !documento) return;
-    await adjuntarArchivo.mutateAsync({ id: documento.id, file });
+    if (!file || !documentoId) return;
+    await adjuntarArchivo.mutateAsync({ id: documentoId, file });
     setFile(null);
     onOpenChange(false);
   };
