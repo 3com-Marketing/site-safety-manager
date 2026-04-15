@@ -1,28 +1,44 @@
 
 
-# Plan: Auto-rellenar los `[....]` del texto legal con datos del formulario
+# Plan: Ampliar tabla de técnicos con rol coordinador y campos adicionales
 
 ## Resumen
 
-Cuando se carga el texto legal desde Configuración en un Acta de Nombramiento nueva, los marcadores `[....]` se sustituyen automáticamente por los valores del formulario (domicilio del promotor, nombre del coordinador, nº colegiado). Si el usuario cambia esos campos, el texto se actualiza en tiempo real.
+Añadir campos que faltan en la tabla `tecnicos` para cubrir la ficha completa de coordinadores/técnicos, y añadir un campo `tipo` para distinguir entre "técnico" y "coordinador".
 
-## Cambio concreto
+## Campos a añadir en la tabla `tecnicos`
 
-**Archivo**: `src/components/documentos/formularios/FormActaNombramiento.tsx`
+Basándome en el ejemplo proporcionado, faltan estos campos:
 
-1. Guardar el texto plantilla original de configuración en un `useRef` (para poder re-aplicar sustituciones cuando cambien los campos).
+| Campo | Tipo | Ejemplo |
+|-------|------|---------|
+| `tipo` | text (default 'tecnico') | 'tecnico' o 'coordinador' |
+| `apellidos` | text | ARTILES LORENZO |
+| `dni` | text | 42876574-C |
+| `titulacion` | text | INGENIERA TECNICA INDUSTRIAL |
+| `num_colegiado` | text | 1903 (COGITILPA) |
+| `empresa` | text | HERNÁNDEZ CONSULTORES EN SEGURIDAD Y SALUD LABORAL, S.L. |
+| `cif_empresa` | text | B-76247162 |
+| `movil` | text | 660 826 771 |
 
-2. Crear una función que recorra el texto HTML y reemplace cada `[....]` en orden por los valores correspondientes:
-   - 1er `[....]` → `domicilioPromotor`
-   - 2º `[....]` → `nombreCoordinador`  
-   - 3er `[....]` → `titulacionColegiado` (nº colegiado)
+Nota: `nombre`, `direccion`, `telefono`, `email`, `codigo_tecnico`, `notas` ya existen.
 
-3. Ejecutar esa sustitución:
-   - Al cargar el texto desde configuración (documento nuevo)
-   - Cuando cambien `domicilioPromotor`, `nombreCoordinador` o `titulacionColegiado` (solo si hay plantilla base)
+## Cambios
 
-4. El texto resultante se muestra en el RichTextEditor y es editable. Al guardar, se persiste el texto final (con los valores reales, no con corchetes).
+### 1. Migración SQL
+Añadir las 8 columnas nuevas a la tabla `tecnicos` con defaults vacíos.
+
+### 2. `AdminTecnicos.tsx`
+- Añadir pestañas o filtro "Técnicos" / "Coordinadores" para separar la vista.
+- Ampliar el formulario de creación/edición con todos los campos nuevos (DNI, apellidos, titulación, nº colegiado, empresa, CIF empresa, móvil).
+- Actualizar la ficha de visualización (dialog "Ver") con los campos nuevos.
+- Actualizar la interfaz `Tecnico` y el `emptyForm`.
+- Botón "Nuevo coordinador" además de "Nuevo técnico".
+
+### 3. Tipos TypeScript
+Actualizar la interfaz local `Tecnico` en el componente (los tipos de Supabase se regeneran automáticamente).
 
 ## Archivos afectados
-- `src/components/documentos/formularios/FormActaNombramiento.tsx`
+- **Migración**: nueva migración para ALTER TABLE tecnicos ADD COLUMN (8 columnas)
+- **Editado**: `src/pages/AdminTecnicos.tsx` — formulario ampliado, filtro por tipo, ficha completa
 
