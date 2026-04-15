@@ -112,6 +112,13 @@ function informeStyles() {
   `;
 }
 
+/** Render rich text: if it contains HTML tags, use directly; otherwise convert newlines to br */
+function renderRichText(text: string): string {
+  if (!text) return '';
+  if (/<[a-z][\s\S]*>/i.test(text)) return text;
+  return text.replace(/\n/g, '<br/>');
+}
+
 function logoHeader(safeworkLogoUrl: string, clienteLogoUrl?: string, titulo?: string, subtitulo?: string) {
   return `
     <div class="header">
