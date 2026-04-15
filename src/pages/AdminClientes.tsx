@@ -355,6 +355,28 @@ export default function AdminClientes() {
               <Label>Nombre de la empresa *</Label>
               <Input placeholder="Nombre de la empresa" value={nombre} onChange={e => setNombre(e.target.value)} />
             </div>
+            <div className="space-y-2">
+              <Label>Logotipo de la empresa</Label>
+              {logoPreview && (
+                <div className="flex items-center gap-2 mb-2">
+                  <img src={logoPreview} alt="Logo" className="h-12 object-contain rounded border border-border p-1" />
+                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setLogoFile(null); setLogoPreview(''); }}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setLogoFile(file);
+                    setLogoPreview(URL.createObjectURL(file));
+                  }
+                }}
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>CIF</Label>
@@ -387,25 +409,6 @@ export default function AdminClientes() {
             <div className="space-y-2">
               <Label>Notas</Label>
               <Textarea placeholder="Notas adicionales..." value={notas} onChange={e => setNotas(e.target.value)} rows={3} />
-            </div>
-            <div className="space-y-2">
-              <Label>Logotipo</Label>
-              {logoPreview && (
-                <div className="mb-2">
-                  <img src={logoPreview} alt="Logo" className="h-12 object-contain rounded border border-border p-1" />
-                </div>
-              )}
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={e => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    setLogoFile(file);
-                    setLogoPreview(URL.createObjectURL(file));
-                  }
-                }}
-              />
             </div>
           </div>
           <DialogFooter>
