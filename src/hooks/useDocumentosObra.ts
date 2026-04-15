@@ -55,11 +55,14 @@ export function useDocumentosObra(obraId: string) {
     }) => {
       const { asistentes, actividades, empresas, datos, tipo } = payload;
 
+      // Extract datos_extra from the form payload to avoid double-nesting
+      const realExtra = (datos.datos_extra as Record<string, unknown>) ?? datos;
+
       const insertPayload: TablesInsert<'documentos_obra'> = {
         obra_id: obraId,
         tipo,
         estado: 'generado' as EstadoDocumento,
-        fecha_documento: (datos.fecha_firma as string) || new Date().toISOString().split('T')[0],
+        fecha_documento: (datos.fecha_documento as string) || (datos.fecha_firma as string) || new Date().toISOString().split('T')[0],
         nombre_coordinador: (datos.nombre_coordinador as string) || null,
         dni_coordinador: (datos.dni_coordinador as string) || null,
         titulacion_colegiado: (datos.titulacion_colegiado as string) || null,
@@ -71,7 +74,7 @@ export function useDocumentosObra(obraId: string) {
         nombre_promotor: (datos.nombre_promotor as string) || null,
         cif_promotor: (datos.cif_promotor as string) || null,
         domicilio_promotor: (datos.domicilio_promotor as string) || null,
-        datos_extra: datos as any,
+        datos_extra: realExtra as any,
         titulo: (datos.titulo as string) || null,
       };
 
