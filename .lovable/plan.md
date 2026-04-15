@@ -1,24 +1,17 @@
 
 
-# Plan: Hacer visibles los informes CSS/AT para admin + actualizar texto recomendaciones
+# Plan: Texto por defecto de normativa aplicable para informes CSS/AT
 
-## Problema identificado
+## Resumen
 
-Los tipos `informe_css` e `informe_at` tienen `TIPO_DOCUMENTO_ROL` configurado como `'tecnico'` en `src/types/documentos.ts`. Esto hace que el filtro en `NuevoDocumentoDialog` los oculte cuando el usuario es admin (el filtro solo muestra tipos con rol `'ambos'` o que coincidan con el rol actual).
+La infraestructura ya existe: el campo `texto_normativa` en `configuracion_empresa` ya se precarga en `FormInforme.tsx` (líneas 57-61). Solo se necesita actualizar el valor en la base de datos.
 
-## Cambios
+## Cambio
 
-### 1. `src/types/documentos.ts` — Cambiar rol de informes a 'ambos'
+Una operación UPDATE en `configuracion_empresa` para establecer `texto_normativa` con el listado de normativa proporcionado (Ley 54/2003, Ley 31/1995, RD 485/1997, RD 486/1997, RD 773/1997, RD 1627/1997, RD 2177/2004, RD 1215/1997).
 
-Cambiar `informe_css` e `informe_at` de `'tecnico'` a `'ambos'` para que admin también pueda crearlos.
+No se requieren cambios de código — la lógica de precarga y edición ya funciona correctamente.
 
-Igualmente cambiar `acta_reunion_inicial` y `acta_reunion_sys` de `'tecnico'` a `'ambos'` por coherencia (el admin también debería poder crear cualquier documento).
-
-### 2. Texto de recomendaciones — Ya actualizado
-
-El texto de recomendaciones ya fue insertado en `configuracion_empresa.texto_recomendaciones` en el paso anterior. Si no se guardó correctamente, se volverá a ejecutar el UPDATE con el texto exacto proporcionado.
-
-## Archivos afectados
-- **Editado**: `src/types/documentos.ts` (cambiar roles de tecnico a ambos)
-- **Datos**: Verificar/actualizar `configuracion_empresa.texto_recomendaciones` si es necesario
+## Archivo afectado
+- **Datos**: UPDATE en `configuracion_empresa.texto_normativa`
 
