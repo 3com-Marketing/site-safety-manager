@@ -57,6 +57,17 @@ export default function AdminDocumentos() {
   const [fechaDesde, setFechaDesde] = useState<Date | undefined>();
   const [fechaHasta, setFechaHasta] = useState<Date | undefined>();
 
+  // Nuevo documento
+  const [nuevoOpen, setNuevoOpen] = useState(false);
+  const [nuevoObraId, setNuevoObraId] = useState('');
+  const [selectObraOpen, setSelectObraOpen] = useState(false);
+  const [selectObraTemp, setSelectObraTemp] = useState('');
+
+  // Adjuntar
+  const [adjuntarOpen, setAdjuntarOpen] = useState(false);
+  const [adjuntarDocId, setAdjuntarDocId] = useState('');
+  const [adjuntarObraId, setAdjuntarObraId] = useState('');
+
   const fetchAll = async () => {
     setLoading(true);
     const [{ data: docsData }, { data: obrasData }] = await Promise.all([
