@@ -33,14 +33,14 @@ export default function AdjuntarDocumentoDialog({ open, onOpenChange, documentoI
         </DialogHeader>
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Sube el documento firmado (PDF o imagen). Se vinculará al documento y su estado cambiará a «Adjuntado».
+            Sube el documento firmado (PDF, Word o imagen). Se vinculará al documento y su estado cambiará a «Adjuntado».
           </p>
           <div className="space-y-2">
             <Label>Archivo</Label>
             <Input
               ref={inputRef}
               type="file"
-              accept=".pdf,.jpg,.jpeg,.png,.webp"
+              accept=".pdf,.docx,.jpg,.jpeg,.png,.webp"
               onChange={e => setFile(e.target.files?.[0] || null)}
             />
           </div>
