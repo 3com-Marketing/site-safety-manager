@@ -1,86 +1,76 @@
 
 
-# Plan: PDF profesional para Actas de Reunión (Inicial, CAE, SyS) con previsualización editable
+# Plan: PDF profesional para Actas de Nombramiento (CAE y Con Proyecto) con previsualización editable
 
 ## Resumen
 
-Replicar el formato de los DOCX de actas de reunión y añadir previsualización editable + texto legal modificable, igual que se hizo para informes y actas de aprobación.
+Aplicar el mismo tratamiento que informes, actas de aprobación y actas de reunión: reescribir la plantilla para replicar el formato DOCX, añadir texto legal editable, y redirigir a la previsualización editable.
 
 ## Estructura identificada en los DOCX
 
-**Acta Reunión Inicial:**
+**CAE (obra sin proyecto):**
 ```text
 Logo centrado
-"ACTA DE REUNIÓN INICIAL"
-Subtítulo: Coordinación en materia de SS
-Datos: Obra, Localidad, Promotor, Fecha
-Tabla asistentes (Nombre, Apellidos, Cargo, Empresa, DNI/NIE, Firma)
-Texto legal largo (puntos a-o sobre coordinación, acceso, EPIs, etc.)
-Líneas para anotaciones adicionales
-Cierre + firma doble (Empresa CSS + Coordinador/a)
+"ACTA DE NOMBRAMIENTO"
+Subtítulo: COORDINACIÓN DE ACTIVIDADES EMPRESARIALES (CAE)
+Secciones: Datos del Proyecto, Datos del Promotor, Datos del Coordinador/a CAE
+Texto legal: "Conforme al RD 171/2004..." (1 párrafo)
+Lugar y fecha
+Firma doble: Promotor | Coordinadora CAE
 ```
 
-**Acta Reunión CAE (10 páginas):**
-```text
-Logo + cabecera repetida (Logo | Título | Protocolo CAE | Fecha | Pág)
-Título: "ACTA DE REUNIÓN DE COORDINACIÓN DE ACTIVIDADES EMPRESARIALES"
-Datos: Actuación, Mes, Lugar
-Tabla asistentes + Excusados/Ausentes
-Orden del día (13 secciones numeradas)
-Secciones: Objetivo, Documentación, Trabajos, Empresas, Riesgos, Recurso Preventivo, Acuerdos, Formación, Maquinaria, Protecciones, Interferencias, Medio Ambiente, Ruegos
-Firma doble
-```
-
-**Acta Reunión SyS (Nº...):**
+**Con Proyecto:**
 ```text
 Logo centrado
-"ACTA REUNIÓN N.º X"
-Datos: Obra, Localidad, Promotor, Fecha
-Tabla asistentes (Empresa, Nombre, Apellido, Firma)
-Texto legal (puntos 1-4 recordatorio + a-m coordinación)
-Secciones: Accidentes, EPIs, Documentación, Recursos Preventivos
-Cierre + firma doble
+"ACTA DE NOMBRAMIENTO"
+Subtítulo: COORDINACIÓN EN MATERIA DE SEGURIDAD Y SALUD EN FASE DE EJECUCIÓN
+Secciones: Datos del Proyecto, Datos del Promotor, Datos de la Coordinadora
+Texto legal: "De una parte..." + "Conforme al Artículo 3.1 de RD 1627/1997..." (2 párrafos)
+Lugar y fecha
+Firma doble: Promotor | Coordinadora de SS en fase de ejecución
 ```
 
 ## Cambios
 
-### 1. Migración BD — Textos legales por defecto para actas de reunión
+### 1. Migración BD — Textos legales por defecto
 
 Añadir a `configuracion_empresa`:
-- `texto_acta_reunion_inicial` (text) — texto legal por defecto (puntos a-o)
-- `texto_acta_reunion_cae` (text) — texto legal por defecto (13 secciones CAE)
-- `texto_acta_reunion_sys` (text) — texto legal por defecto (puntos recordatorio + secciones)
+- `texto_acta_nombramiento_cae` (text) — texto legal RD 171/2004
+- `texto_acta_nombramiento_proyecto` (text) — texto legal RD 1627/1997
 
-### 2. FormActaReunion.tsx — Textarea editable para texto legal
+### 2. FormActaNombramiento.tsx — Textarea editable para texto legal
 
-- Añadir textarea grande "Texto legal / Contenido del acta" para los 3 tipos
-- Precargada desde `configuracion_empresa` (campo correspondiente al tipo) al crear documento nuevo
+- Añadir textarea "Texto legal" precargada desde `configuracion_empresa` según modalidad (cae/proyecto)
 - Almacenada en `datos_extra.texto_legal`
 - Editable por el usuario antes de guardar
 
-### 3. Edge function — Reescribir `templateActaReunion()`
+### 3. Edge function — Reescribir `templateActaNombramiento()`
 
-Rehacer la plantilla para replicar el formato DOCX por tipo:
-
-- **Inicial**: Logo centrado, título, datos de la reunión, tabla asistentes con columnas (Nombre/Apellidos/Cargo/Empresa, DNI/NIE, Firma), texto legal completo, cierre y firma
-- **CAE**: Cabecera con protocolo CAE en cada página (via CSS), tabla asistentes, excusados, empresas, actividades, riesgos, texto legal con las 13 secciones, firma
-- **SyS**: Logo, "ACTA REUNIÓN N.º X", datos, tabla asistentes (Empresa/Nombre/Apellido/Firma), texto legal con secciones numeradas, firma
+Rehacer la plantilla para replicar el formato DOCX:
+- Logo centrado
+- Título y subtítulo diferenciado por modalidad
+- Datos en tabla con etiqueta|valor (como en actas de aprobación)
+- Texto legal completo desde `datos_extra.texto_legal`
+- Lugar, fecha y firma doble con etiquetas correctas por modalidad
 
 ### 4. AdminDocumentoDetalle.tsx — Redirigir a preview
 
-Ampliar `usesPreview` para incluir los 3 tipos de acta de reunión: `acta_reunion_cae`, `acta_reunion_inicial`, `acta_reunion_sys`.
+Añadir actas de nombramiento a `usesPreview`:
+```
+const isActaNombramiento = documento?.tipo === 'acta_nombramiento_cae' || documento?.tipo === 'acta_nombramiento_proyecto';
+const usesPreview = isInforme || isActaAprobacion || isActaReunion || isActaNombramiento;
+```
 
-### 5. AdminConfiguracion.tsx — Textos legales de actas de reunión
+### 5. AdminConfiguracion.tsx — Textos legales
 
-Añadir tres textareas nuevas en la sección "Textos Legales por Defecto":
-- "Texto Acta Reunión Inicial"
-- "Texto Acta Reunión CAE"
-- "Texto Acta Reunión SyS"
+Añadir dos textareas nuevas en "Textos Legales por Defecto":
+- "Texto Acta Nombramiento CAE"
+- "Texto Acta Nombramiento Con Proyecto"
 
 ## Archivos afectados
-- **Migración**: 3 columnas nuevas en `configuracion_empresa`
-- **Editado**: `src/components/documentos/formularios/FormActaReunion.tsx` (textarea texto legal)
-- **Editado**: `supabase/functions/generar-documento-pdf/index.ts` (reescribir `templateActaReunion`)
+- **Migración**: 2 columnas nuevas en `configuracion_empresa`
+- **Editado**: `src/components/documentos/formularios/FormActaNombramiento.tsx` (textarea texto legal)
+- **Editado**: `supabase/functions/generar-documento-pdf/index.ts` (reescribir `templateActaNombramiento`)
 - **Editado**: `src/pages/AdminDocumentoDetalle.tsx` (ampliar `usesPreview`)
-- **Editado**: `src/pages/AdminConfiguracion.tsx` (3 textareas nuevas)
+- **Editado**: `src/pages/AdminConfiguracion.tsx` (2 textareas nuevas)
 
