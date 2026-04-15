@@ -260,6 +260,9 @@ export type Database = {
           telefono: string
           texto_acta_aprobacion_dgpo: string
           texto_acta_aprobacion_sys: string
+          texto_acta_reunion_cae: string
+          texto_acta_reunion_inicial: string
+          texto_acta_reunion_sys: string
           texto_normativa: string
           texto_recomendaciones: string
           titulacion: string
@@ -285,6 +288,9 @@ export type Database = {
           telefono?: string
           texto_acta_aprobacion_dgpo?: string
           texto_acta_aprobacion_sys?: string
+          texto_acta_reunion_cae?: string
+          texto_acta_reunion_inicial?: string
+          texto_acta_reunion_sys?: string
           texto_normativa?: string
           texto_recomendaciones?: string
           titulacion?: string
@@ -310,6 +316,9 @@ export type Database = {
           telefono?: string
           texto_acta_aprobacion_dgpo?: string
           texto_acta_aprobacion_sys?: string
+          texto_acta_reunion_cae?: string
+          texto_acta_reunion_inicial?: string
+          texto_acta_reunion_sys?: string
           texto_normativa?: string
           texto_recomendaciones?: string
           titulacion?: string
