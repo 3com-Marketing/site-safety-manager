@@ -22,12 +22,17 @@ interface ConfigEmpresa {
   cargo_responsable: string;
   titulacion: string;
   num_colegiado: string;
+  registro_mercantil: string;
+  iban: string;
+  banco: string;
+  swift_bic: string;
 }
 
 const EMPTY_CONFIG: ConfigEmpresa = {
   nombre: '', cif: '', direccion: '', ciudad: '', telefono: '',
   email: '', web: '', logo_url: '', nombre_responsable: '',
   cargo_responsable: '', titulacion: '', num_colegiado: '',
+  registro_mercantil: '', iban: '', banco: '', swift_bic: '',
 };
 
 export default function AdminConfiguracion() {
