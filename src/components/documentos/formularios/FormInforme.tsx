@@ -52,16 +52,18 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
   const effectiveTipo = tipo || documento?.tipo || '';
   const isAT = effectiveTipo === 'informe_at';
 
+  const configLoaded = useRef(false);
+
   // Load defaults from company config for new documents
   useEffect(() => {
-    if (!documento) {
-      supabase.from('configuracion_empresa').select('texto_recomendaciones, texto_normativa').limit(1).single().then(({ data }) => {
-        if (data) {
-          if (!recomendaciones && data.texto_recomendaciones) setRecomendaciones(data.texto_recomendaciones);
-          if (!normativa && data.texto_normativa) setNormativa(data.texto_normativa);
-        }
-      });
-    }
+    if (documento || configLoaded.current) return;
+    configLoaded.current = true;
+    supabase.from('configuracion_empresa').select('texto_recomendaciones, texto_normativa').limit(1).single().then(({ data }) => {
+      if (data) {
+        if (data.texto_recomendaciones) setRecomendaciones(data.texto_recomendaciones);
+        if (data.texto_normativa) setNormativa(data.texto_normativa);
+      }
+    });
   }, [documento]);
 
   useEffect(() => {
