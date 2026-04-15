@@ -715,36 +715,60 @@ export type Database = {
       }
       tecnicos: {
         Row: {
+          apellidos: string
+          cif_empresa: string
           codigo_tecnico: string
           created_at: string
           direccion: string
+          dni: string
           email: string
+          empresa: string
           id: string
+          movil: string
           nombre: string
           notas: string
+          num_colegiado: string
           telefono: string
+          tipo: string
+          titulacion: string
           user_id: string | null
         }
         Insert: {
+          apellidos?: string
+          cif_empresa?: string
           codigo_tecnico?: string
           created_at?: string
           direccion?: string
+          dni?: string
           email?: string
+          empresa?: string
           id?: string
+          movil?: string
           nombre?: string
           notas?: string
+          num_colegiado?: string
           telefono?: string
+          tipo?: string
+          titulacion?: string
           user_id?: string | null
         }
         Update: {
+          apellidos?: string
+          cif_empresa?: string
           codigo_tecnico?: string
           created_at?: string
           direccion?: string
+          dni?: string
           email?: string
+          empresa?: string
           id?: string
+          movil?: string
           nombre?: string
           notas?: string
+          num_colegiado?: string
           telefono?: string
+          tipo?: string
+          titulacion?: string
           user_id?: string | null
         }
         Relationships: []
