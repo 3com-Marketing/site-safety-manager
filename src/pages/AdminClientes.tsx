@@ -384,6 +384,25 @@ export default function AdminClientes() {
               <Label>Notas</Label>
               <Textarea placeholder="Notas adicionales..." value={notas} onChange={e => setNotas(e.target.value)} rows={3} />
             </div>
+            <div className="space-y-2">
+              <Label>Logotipo</Label>
+              {logoPreview && (
+                <div className="mb-2">
+                  <img src={logoPreview} alt="Logo" className="h-12 object-contain rounded border border-border p-1" />
+                </div>
+              )}
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setLogoFile(file);
+                    setLogoPreview(URL.createObjectURL(file));
+                  }
+                }}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button onClick={handleSave} disabled={saving || !nombre.trim()} className="h-12 rounded-xl">
