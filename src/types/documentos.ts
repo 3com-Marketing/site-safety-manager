@@ -124,6 +124,36 @@ export interface DatosActaReunionCAE {
   };
   plataforma_cae: string;
   notas_generales?: string;
+
+  // 3.1 Empresas que intervienen
+  empresas_intervienen?: Array<{
+    razon_social: string;
+    acronimo: string;
+    responsable: string;
+  }>;
+  // 3.2 Duración y ubicación de trabajos
+  duracion_trabajos?: Array<{
+    titulo: string;
+    inicio: string;
+    fin: string;
+    observaciones: string;
+  }>;
+  // 3.3 Trabajos a realizar
+  texto_trabajos_realizar?: string;
+  // 4. Recurso preventivo
+  texto_recurso_preventivo?: string;
+  // 10. Interferencias entre empresas
+  interferencias_empresas_aplica?: boolean;
+  interferencias_empresas_texto?: string;
+  // 11. Interferencias con terceros
+  interferencias_terceros_aplica?: boolean;
+  interferencias_terceros_texto?: string;
+  // 12. Medio ambiente
+  medio_ambiente_aplica?: boolean;
+  medio_ambiente_texto?: string;
+  // 13. Ruegos y sugerencias
+  ruegos_aplica?: boolean;
+  ruegos_texto?: string;
 }
 
 // Campos por formulario de Acta Reunión Inicial / SYS
