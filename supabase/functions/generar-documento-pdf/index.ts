@@ -230,7 +230,7 @@ function templateActaNombramiento(doc: any, extra: any, obra: any, cliente: any,
   // Texto legal
   const textoLegal = extra.texto_legal || "";
   if (textoLegal) {
-    html += `<div style="margin-top:20pt;font-size:10pt;line-height:1.6;text-align:justify;">${textoLegal.replace(/\n/g, "<br/>")}</div>`;
+    html += `<div style="margin-top:20pt;font-size:10pt;line-height:1.6;text-align:justify;">${renderRichText(textoLegal)}</div>`;
   }
 
   // Lugar y fecha
@@ -329,7 +329,7 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
   // Excusados
   if (extra.excusados) {
     html += `<h2 style="font-size:11pt;margin-top:16pt;margin-bottom:6pt;border-bottom:2px solid #F37520;padding-bottom:3pt;">EXCUSADOS / AUSENTES</h2>`;
-    html += `<p style="font-size:9pt;white-space:pre-wrap;">${extra.excusados.replace(/\n/g, "<br/>")}</p>`;
+    html += `<p style="font-size:9pt;">${renderRichText(extra.excusados)}</p>`;
   }
 
   // CAE: Actividades
@@ -365,7 +365,7 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
   // Legal text
   const textoLegal = extra.texto_legal || "";
   if (textoLegal) {
-    html += `<div style="margin-top:20pt;font-size:10pt;line-height:1.6;text-align:justify;">${textoLegal.replace(/\n/g, "<br/>")}</div>`;
+    html += `<div style="margin-top:20pt;font-size:10pt;line-height:1.6;text-align:justify;">${renderRichText(textoLegal)}</div>`;
   }
 
   // Lugar, fecha y firma
@@ -448,7 +448,7 @@ function templateInforme(doc: any, extra: any, obra: any, cliente: any, safework
   const recomendaciones = extra.recomendaciones || "";
   html += `<h2><span class="section-num">2.</span> RECOMENDACIONES</h2>`;
   if (recomendaciones) {
-    html += `<div class="legal-text">${recomendaciones.replace(/\n/g, "<br/>")}</div>`;
+    html += `<div class="legal-text">${renderRichText(recomendaciones)}</div>`;
   }
 
   // 3-10. Secciones técnicas
@@ -456,7 +456,7 @@ function templateInforme(doc: any, extra: any, obra: any, cliente: any, safework
     html += `<h2><span class="section-num">${s.num}.</span> ${s.label.toUpperCase()}</h2>`;
     const val = extra[s.key];
     if (val) {
-      html += `<p class="section-text">${val.replace(/\n/g, "<br/>")}</p>`;
+      html += `<div class="section-text">${renderRichText(val)}</div>`;
     } else {
       html += `<p style="color:#999;font-style:italic;">Sin observaciones.</p>`;
     }
@@ -466,7 +466,7 @@ function templateInforme(doc: any, extra: any, obra: any, cliente: any, safework
   const normativa = extra.normativa || "";
   html += `<h2><span class="section-num">11.</span> NORMATIVA APLICABLE</h2>`;
   if (normativa) {
-    html += `<div class="legal-text">${normativa.replace(/\n/g, "<br/>")}</div>`;
+    html += `<div class="legal-text">${renderRichText(normativa)}</div>`;
   }
 
   // Firma
