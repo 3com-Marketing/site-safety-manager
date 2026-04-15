@@ -1,13 +1,14 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
-import { Shield, LogOut, FileText, Users, Building2, HardHat } from 'lucide-react';
+import { Shield, LogOut, FileText, Users, Building2, HardHat, FileStack } from 'lucide-react';
 
 const TABS = [
   { path: '/admin', label: 'Dashboard', icon: FileText },
   { path: '/admin/clientes', label: 'Clientes', icon: Building2 },
   { path: '/admin/obras', label: 'Obras', icon: HardHat },
   { path: '/admin/tecnicos', label: 'Técnicos', icon: Users },
+  { path: '/admin/documentos', label: 'Documentos', icon: FileStack },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
