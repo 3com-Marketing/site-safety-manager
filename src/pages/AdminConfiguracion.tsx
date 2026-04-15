@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Save, Upload, Loader2, Building2, User, Landmark, CreditCard, FileText } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { toast } from 'sonner';
 
 interface ConfigEmpresa {

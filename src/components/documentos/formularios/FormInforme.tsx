@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Button } from '@/components/ui/button';
 import ImportarVisitaButton, { type VisitaImportData } from '@/components/documentos/ImportarVisitaButton';
 import { supabase } from '@/integrations/supabase/client';
