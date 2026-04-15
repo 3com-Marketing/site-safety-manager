@@ -242,8 +242,12 @@ export default function AdminClientes() {
             {clientes.map(c => (
               <div key={c.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                    <Building2 className="h-5 w-5 text-secondary-foreground" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary overflow-hidden">
+                    {c.logo_url ? (
+                      <img src={c.logo_url} alt={c.nombre} className="h-full w-full object-contain p-1" />
+                    ) : (
+                      <Building2 className="h-5 w-5 text-secondary-foreground" />
+                    )}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
@@ -285,8 +289,13 @@ export default function AdminClientes() {
       <Dialog open={!!viewCliente} onOpenChange={open => !open && setViewCliente(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" /> {viewCliente?.nombre}
+            <DialogTitle className="flex items-center gap-3">
+              {viewCliente?.logo_url ? (
+                <img src={viewCliente.logo_url} alt={viewCliente.nombre} className="h-8 w-8 rounded object-contain" />
+              ) : (
+                <Building2 className="h-5 w-5" />
+              )}
+              {viewCliente?.nombre}
               {viewCliente && tipoLabel(viewCliente.tipo_cliente)}
             </DialogTitle>
           </DialogHeader>
@@ -351,6 +360,28 @@ export default function AdminClientes() {
               <Label>Nombre de la empresa *</Label>
               <Input placeholder="Nombre de la empresa" value={nombre} onChange={e => setNombre(e.target.value)} />
             </div>
+            <div className="space-y-2">
+              <Label>Logotipo de la empresa</Label>
+              {logoPreview && (
+                <div className="flex items-center gap-2 mb-2">
+                  <img src={logoPreview} alt="Logo" className="h-12 object-contain rounded border border-border p-1" />
+                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setLogoFile(null); setLogoPreview(''); }}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setLogoFile(file);
+                    setLogoPreview(URL.createObjectURL(file));
+                  }
+                }}
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>CIF</Label>
@@ -383,25 +414,6 @@ export default function AdminClientes() {
             <div className="space-y-2">
               <Label>Notas</Label>
               <Textarea placeholder="Notas adicionales..." value={notas} onChange={e => setNotas(e.target.value)} rows={3} />
-            </div>
-            <div className="space-y-2">
-              <Label>Logotipo</Label>
-              {logoPreview && (
-                <div className="mb-2">
-                  <img src={logoPreview} alt="Logo" className="h-12 object-contain rounded border border-border p-1" />
-                </div>
-              )}
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={e => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    setLogoFile(file);
-                    setLogoPreview(URL.createObjectURL(file));
-                  }
-                }}
-              />
             </div>
           </div>
           <DialogFooter>
