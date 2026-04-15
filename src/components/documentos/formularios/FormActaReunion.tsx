@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Trash2 } from 'lucide-react';
@@ -380,12 +381,10 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       {/* Texto legal editable */}
       <div className="space-y-2 pt-2">
         <Label>Texto legal / Contenido del acta</Label>
-        <Textarea
+        <RichTextEditor
           value={textoLegal}
-          onChange={e => setTextoLegal(e.target.value)}
-          rows={15}
+          onChange={setTextoLegal}
           placeholder="Texto legal que aparecerá en el documento generado. Se precarga desde la configuración de empresa..."
-          className="text-xs"
         />
         <p className="text-xs text-muted-foreground">Este texto se incluirá en el PDF generado y puede editarse libremente antes de guardar.</p>
       </div>

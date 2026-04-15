@@ -36,7 +36,15 @@ function baseStyles() {
     table { width: 100%; border-collapse: collapse; margin: 8pt 0; }
     th, td { border: 1px solid #ddd; padding: 5pt 7pt; text-align: left; font-size: 9pt; }
     th { background: #f0f0f0; font-weight: bold; }
-    .section-text { white-space: pre-wrap; margin: 4pt 0; }
+    .section-text { margin: 6pt 0; line-height: 1.5; }
+    .section-text p, .legal-text p { margin: 4pt 0; }
+    .section-text ul, .section-text ol, .legal-text ul, .legal-text ol { margin: 4pt 0 4pt 16pt; padding: 0; }
+    .section-text li, .legal-text li { margin-bottom: 3pt; }
+    .section-text strong, .legal-text strong { font-weight: bold; }
+    .section-text em, .legal-text em { font-style: italic; }
+    .section-text u, .legal-text u { text-decoration: underline; }
+    .section-text h2, .legal-text h2 { font-size: 11pt; margin: 8pt 0 4pt; }
+    .section-text h3, .legal-text h3 { font-size: 10pt; margin: 6pt 0 3pt; }
     .firma-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40pt; margin-top: 40pt; }
     .firma-box { border-top: 1px solid #333; padding-top: 6pt; text-align: center; font-size: 9pt; }
     .footer { text-align: center; font-size: 7pt; color: #999; margin-top: 32pt; border-top: 1px solid #ddd; padding-top: 6pt; }
@@ -80,7 +88,15 @@ function informeStyles() {
     h2 { font-size: 13pt; color: #F37520; border-bottom: 2px solid #F37520; padding-bottom: 4pt; margin-top: 24pt; margin-bottom: 10pt; text-transform: uppercase; }
     h3 { font-size: 11pt; color: #333; margin-top: 14pt; margin-bottom: 6pt; }
     .section-num { color: #F37520; font-weight: bold; margin-right: 6pt; }
-    .section-text { white-space: pre-wrap; margin: 6pt 0; line-height: 1.6; }
+    .section-text { margin: 6pt 0; line-height: 1.6; }
+    .section-text p { margin: 4pt 0; }
+    .section-text ul, .section-text ol { margin: 4pt 0 4pt 16pt; padding: 0; }
+    .section-text li { margin-bottom: 3pt; }
+    .section-text strong { font-weight: bold; }
+    .section-text em { font-style: italic; }
+    .section-text u { text-decoration: underline; }
+    .section-text h2 { font-size: 12pt; margin: 8pt 0 4pt; }
+    .section-text h3 { font-size: 11pt; margin: 6pt 0 3pt; }
     .legal-text { font-size: 9pt; line-height: 1.5; }
     .legal-text ul { margin: 4pt 0 4pt 16pt; padding: 0; }
     .legal-text li { margin-bottom: 3pt; }
@@ -94,6 +110,13 @@ function informeStyles() {
     .firma-line { border-top: 1px solid #333; width: 250pt; margin: 60pt auto 6pt auto; }
     .firma-label { font-size: 9pt; color: #666; }
   `;
+}
+
+/** Render rich text: if it contains HTML tags, use directly; otherwise convert newlines to br */
+function renderRichText(text: string): string {
+  if (!text) return '';
+  if (/<[a-z][\s\S]*>/i.test(text)) return text;
+  return text.replace(/\n/g, '<br/>');
 }
 
 function logoHeader(safeworkLogoUrl: string, clienteLogoUrl?: string, titulo?: string, subtitulo?: string) {
@@ -207,7 +230,7 @@ function templateActaNombramiento(doc: any, extra: any, obra: any, cliente: any,
   // Texto legal
   const textoLegal = extra.texto_legal || "";
   if (textoLegal) {
-    html += `<div style="margin-top:20pt;font-size:10pt;line-height:1.6;text-align:justify;">${textoLegal.replace(/\n/g, "<br/>")}</div>`;
+    html += `<div style="margin-top:20pt;font-size:10pt;line-height:1.6;text-align:justify;">${renderRichText(textoLegal)}</div>`;
   }
 
   // Lugar y fecha
@@ -306,7 +329,7 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
   // Excusados
   if (extra.excusados) {
     html += `<h2 style="font-size:11pt;margin-top:16pt;margin-bottom:6pt;border-bottom:2px solid #F37520;padding-bottom:3pt;">EXCUSADOS / AUSENTES</h2>`;
-    html += `<p style="font-size:9pt;white-space:pre-wrap;">${extra.excusados.replace(/\n/g, "<br/>")}</p>`;
+    html += `<p style="font-size:9pt;">${renderRichText(extra.excusados)}</p>`;
   }
 
   // CAE: Actividades
@@ -342,7 +365,7 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
   // Legal text
   const textoLegal = extra.texto_legal || "";
   if (textoLegal) {
-    html += `<div style="margin-top:20pt;font-size:10pt;line-height:1.6;text-align:justify;">${textoLegal.replace(/\n/g, "<br/>")}</div>`;
+    html += `<div style="margin-top:20pt;font-size:10pt;line-height:1.6;text-align:justify;">${renderRichText(textoLegal)}</div>`;
   }
 
   // Lugar, fecha y firma
@@ -425,7 +448,7 @@ function templateInforme(doc: any, extra: any, obra: any, cliente: any, safework
   const recomendaciones = extra.recomendaciones || "";
   html += `<h2><span class="section-num">2.</span> RECOMENDACIONES</h2>`;
   if (recomendaciones) {
-    html += `<div class="legal-text">${recomendaciones.replace(/\n/g, "<br/>")}</div>`;
+    html += `<div class="legal-text">${renderRichText(recomendaciones)}</div>`;
   }
 
   // 3-10. Secciones técnicas
@@ -433,7 +456,7 @@ function templateInforme(doc: any, extra: any, obra: any, cliente: any, safework
     html += `<h2><span class="section-num">${s.num}.</span> ${s.label.toUpperCase()}</h2>`;
     const val = extra[s.key];
     if (val) {
-      html += `<p class="section-text">${val.replace(/\n/g, "<br/>")}</p>`;
+      html += `<div class="section-text">${renderRichText(val)}</div>`;
     } else {
       html += `<p style="color:#999;font-style:italic;">Sin observaciones.</p>`;
     }
@@ -443,7 +466,7 @@ function templateInforme(doc: any, extra: any, obra: any, cliente: any, safework
   const normativa = extra.normativa || "";
   html += `<h2><span class="section-num">11.</span> NORMATIVA APLICABLE</h2>`;
   if (normativa) {
-    html += `<div class="legal-text">${normativa.replace(/\n/g, "<br/>")}</div>`;
+    html += `<div class="legal-text">${renderRichText(normativa)}</div>`;
   }
 
   // Firma

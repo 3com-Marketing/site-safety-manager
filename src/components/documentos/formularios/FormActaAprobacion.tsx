@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import type { Documento } from '@/hooks/useDocumentosObra';
@@ -165,12 +166,10 @@ export default function FormActaAprobacion({ documento, obraId, tipo, onSave, sa
       <p className="text-sm font-semibold text-muted-foreground pt-2">Texto legal del acta</p>
       <div className="space-y-2">
         <Label>{isDGPO ? 'Texto legal DGPO' : 'Texto legal Plan de Seguridad y Salud'}</Label>
-        <Textarea
+        <RichTextEditor
           value={textoLegal}
-          onChange={e => setTextoLegal(e.target.value)}
-          rows={12}
+          onChange={setTextoLegal}
           placeholder="Texto legal que aparecerá en el acta de aprobación..."
-          className="text-xs"
         />
       </div>
 

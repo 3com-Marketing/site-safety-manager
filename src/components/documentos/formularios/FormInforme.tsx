@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Button } from '@/components/ui/button';
 import ImportarVisitaButton, { type VisitaImportData } from '@/components/documentos/ImportarVisitaButton';
 import { supabase } from '@/integrations/supabase/client';
@@ -149,12 +150,10 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
       {/* Recomendaciones (texto legal) */}
       <div className="space-y-2">
         <Label>2. Recomendaciones (texto legal)</Label>
-        <Textarea
+        <RichTextEditor
           value={recomendaciones}
-          onChange={e => setRecomendaciones(e.target.value)}
-          rows={8}
+          onChange={setRecomendaciones}
           placeholder="Texto de recomendaciones legales que aparecerá en el informe..."
-          className="text-xs"
         />
       </div>
 
@@ -173,12 +172,10 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
       {/* Normativa aplicable */}
       <div className="space-y-2">
         <Label>11. Normativa aplicable</Label>
-        <Textarea
+        <RichTextEditor
           value={normativa}
-          onChange={e => setNormativa(e.target.value)}
-          rows={8}
+          onChange={setNormativa}
           placeholder="Lista de normativa aplicable..."
-          className="text-xs"
         />
       </div>
 
