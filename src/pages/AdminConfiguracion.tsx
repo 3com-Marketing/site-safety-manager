@@ -208,5 +208,6 @@ export default function AdminConfiguracion() {
           </CardContent>
         </Card>
       </div>
+    </AdminLayout>
   );
 }
