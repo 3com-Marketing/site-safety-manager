@@ -1,39 +1,15 @@
 
 
-# Plan: Paso 10 — Reescritura completa de AdminDocumentos.tsx
+# Plan: Paso 11 — Navegación (ya implementado)
 
-Reemplazar la vista actual (simple selector de obra + DocumentosList) por una tabla completa con filtros, estadísticas y acciones inline.
+Tras revisar ambos archivos, ambas funcionalidades solicitadas ya están en su lugar:
 
-## Cambio
+## AdminLayout.tsx
+La pestaña "Documentos" ya existe en línea 11 con icono `FileStack` y ruta `/admin/documentos`. No requiere cambios.
 
-### `src/pages/AdminDocumentos.tsx` — Reescritura completa
+## TechHome.tsx
+La sección "Documentos pendientes" ya existe (líneas 101-123). Muestra documentos pendientes de tipo técnico (`acta_reunion_*`, `informe_*`) con navegación a `/documentos/{obra_id}`. No requiere cambios.
 
-**Query directa**: En lugar de usar `useDocumentosObra` (que requiere un `obraId`), hacer una query directa a `documentos_obra` con join a `obras` para obtener el nombre de la obra:
-
-```sql
-SELECT *, obras(nombre) FROM documentos_obra ORDER BY created_at DESC
-```
-
-**4 stat cards en cabecera**: Total, Pendientes (rojo), Generados (amarillo), Firmados (verde) — calculados del array filtrado.
-
-**Filtros** (fila debajo de las stats):
-- Por obra: Select simple con todas las obras
-- Por tipo: Select con checkboxes (multi-select simulado con state array)
-- Por estado: Select con checkboxes (multi-select simulado)
-- Por rango de fechas: Dos date pickers (desde/hasta)
-
-**Tabla** con columnas:
-- Obra (nombre de la obra)
-- Tipo (label legible desde `TIPO_DOCUMENTO_LABELS`)
-- Estado (`DocumentoStatusBadge`)
-- Fecha documento
-- Coordinador
-- Archivo (icono Download/link si `archivo_url` existe)
-- Acciones: Ver detalle (navega a `/admin/documento/:id`), Marcar firmado (mutation inline), Eliminar (con confirmación)
-
-**Mutations**: Para "Marcar firmado" y "Eliminar", como no usamos `useDocumentosObra` (necesita obraId fijo), hacer mutations directas con `supabase.from('documentos_obra').update/delete` + invalidar la query.
-
-## Archivos afectados
-- **Reescrito**: `src/pages/AdminDocumentos.tsx`
-- La ruta `/admin/documentos` y el enlace en `AdminLayout.tsx` ya existen — no requieren cambios.
+## Conclusión
+No hay cambios necesarios — Paso 11 ya está completado por implementaciones anteriores (Pasos 9 y 10).
 
