@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Paperclip } from 'lucide-react';
+import { ArrowLeft, Paperclip, FileDown, Loader2 } from 'lucide-react';
 import DocumentoStatusBadge from '@/components/documentos/DocumentoStatusBadge';
 import AdjuntarDocumentoDialog from '@/components/documentos/AdjuntarDocumentoDialog';
 import FormActaNombramiento from '@/components/documentos/formularios/FormActaNombramiento';
@@ -11,6 +11,7 @@ import FormActaAprobacion from '@/components/documentos/formularios/FormActaApro
 import FormActaReunion from '@/components/documentos/formularios/FormActaReunion';
 import FormInforme from '@/components/documentos/formularios/FormInforme';
 import { useDocumentosObra, TIPO_LABELS, type Documento, type DocumentoConRelaciones } from '@/hooks/useDocumentosObra';
+import { toast } from 'sonner';
 
 const FORM_MAP: Record<string, React.ComponentType<any>> = {
   acta_nombramiento_cae: FormActaNombramiento,
@@ -29,6 +30,7 @@ export default function AdminDocumentoDetalle() {
   const navigate = useNavigate();
   const [obraId, setObraId] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   const { documentos, actualizarDocumento } = useDocumentosObra(obraId);
   const [attachOpen, setAttachOpen] = useState(false);
@@ -51,6 +53,42 @@ export default function AdminDocumentoDetalle() {
     await actualizarDocumento.mutateAsync({ id: documento.id, updates });
   };
 
+  const handleGeneratePdf = async () => {
+    if (!documento) return;
+    setGeneratingPdf(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generar-documento-pdf', {
+        body: { documento_id: documento.id },
+      });
+      if (error) throw error;
+      if (!data?.html) throw new Error('No se recibió HTML');
+
+      // Open print window
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(data.html);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => printWindow.print(), 500);
+      }
+
+      // Update status to 'generado' if pending
+      if (documento.estado === 'pendiente') {
+        await actualizarDocumento.mutateAsync({
+          id: documento.id,
+          updates: { estado: 'generado' as any },
+        });
+      }
+
+      toast.success('PDF generado correctamente');
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Error al generar PDF: ' + (err.message || 'Error desconocido'));
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
+
   if (loading || (!documento && obraId)) return <AdminLayout><p className="text-muted-foreground">Cargando...</p></AdminLayout>;
   if (!documento) return <AdminLayout><p className="text-muted-foreground">Documento no encontrado</p></AdminLayout>;
 
@@ -66,6 +104,10 @@ export default function AdminDocumentoDetalle() {
             <p className="text-sm text-muted-foreground">{documento.titulo || 'Sin título'}</p>
           </div>
           <DocumentoStatusBadge estado={documento.estado} />
+          <Button variant="outline" className="gap-2" onClick={handleGeneratePdf} disabled={generatingPdf}>
+            {generatingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+            Generar PDF
+          </Button>
           <Button variant="outline" className="gap-2" onClick={() => setAttachOpen(true)}>
             <Paperclip className="h-4 w-4" /> Adjuntar firmado
           </Button>

@@ -21,6 +21,7 @@ interface Cliente {
   tipo_cliente: string;
   notas: string;
   created_at: string;
+  logo_url?: string;
 }
 
 interface Contacto {
