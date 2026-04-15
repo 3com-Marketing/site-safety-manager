@@ -1,6 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
 import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 import { TIPO_DOCUMENTO_LABELS } from '@/types/documentos';
@@ -23,114 +22,228 @@ export const ESTADO_LABELS: Record<string, string> = {
   firmado: 'Firmado',
 };
 
-export function useDocumentosObra() {
-  const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [documentos, setDocumentos] = useState<Documento[]>([]);
+export type DocumentoConRelaciones = Documento & {
+  asistentes_reunion?: Asistente[];
+  actividades_reunion_cae?: ActividadCAE[];
+  empresas_acceso_obra?: EmpresaAcceso[];
+};
 
-  const fetchDocumentos = useCallback(async (obraId?: string) => {
-    setLoading(true);
-    let query = supabase.from('documentos_obra').select('*').order('created_at', { ascending: false });
-    if (obraId) query = query.eq('obra_id', obraId);
-    const { data, error } = await query;
-    if (error) toast.error('Error al cargar documentos');
-    setDocumentos(data || []);
-    setLoading(false);
-    return data || [];
-  }, []);
+export function useDocumentosObra(obraId: string) {
+  const queryClient = useQueryClient();
 
-  const createDocumento = async (doc: TablesInsert<'documentos_obra'>) => {
-    const payload = { ...doc, creado_por: user?.id || null };
-    const { data, error } = await supabase.from('documentos_obra').insert(payload).select().single();
-    if (error) { toast.error('Error al crear documento'); return null; }
-    toast.success('Documento creado');
-    return data;
-  };
+  const { data: documentos, isLoading } = useQuery({
+    queryKey: ['documentos-obra', obraId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('documentos_obra')
+        .select('*, asistentes_reunion(*), actividades_reunion_cae(*), empresas_acceso_obra(*)')
+        .eq('obra_id', obraId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data as DocumentoConRelaciones[];
+    },
+    enabled: !!obraId,
+  });
 
-  const updateDocumento = async (id: string, updates: TablesUpdate<'documentos_obra'>) => {
-    const { error } = await supabase.from('documentos_obra').update(updates).eq('id', id);
-    if (error) { toast.error('Error al actualizar documento'); return false; }
-    toast.success('Documento actualizado');
-    return true;
-  };
+  const crearDocumento = useMutation({
+    mutationFn: async (payload: {
+      tipo: TipoDocumento;
+      datos: Record<string, unknown>;
+      asistentes?: Array<{ nombre: string; apellidos?: string; cargo?: string; empresa?: string; dni_nie?: string }>;
+      actividades?: Array<{ actividad: string; numero_pedido?: string | null }>;
+      empresas?: Array<{ empresa: string; persona_contacto?: string; email_referencia?: string }>;
+    }) => {
+      const { asistentes, actividades, empresas, datos, tipo } = payload;
 
-  const deleteDocumento = async (id: string) => {
-    const { error } = await supabase.from('documentos_obra').delete().eq('id', id);
-    if (error) { toast.error('Error al eliminar documento'); return false; }
-    toast.success('Documento eliminado');
-    return true;
-  };
+      const insertPayload: TablesInsert<'documentos_obra'> = {
+        obra_id: obraId,
+        tipo,
+        estado: 'generado' as EstadoDocumento,
+        fecha_documento: (datos.fecha_firma as string) || new Date().toISOString().split('T')[0],
+        nombre_coordinador: (datos.nombre_coordinador as string) || null,
+        dni_coordinador: (datos.dni_coordinador as string) || null,
+        titulacion_colegiado: (datos.titulacion_colegiado as string) || null,
+        empresa_coordinacion: (datos.empresa_coordinacion as string) || null,
+        cif_empresa: (datos.cif_empresa as string) || null,
+        domicilio_empresa: (datos.domicilio_empresa as string) || null,
+        movil_coordinador: (datos.movil_coordinador as string) || null,
+        email_coordinador: (datos.email_coordinador as string) || null,
+        nombre_promotor: (datos.nombre_promotor as string) || null,
+        cif_promotor: (datos.cif_promotor as string) || null,
+        domicilio_promotor: (datos.domicilio_promotor as string) || null,
+        datos_extra: datos as any,
+        titulo: (datos.titulo as string) || null,
+      };
 
-  const uploadArchivo = async (documentoId: string, file: File) => {
-    const ext = file.name.split('.').pop();
-    const path = `${documentoId}/${Date.now()}.${ext}`;
-    const { error: uploadError } = await supabase.storage.from('documentos-obra').upload(path, file);
-    if (uploadError) { toast.error('Error al subir archivo'); return null; }
-    const { data: urlData } = supabase.storage.from('documentos-obra').getPublicUrl(path);
-    const url = urlData.publicUrl;
-    const { error } = await supabase.from('documentos_obra').update({
-      archivo_url: url,
-      archivo_nombre: file.name,
-      estado: 'adjuntado' as EstadoDocumento,
-    }).eq('id', documentoId);
-    if (error) { toast.error('Error al vincular archivo'); return null; }
-    toast.success('Archivo adjuntado');
-    return url;
-  };
+      const { data: doc, error } = await supabase
+        .from('documentos_obra')
+        .insert(insertPayload)
+        .select()
+        .single();
 
-  // Asistentes
-  const fetchAsistentes = async (documentoId: string) => {
-    const { data } = await supabase.from('asistentes_reunion').select('*').eq('documento_id', documentoId).order('created_at');
-    return data || [];
-  };
+      if (error) throw error;
 
-  const addAsistente = async (asistente: TablesInsert<'asistentes_reunion'>) => {
-    const { data, error } = await supabase.from('asistentes_reunion').insert(asistente).select().single();
-    if (error) { toast.error('Error al añadir asistente'); return null; }
-    return data;
-  };
+      if (asistentes?.length && doc) {
+        await supabase.from('asistentes_reunion').insert(
+          asistentes.map((a) => ({ nombre: a.nombre, apellidos: a.apellidos || null, cargo: a.cargo || null, empresa: a.empresa || null, dni_nie: a.dni_nie || null, documento_id: doc.id }))
+        );
+      }
 
-  const deleteAsistente = async (id: string) => {
-    await supabase.from('asistentes_reunion').delete().eq('id', id);
-  };
+      if (actividades?.length && doc) {
+        await supabase.from('actividades_reunion_cae').insert(
+          actividades.map((a, i) => ({ actividad: a.actividad, numero_pedido: a.numero_pedido || null, documento_id: doc.id, orden: i }))
+        );
+      }
 
-  // Actividades CAE
-  const fetchActividades = async (documentoId: string) => {
-    const { data } = await supabase.from('actividades_reunion_cae').select('*').eq('documento_id', documentoId).order('orden');
-    return data || [];
-  };
+      if (empresas?.length && doc) {
+        await supabase.from('empresas_acceso_obra').insert(
+          empresas.map(e => ({ empresa: e.empresa, persona_contacto: e.persona_contacto || null, email_referencia: e.email_referencia || null, documento_id: doc.id }))
+        );
+      }
 
-  const addActividad = async (actividad: TablesInsert<'actividades_reunion_cae'>) => {
-    const { data, error } = await supabase.from('actividades_reunion_cae').insert(actividad).select().single();
-    if (error) { toast.error('Error al añadir actividad'); return null; }
-    return data;
-  };
+      return doc;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documentos-obra', obraId] });
+      toast.success('Documento creado');
+    },
+    onError: () => toast.error('Error al crear documento'),
+  });
 
-  const deleteActividad = async (id: string) => {
-    await supabase.from('actividades_reunion_cae').delete().eq('id', id);
-  };
+  const actualizarDocumento = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: TablesUpdate<'documentos_obra'> }) => {
+      const { error } = await supabase
+        .from('documentos_obra')
+        .update(updates)
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documentos-obra', obraId] });
+      toast.success('Documento actualizado');
+    },
+    onError: () => toast.error('Error al actualizar documento'),
+  });
 
-  // Empresas acceso
-  const fetchEmpresas = async (documentoId: string) => {
-    const { data } = await supabase.from('empresas_acceso_obra').select('*').eq('documento_id', documentoId);
-    return data || [];
-  };
+  const actualizarEstado = useMutation({
+    mutationFn: async ({ id, estado }: { id: string; estado: EstadoDocumento }) => {
+      const { error } = await supabase
+        .from('documentos_obra')
+        .update({ estado })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documentos-obra', obraId] }),
+    onError: () => toast.error('Error al actualizar estado'),
+  });
 
-  const addEmpresa = async (empresa: TablesInsert<'empresas_acceso_obra'>) => {
-    const { data, error } = await supabase.from('empresas_acceso_obra').insert(empresa).select().single();
-    if (error) { toast.error('Error al añadir empresa'); return null; }
-    return data;
-  };
+  const adjuntarArchivo = useMutation({
+    mutationFn: async ({ id, file }: { id: string; file: File }) => {
+      const ext = file.name.split('.').pop();
+      const path = `${obraId}/${id}.${ext}`;
 
-  const deleteEmpresa = async (id: string) => {
-    await supabase.from('empresas_acceso_obra').delete().eq('id', id);
-  };
+      const { error: uploadError } = await supabase.storage
+        .from('documentos-obra')
+        .upload(path, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('documentos-obra')
+        .getPublicUrl(path);
+
+      const { error } = await supabase
+        .from('documentos_obra')
+        .update({
+          archivo_url: publicUrl,
+          archivo_nombre: file.name,
+          estado: 'adjuntado' as EstadoDocumento,
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documentos-obra', obraId] });
+      toast.success('Archivo adjuntado');
+    },
+    onError: () => toast.error('Error al subir archivo'),
+  });
+
+  const eliminarDocumento = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('documentos_obra').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documentos-obra', obraId] });
+      toast.success('Documento eliminado');
+    },
+    onError: () => toast.error('Error al eliminar documento'),
+  });
+
+  // Inline mutations for related data (asistentes, actividades, empresas)
+  const addAsistente = useMutation({
+    mutationFn: async (asistente: TablesInsert<'asistentes_reunion'>) => {
+      const { data, error } = await supabase.from('asistentes_reunion').insert(asistente).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documentos-obra', obraId] }),
+  });
+
+  const deleteAsistente = useMutation({
+    mutationFn: async (id: string) => {
+      await supabase.from('asistentes_reunion').delete().eq('id', id);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documentos-obra', obraId] }),
+  });
+
+  const addActividad = useMutation({
+    mutationFn: async (actividad: TablesInsert<'actividades_reunion_cae'>) => {
+      const { data, error } = await supabase.from('actividades_reunion_cae').insert(actividad).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documentos-obra', obraId] }),
+  });
+
+  const deleteActividad = useMutation({
+    mutationFn: async (id: string) => {
+      await supabase.from('actividades_reunion_cae').delete().eq('id', id);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documentos-obra', obraId] }),
+  });
+
+  const addEmpresa = useMutation({
+    mutationFn: async (empresa: TablesInsert<'empresas_acceso_obra'>) => {
+      const { data, error } = await supabase.from('empresas_acceso_obra').insert(empresa).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documentos-obra', obraId] }),
+  });
+
+  const deleteEmpresa = useMutation({
+    mutationFn: async (id: string) => {
+      await supabase.from('empresas_acceso_obra').delete().eq('id', id);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documentos-obra', obraId] }),
+  });
 
   return {
-    documentos, loading,
-    fetchDocumentos, createDocumento, updateDocumento, deleteDocumento, uploadArchivo,
-    fetchAsistentes, addAsistente, deleteAsistente,
-    fetchActividades, addActividad, deleteActividad,
-    fetchEmpresas, addEmpresa, deleteEmpresa,
+    documentos,
+    isLoading,
+    crearDocumento,
+    actualizarDocumento,
+    actualizarEstado,
+    adjuntarArchivo,
+    eliminarDocumento,
+    addAsistente,
+    deleteAsistente,
+    addActividad,
+    deleteActividad,
+    addEmpresa,
+    deleteEmpresa,
   };
 }

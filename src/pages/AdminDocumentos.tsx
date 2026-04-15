@@ -16,7 +16,7 @@ export default function AdminDocumentos() {
   const [obraId, setObraId] = useState<string>('');
   const [nuevoOpen, setNuevoOpen] = useState(false);
   const [attachDoc, setAttachDoc] = useState<Documento | null>(null);
-  const { documentos, loading, fetchDocumentos } = useDocumentosObra();
+  const { documentos, isLoading } = useDocumentosObra(obraId);
 
   useEffect(() => {
     supabase.from('obras').select('id, nombre').order('nombre').then(({ data }) => {
@@ -24,10 +24,6 @@ export default function AdminDocumentos() {
       if (data && data.length > 0) setObraId(data[0].id);
     });
   }, []);
-
-  useEffect(() => {
-    if (obraId) fetchDocumentos(obraId);
-  }, [obraId, fetchDocumentos]);
 
   return (
     <AdminLayout>
@@ -50,17 +46,17 @@ export default function AdminDocumentos() {
           </Select>
         </div>
 
-        {loading ? (
+        {isLoading ? (
           <p className="text-muted-foreground">Cargando...</p>
         ) : (
-          <DocumentosList documentos={documentos} onAttach={doc => setAttachDoc(doc)} />
+          <DocumentosList documentos={documentos || []} onAttach={doc => setAttachDoc(doc)} />
         )}
       </div>
 
       {obraId && (
-        <NuevoDocumentoDialog open={nuevoOpen} onOpenChange={setNuevoOpen} obraId={obraId} onCreated={() => fetchDocumentos(obraId)} />
+        <NuevoDocumentoDialog open={nuevoOpen} onOpenChange={setNuevoOpen} obraId={obraId} onCreated={() => {}} />
       )}
-      <AdjuntarDocumentoDialog open={!!attachDoc} onOpenChange={open => !open && setAttachDoc(null)} documento={attachDoc} onUploaded={() => fetchDocumentos(obraId)} />
+      <AdjuntarDocumentoDialog open={!!attachDoc} onOpenChange={open => !open && setAttachDoc(null)} documento={attachDoc} obraId={obraId} />
     </AdminLayout>
   );
 }

@@ -4,12 +4,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
-import type { Documento, Asistente, ActividadCAE, EmpresaAcceso } from '@/hooks/useDocumentosObra';
-import { useDocumentosObra } from '@/hooks/useDocumentosObra';
+import { useDocumentosObra, type DocumentoConRelaciones } from '@/hooks/useDocumentosObra';
 import type { Json } from '@/integrations/supabase/types';
 
 interface Props {
-  documento?: Documento | null;
+  documento?: DocumentoConRelaciones | null;
   obraId?: string;
   tipo?: string;
   onSave: (data: Record<string, any>) => Promise<void>;
@@ -19,7 +18,8 @@ interface Props {
 export default function FormActaReunion({ documento, obraId, tipo, onSave, saving }: Props) {
   const tipoActual = documento?.tipo || tipo || '';
   const isCAE = tipoActual === 'acta_reunion_cae';
-  const { fetchAsistentes, addAsistente, deleteAsistente, fetchActividades, addActividad, deleteActividad, fetchEmpresas, addEmpresa, deleteEmpresa } = useDocumentosObra();
+  const effectiveObraId = obraId || documento?.obra_id || '';
+  const { addAsistente, deleteAsistente, addActividad, deleteActividad, addEmpresa, deleteEmpresa } = useDocumentosObra(effectiveObraId);
 
   const [titulo, setTitulo] = useState('');
   const [fechaDocumento, setFechaDocumento] = useState('');
@@ -28,11 +28,6 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   const [empresaCoordinacion, setEmpresaCoordinacion] = useState('');
   const [nombrePromotor, setNombrePromotor] = useState('');
   const [observaciones, setObservaciones] = useState('');
-
-  // Related data
-  const [asistentes, setAsistentes] = useState<Asistente[]>([]);
-  const [actividades, setActividades] = useState<ActividadCAE[]>([]);
-  const [empresas, setEmpresas] = useState<EmpresaAcceso[]>([]);
 
   // Inline forms
   const [nuevoAsistente, setNuevoAsistente] = useState({ nombre: '', apellidos: '', cargo: '', empresa: '', dni_nie: '' });
@@ -49,61 +44,42 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       setNombrePromotor(documento.nombre_promotor || '');
       const extra = (documento.datos_extra as Record<string, any>) || {};
       setObservaciones(extra.observaciones || '');
-      loadRelated(documento.id);
     }
   }, [documento]);
 
-  const loadRelated = async (docId: string) => {
-    const [a, act, emp] = await Promise.all([
-      fetchAsistentes(docId),
-      fetchActividades(docId),
-      fetchEmpresas(docId),
-    ]);
-    setAsistentes(a);
-    setActividades(act);
-    setEmpresas(emp);
-  };
+  // Related data from the joined query
+  const asistentes = documento?.asistentes_reunion || [];
+  const actividades = documento?.actividades_reunion_cae || [];
+  const empresas = documento?.empresas_acceso_obra || [];
 
   const handleAddAsistente = async () => {
     if (!documento || !nuevoAsistente.nombre.trim()) return;
-    const result = await addAsistente({ documento_id: documento.id, ...nuevoAsistente });
-    if (result) {
-      setAsistentes(prev => [...prev, result]);
-      setNuevoAsistente({ nombre: '', apellidos: '', cargo: '', empresa: '', dni_nie: '' });
-    }
+    await addAsistente.mutateAsync({ documento_id: documento.id, ...nuevoAsistente });
+    setNuevoAsistente({ nombre: '', apellidos: '', cargo: '', empresa: '', dni_nie: '' });
   };
 
   const handleDeleteAsistente = async (id: string) => {
-    await deleteAsistente(id);
-    setAsistentes(prev => prev.filter(a => a.id !== id));
+    await deleteAsistente.mutateAsync(id);
   };
 
   const handleAddActividad = async () => {
     if (!documento || !nuevaActividad.actividad.trim()) return;
-    const result = await addActividad({ documento_id: documento.id, actividad: nuevaActividad.actividad, numero_pedido: nuevaActividad.numero_pedido || null, orden: actividades.length });
-    if (result) {
-      setActividades(prev => [...prev, result]);
-      setNuevaActividad({ actividad: '', numero_pedido: '' });
-    }
+    await addActividad.mutateAsync({ documento_id: documento.id, actividad: nuevaActividad.actividad, numero_pedido: nuevaActividad.numero_pedido || null, orden: actividades.length });
+    setNuevaActividad({ actividad: '', numero_pedido: '' });
   };
 
   const handleDeleteActividad = async (id: string) => {
-    await deleteActividad(id);
-    setActividades(prev => prev.filter(a => a.id !== id));
+    await deleteActividad.mutateAsync(id);
   };
 
   const handleAddEmpresa = async () => {
     if (!documento || !nuevaEmpresa.empresa.trim()) return;
-    const result = await addEmpresa({ documento_id: documento.id, ...nuevaEmpresa });
-    if (result) {
-      setEmpresas(prev => [...prev, result]);
-      setNuevaEmpresa({ empresa: '', persona_contacto: '', email_referencia: '' });
-    }
+    await addEmpresa.mutateAsync({ documento_id: documento.id, ...nuevaEmpresa });
+    setNuevaEmpresa({ empresa: '', persona_contacto: '', email_referencia: '' });
   };
 
   const handleDeleteEmpresa = async (id: string) => {
-    await deleteEmpresa(id);
-    setEmpresas(prev => prev.filter(e => e.id !== id));
+    await deleteEmpresa.mutateAsync(id);
   };
 
   const handleSubmit = () => {

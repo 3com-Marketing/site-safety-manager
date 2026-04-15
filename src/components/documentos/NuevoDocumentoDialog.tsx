@@ -31,8 +31,7 @@ const FORM_MAP: Record<string, React.ComponentType<any>> = {
 
 export default function NuevoDocumentoDialog({ open, onOpenChange, obraId, onCreated }: Props) {
   const [tipo, setTipo] = useState<string>('');
-  const [saving, setSaving] = useState(false);
-  const { createDocumento } = useDocumentosObra();
+  const { crearDocumento } = useDocumentosObra(obraId);
   const { role } = useAuth();
 
   const tiposDisponibles = Object.entries(TIPO_DOCUMENTO_LABELS).filter(([key]) => {
@@ -43,14 +42,10 @@ export default function NuevoDocumentoDialog({ open, onOpenChange, obraId, onCre
   const FormComponent = tipo ? FORM_MAP[tipo] : null;
 
   const handleSave = async (data: Record<string, any>) => {
-    setSaving(true);
-    const result = await createDocumento({ ...data, obra_id: obraId, tipo: tipo as any });
-    setSaving(false);
-    if (result) {
-      onOpenChange(false);
-      setTipo('');
-      onCreated();
-    }
+    await crearDocumento.mutateAsync({ tipo: tipo as any, datos: data });
+    onOpenChange(false);
+    setTipo('');
+    onCreated();
   };
 
   return (
@@ -71,7 +66,7 @@ export default function NuevoDocumentoDialog({ open, onOpenChange, obraId, onCre
               </SelectContent>
             </Select>
           </div>
-          {FormComponent && <FormComponent obraId={obraId} tipo={tipo} onSave={handleSave} saving={saving} />}
+          {FormComponent && <FormComponent obraId={obraId} tipo={tipo} onSave={handleSave} saving={crearDocumento.isPending} />}
         </div>
       </DialogContent>
     </Dialog>

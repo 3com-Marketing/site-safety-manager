@@ -10,25 +10,19 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   documento: Documento | null;
-  onUploaded: () => void;
+  obraId: string;
 }
 
-export default function AdjuntarDocumentoDialog({ open, onOpenChange, documento, onUploaded }: Props) {
+export default function AdjuntarDocumentoDialog({ open, onOpenChange, documento, obraId }: Props) {
   const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { uploadArchivo } = useDocumentosObra();
+  const { adjuntarArchivo } = useDocumentosObra(obraId);
 
   const handleUpload = async () => {
     if (!file || !documento) return;
-    setUploading(true);
-    const result = await uploadArchivo(documento.id, file);
-    setUploading(false);
-    if (result) {
-      setFile(null);
-      onOpenChange(false);
-      onUploaded();
-    }
+    await adjuntarArchivo.mutateAsync({ id: documento.id, file });
+    setFile(null);
+    onOpenChange(false);
   };
 
   return (
@@ -55,9 +49,9 @@ export default function AdjuntarDocumentoDialog({ open, onOpenChange, documento,
           )}
         </div>
         <DialogFooter>
-          <Button onClick={handleUpload} disabled={!file || uploading} className="h-12 rounded-xl gap-2">
+          <Button onClick={handleUpload} disabled={!file || adjuntarArchivo.isPending} className="h-12 rounded-xl gap-2">
             <Upload className="h-4 w-4" />
-            {uploading ? 'Subiendo...' : 'Adjuntar'}
+            {adjuntarArchivo.isPending ? 'Subiendo...' : 'Adjuntar'}
           </Button>
         </DialogFooter>
       </DialogContent>

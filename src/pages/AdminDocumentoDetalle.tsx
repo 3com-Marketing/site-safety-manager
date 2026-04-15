@@ -10,7 +10,7 @@ import FormActaNombramiento from '@/components/documentos/formularios/FormActaNo
 import FormActaAprobacion from '@/components/documentos/formularios/FormActaAprobacion';
 import FormActaReunion from '@/components/documentos/formularios/FormActaReunion';
 import FormInforme from '@/components/documentos/formularios/FormInforme';
-import { useDocumentosObra, TIPO_LABELS, type Documento } from '@/hooks/useDocumentosObra';
+import { useDocumentosObra, TIPO_LABELS, type Documento, type DocumentoConRelaciones } from '@/hooks/useDocumentosObra';
 
 const FORM_MAP: Record<string, React.ComponentType<any>> = {
   acta_nombramiento_cae: FormActaNombramiento,
@@ -27,33 +27,31 @@ const FORM_MAP: Record<string, React.ComponentType<any>> = {
 export default function AdminDocumentoDetalle() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { updateDocumento } = useDocumentosObra();
-  const [documento, setDocumento] = useState<Documento | null>(null);
+  const [obraId, setObraId] = useState<string>('');
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+
+  const { documentos, actualizarDocumento } = useDocumentosObra(obraId);
   const [attachOpen, setAttachOpen] = useState(false);
 
-  const loadDoc = async () => {
+  // First load: get the obra_id from the document
+  useEffect(() => {
     if (!id) return;
-    const { data } = await supabase.from('documentos_obra').select('*').eq('id', id).single();
-    setDocumento(data);
-    setLoading(false);
-  };
+    supabase.from('documentos_obra').select('obra_id').eq('id', id).single().then(({ data }) => {
+      if (data) setObraId(data.obra_id);
+      setLoading(false);
+    });
+  }, [id]);
 
-  useEffect(() => { loadDoc(); }, [id]);
-
+  const documento = documentos?.find(d => d.id === id) as DocumentoConRelaciones | undefined;
   const FormComponent = documento ? FORM_MAP[documento.tipo] : null;
 
   const handleSave = async (data: Record<string, any>) => {
     if (!documento) return;
-    setSaving(true);
     const { obra_id, tipo, ...updates } = data;
-    const ok = await updateDocumento(documento.id, updates);
-    if (ok) await loadDoc();
-    setSaving(false);
+    await actualizarDocumento.mutateAsync({ id: documento.id, updates });
   };
 
-  if (loading) return <AdminLayout><p className="text-muted-foreground">Cargando...</p></AdminLayout>;
+  if (loading || (!documento && obraId)) return <AdminLayout><p className="text-muted-foreground">Cargando...</p></AdminLayout>;
   if (!documento) return <AdminLayout><p className="text-muted-foreground">Documento no encontrado</p></AdminLayout>;
 
   return (
@@ -82,11 +80,11 @@ export default function AdminDocumentoDetalle() {
         )}
 
         <div className="rounded-xl border border-border bg-card p-6">
-          {FormComponent && <FormComponent documento={documento} onSave={handleSave} saving={saving} />}
+          {FormComponent && <FormComponent documento={documento} obraId={obraId} onSave={handleSave} saving={actualizarDocumento.isPending} />}
         </div>
       </div>
 
-      <AdjuntarDocumentoDialog open={attachOpen} onOpenChange={setAttachOpen} documento={documento} onUploaded={loadDoc} />
+      <AdjuntarDocumentoDialog open={attachOpen} onOpenChange={setAttachOpen} documento={documento} obraId={obraId} />
     </AdminLayout>
   );
 }
