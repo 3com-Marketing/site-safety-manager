@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Trash2 } from 'lucide-react';
 import { useDocumentosObra, type DocumentoConRelaciones } from '@/hooks/useDocumentosObra';
 import ImportarVisitaButton, { type VisitaImportData } from '@/components/documentos/ImportarVisitaButton';
+import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 
 interface Props {
@@ -23,6 +24,12 @@ const RIESGOS_OPTIONS = [
   'Espacios confinados', 'Riesgo eléctrico',
 ];
 
+const TIPO_TO_CONFIG_FIELD: Record<string, string> = {
+  acta_reunion_inicial: 'texto_acta_reunion_inicial',
+  acta_reunion_cae: 'texto_acta_reunion_cae',
+  acta_reunion_sys: 'texto_acta_reunion_sys',
+};
+
 export default function FormActaReunion({ documento, obraId, tipo, onSave, saving, defaultValues }: Props) {
   const tipoActual = documento?.tipo || tipo || '';
   const isCAE = tipoActual === 'acta_reunion_cae';
@@ -37,6 +44,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   const [lugarReunion, setLugarReunion] = useState('');
   const [fechaHora, setFechaHora] = useState('');
   const [excusados, setExcusados] = useState('');
+  const [textoLegal, setTextoLegal] = useState('');
 
   // CAE specific
   const [mesReunion, setMesReunion] = useState('');
@@ -57,6 +65,20 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   const [nuevaActividad, setNuevaActividad] = useState({ actividad: '', numero_pedido: '' });
   const [nuevaEmpresa, setNuevaEmpresa] = useState({ empresa: '', persona_contacto: '', email_referencia: '' });
 
+  // Load default legal text from configuracion_empresa for new documents
+  useEffect(() => {
+    if (!documento && tipoActual) {
+      const configField = TIPO_TO_CONFIG_FIELD[tipoActual];
+      if (configField) {
+        supabase.from('configuracion_empresa').select(configField).limit(1).single().then(({ data }) => {
+          if (data && (data as any)[configField]) {
+            setTextoLegal((data as any)[configField]);
+          }
+        });
+      }
+    }
+  }, [documento, tipoActual]);
+
   useEffect(() => {
     if (documento) {
       const extra = (documento.datos_extra as Record<string, any>) || {};
@@ -66,6 +88,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       setLugarReunion(extra.lugar_reunion || '');
       setFechaHora(documento.fecha_documento || '');
       setExcusados(extra.excusados || '');
+      setTextoLegal(extra.texto_legal || '');
       setMesReunion(extra.mes_reunion || '');
       setRiesgos(extra.riesgos || []);
       setOtrosRiesgos(extra.otros_riesgos || '');
@@ -85,14 +108,11 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
 
   // --- Import handler ---
   const handleImport = (data: VisitaImportData) => {
-    // Set fecha from visita
     if (data.visita.fecha_fin) {
       setFechaHora(data.visita.fecha_fin.slice(0, 16));
     } else if (data.visita.fecha) {
       setFechaHora(data.visita.fecha.slice(0, 16));
     }
-
-    // Import empresas_presentes → localEmpresas (CAE)
     if (isCAE && data.informe.empresas_presentes) {
       const empresas = data.informe.empresas_presentes
         .split(',')
@@ -101,8 +121,6 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
         .map(e => ({ empresa: e, persona_contacto: '', email_referencia: '' }));
       setLocalEmpresas(prev => [...prev, ...empresas]);
     }
-
-    // Import incidencias → localActividades (CAE)
     if (isCAE && data.incidencias.length > 0) {
       const actividades = data.incidencias.map(inc => ({
         actividad: inc.titulo + (inc.descripcion ? ` — ${inc.descripcion}` : ''),
@@ -110,8 +128,6 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       }));
       setLocalActividades(prev => [...prev, ...actividades]);
     }
-
-    // Import observaciones → excusados/notas context
     if (data.observaciones.length > 0) {
       const obsTexts = data.observaciones.map(o => o.texto).filter(Boolean);
       if (obsTexts.length > 0) {
@@ -187,7 +203,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   const handleSubmit = () => {
     const datosExtra: Record<string, any> = {
       obra_actuacion: obraActuacion, localidad, lugar_reunion: lugarReunion,
-      excusados,
+      excusados, texto_legal: textoLegal,
     };
     if (isCAE) {
       datosExtra.mes_reunion = mesReunion;
@@ -360,6 +376,19 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
           </div>
         </div>
       )}
+
+      {/* Texto legal editable */}
+      <div className="space-y-2 pt-2">
+        <Label>Texto legal / Contenido del acta</Label>
+        <Textarea
+          value={textoLegal}
+          onChange={e => setTextoLegal(e.target.value)}
+          rows={15}
+          placeholder="Texto legal que aparecerá en el documento generado. Se precarga desde la configuración de empresa..."
+          className="text-xs"
+        />
+        <p className="text-xs text-muted-foreground">Este texto se incluirá en el PDF generado y puede editarse libremente antes de guardar.</p>
+      </div>
 
       <div className="flex justify-end pt-4">
         <Button onClick={handleSubmit} disabled={saving} className="h-12 rounded-xl">

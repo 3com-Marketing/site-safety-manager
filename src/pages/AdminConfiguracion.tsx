@@ -31,6 +31,9 @@ interface ConfigEmpresa {
   texto_normativa: string;
   texto_acta_aprobacion_sys: string;
   texto_acta_aprobacion_dgpo: string;
+  texto_acta_reunion_inicial: string;
+  texto_acta_reunion_cae: string;
+  texto_acta_reunion_sys: string;
 }
 
 const EMPTY_CONFIG: ConfigEmpresa = {
@@ -40,6 +43,7 @@ const EMPTY_CONFIG: ConfigEmpresa = {
   registro_mercantil: '', iban: '', banco: '', swift_bic: '',
   texto_recomendaciones: '', texto_normativa: '',
   texto_acta_aprobacion_sys: '', texto_acta_aprobacion_dgpo: '',
+  texto_acta_reunion_inicial: '', texto_acta_reunion_cae: '', texto_acta_reunion_sys: '',
 };
 
 export default function AdminConfiguracion() {
@@ -259,6 +263,36 @@ export default function AdminConfiguracion() {
                 onChange={e => update('texto_acta_aprobacion_dgpo', e.target.value)}
                 rows={10}
                 placeholder="Texto legal por defecto para actas de aprobación DGPO..."
+                className="text-xs mt-1"
+              />
+            </div>
+            <div>
+              <Label>Texto Acta Reunión Inicial</Label>
+              <Textarea
+                value={config.texto_acta_reunion_inicial}
+                onChange={e => update('texto_acta_reunion_inicial', e.target.value)}
+                rows={10}
+                placeholder="Texto legal por defecto para actas de reunión inicial (puntos a-o coordinación)..."
+                className="text-xs mt-1"
+              />
+            </div>
+            <div>
+              <Label>Texto Acta Reunión CAE</Label>
+              <Textarea
+                value={config.texto_acta_reunion_cae}
+                onChange={e => update('texto_acta_reunion_cae', e.target.value)}
+                rows={10}
+                placeholder="Texto legal por defecto para actas de reunión CAE (13 secciones)..."
+                className="text-xs mt-1"
+              />
+            </div>
+            <div>
+              <Label>Texto Acta Reunión SyS</Label>
+              <Textarea
+                value={config.texto_acta_reunion_sys}
+                onChange={e => update('texto_acta_reunion_sys', e.target.value)}
+                rows={10}
+                placeholder="Texto legal por defecto para actas de reunión de seguridad y salud..."
                 className="text-xs mt-1"
               />
             </div>
