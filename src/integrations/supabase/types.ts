@@ -242,51 +242,63 @@ export type Database = {
       }
       configuracion_empresa: {
         Row: {
+          banco: string
           cargo_responsable: string
           cif: string
           ciudad: string
           created_at: string | null
           direccion: string
           email: string
+          iban: string
           id: string
           logo_url: string | null
           nombre: string
           nombre_responsable: string
           num_colegiado: string
+          registro_mercantil: string
+          swift_bic: string
           telefono: string
           titulacion: string
           updated_at: string | null
           web: string
         }
         Insert: {
+          banco?: string
           cargo_responsable?: string
           cif?: string
           ciudad?: string
           created_at?: string | null
           direccion?: string
           email?: string
+          iban?: string
           id?: string
           logo_url?: string | null
           nombre?: string
           nombre_responsable?: string
           num_colegiado?: string
+          registro_mercantil?: string
+          swift_bic?: string
           telefono?: string
           titulacion?: string
           updated_at?: string | null
           web?: string
         }
         Update: {
+          banco?: string
           cargo_responsable?: string
           cif?: string
           ciudad?: string
           created_at?: string | null
           direccion?: string
           email?: string
+          iban?: string
           id?: string
           logo_url?: string | null
           nombre?: string
           nombre_responsable?: string
           num_colegiado?: string
+          registro_mercantil?: string
+          swift_bic?: string
           telefono?: string
           titulacion?: string
           updated_at?: string | null
