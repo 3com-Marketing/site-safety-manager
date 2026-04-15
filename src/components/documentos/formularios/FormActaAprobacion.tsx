@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import type { Documento } from '@/hooks/useDocumentosObra';
 import type { Json } from '@/integrations/supabase/types';
@@ -16,95 +15,145 @@ interface Props {
 }
 
 export default function FormActaAprobacion({ documento, obraId, tipo, onSave, saving, defaultValues }: Props) {
-  const [titulo, setTitulo] = useState('');
+  const tipoActual = documento?.tipo || tipo || '';
+  const isDGPO = tipoActual === 'acta_aprobacion_dgpo';
+
+  const [actuacion, setActuacion] = useState('');
+  const [localidad, setLocalidad] = useState('');
+  const [promotor, setPromotor] = useState('');
+  const [autorProyecto, setAutorProyecto] = useState('');
+  const [coordSSProyecto, setCoordSSProyecto] = useState('');
+  const [autorEstudioSS, setAutorEstudioSS] = useState('');
+  const [directorObra, setDirectorObra] = useState('');
+  const [lugarFirma, setLugarFirma] = useState('Maspalomas');
   const [fechaDocumento, setFechaDocumento] = useState('');
-  const [nombreCoordinador, setNombreCoordinador] = useState('');
-  const [dniCoordinador, setDniCoordinador] = useState('');
-  const [empresaCoordinacion, setEmpresaCoordinacion] = useState('');
-  const [nombrePromotor, setNombrePromotor] = useState('');
-  const [cifPromotor, setCifPromotor] = useState('');
-  const [domicilioPromotor, setDomicilioPromotor] = useState('');
-  const [observaciones, setObservaciones] = useState('');
+
+  // DGPO specific
+  const [coordActividadesEmpresariales, setCoordActividadesEmpresariales] = useState('');
+  const [empresaContratistaDGPO, setEmpresaContratistaDGPO] = useState('');
+
+  // Plan SYS specific
+  const [coordSSObra, setCoordSSObra] = useState('');
+  const [empresaContratistaPlan, setEmpresaContratistaPlan] = useState('');
 
   useEffect(() => {
     if (documento) {
-      setTitulo(documento.titulo || '');
-      setFechaDocumento(documento.fecha_documento || '');
-      setNombreCoordinador(documento.nombre_coordinador || '');
-      setDniCoordinador(documento.dni_coordinador || '');
-      setEmpresaCoordinacion(documento.empresa_coordinacion || '');
-      setNombrePromotor(documento.nombre_promotor || '');
-      setCifPromotor(documento.cif_promotor || '');
-      setDomicilioPromotor(documento.domicilio_promotor || '');
       const extra = (documento.datos_extra as Record<string, any>) || {};
-      setObservaciones(extra.observaciones || '');
+      setActuacion(extra.actuacion || '');
+      setLocalidad(extra.localidad || '');
+      setPromotor(documento.nombre_promotor || '');
+      setAutorProyecto(extra.autor_proyecto || '');
+      setCoordSSProyecto(extra.coord_ss_proyecto || '');
+      setAutorEstudioSS(extra.autor_estudio_ss || '');
+      setDirectorObra(extra.director_obra || '');
+      setLugarFirma(extra.lugar_firma || 'Maspalomas');
+      setFechaDocumento(documento.fecha_documento || '');
+      setCoordActividadesEmpresariales(extra.coord_actividades_empresariales || '');
+      setEmpresaContratistaDGPO(extra.empresa_contratista_dgpo || '');
+      setCoordSSObra(extra.coord_ss_obra || '');
+      setEmpresaContratistaPlan(extra.empresa_contratista_plan || '');
     } else if (defaultValues) {
-      setNombreCoordinador(defaultValues.nombre_coordinador || '');
-      setNombrePromotor(defaultValues.nombre_promotor || '');
-      setCifPromotor(defaultValues.cif_promotor || '');
-      setDomicilioPromotor(defaultValues.domicilio_promotor || '');
+      setActuacion(defaultValues.nombre_obra || '');
+      setLocalidad(defaultValues.direccion_obra || '');
+      setPromotor(defaultValues.nombre_promotor || '');
     }
   }, [documento, defaultValues]);
 
   const handleSubmit = () => {
     onSave({
-      titulo, fecha_documento: fechaDocumento || null,
-      nombre_coordinador: nombreCoordinador, dni_coordinador: dniCoordinador,
-      empresa_coordinacion: empresaCoordinacion,
-      nombre_promotor: nombrePromotor, cif_promotor: cifPromotor, domicilio_promotor: domicilioPromotor,
-      datos_extra: { observaciones } as unknown as Json,
+      titulo: actuacion || (isDGPO ? 'Acta aprobación DGPO' : 'Acta aprobación Plan SyS'),
+      fecha_documento: fechaDocumento || null,
+      nombre_promotor: promotor,
+      datos_extra: {
+        actuacion, localidad, autor_proyecto: autorProyecto,
+        coord_ss_proyecto: coordSSProyecto, autor_estudio_ss: autorEstudioSS,
+        director_obra: directorObra, lugar_firma: lugarFirma,
+        ...(isDGPO
+          ? { coord_actividades_empresariales: coordActividadesEmpresariales, empresa_contratista_dgpo: empresaContratistaDGPO }
+          : { coord_ss_obra: coordSSObra, empresa_contratista_plan: empresaContratistaPlan }),
+      } as unknown as Json,
       ...(obraId ? { obra_id: obraId, tipo } : {}),
     });
   };
 
   return (
     <div className="space-y-4">
+      <p className="text-sm font-semibold text-muted-foreground">Datos de la obra</p>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Título</Label>
-          <Input value={titulo} onChange={e => setTitulo(e.target.value)} placeholder="Título del acta" />
+          <Label>Actuación / Obra-Instalación</Label>
+          <Input value={actuacion} onChange={e => setActuacion(e.target.value)} placeholder="Nombre de la obra" />
         </div>
         <div className="space-y-2">
-          <Label>Fecha del documento</Label>
+          <Label>Localidad y situación</Label>
+          <Input value={localidad} onChange={e => setLocalidad(e.target.value)} placeholder="Dirección" />
+        </div>
+        <div className="space-y-2">
+          <Label>Promotor</Label>
+          <Input value={promotor} onChange={e => setPromotor(e.target.value)} />
+        </div>
+      </div>
+
+      <p className="text-sm font-semibold text-muted-foreground pt-2">Agentes del proyecto</p>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Autor del Proyecto</Label>
+          <Input value={autorProyecto} onChange={e => setAutorProyecto(e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label>Coordinador SS durante el Proyecto</Label>
+          <Input value={coordSSProyecto} onChange={e => setCoordSSProyecto(e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label>Autor del Estudio SS / Básico</Label>
+          <Input value={autorEstudioSS} onChange={e => setAutorEstudioSS(e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label>Director de obra</Label>
+          <Input value={directorObra} onChange={e => setDirectorObra(e.target.value)} />
+        </div>
+      </div>
+
+      {isDGPO ? (
+        <>
+          <p className="text-sm font-semibold text-muted-foreground pt-2">Campos DGPO</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Coordinadora de actividades empresariales</Label>
+              <Input value={coordActividadesEmpresariales} onChange={e => setCoordActividadesEmpresariales(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Empresa Contratista Titular</Label>
+              <Input value={empresaContratistaDGPO} onChange={e => setEmpresaContratistaDGPO(e.target.value)} />
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="text-sm font-semibold text-muted-foreground pt-2">Campos Plan SyS</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Coordinador SS durante la Obra</Label>
+              <Input value={coordSSObra} onChange={e => setCoordSSObra(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Empresa Contratista Titular del Plan</Label>
+              <Input value={empresaContratistaPlan} onChange={e => setEmpresaContratistaPlan(e.target.value)} />
+            </div>
+          </div>
+        </>
+      )}
+
+      <p className="text-sm font-semibold text-muted-foreground pt-2">Firma</p>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Lugar</Label>
+          <Input value={lugarFirma} onChange={e => setLugarFirma(e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label>Fecha</Label>
           <Input type="date" value={fechaDocumento} onChange={e => setFechaDocumento(e.target.value)} />
         </div>
-      </div>
-
-      <p className="text-sm font-semibold text-muted-foreground pt-2">Coordinador</p>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Nombre</Label>
-          <Input value={nombreCoordinador} onChange={e => setNombreCoordinador(e.target.value)} />
-        </div>
-        <div className="space-y-2">
-          <Label>DNI</Label>
-          <Input value={dniCoordinador} onChange={e => setDniCoordinador(e.target.value)} />
-        </div>
-        <div className="col-span-2 space-y-2">
-          <Label>Empresa de coordinación</Label>
-          <Input value={empresaCoordinacion} onChange={e => setEmpresaCoordinacion(e.target.value)} />
-        </div>
-      </div>
-
-      <p className="text-sm font-semibold text-muted-foreground pt-2">Promotor</p>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Nombre</Label>
-          <Input value={nombrePromotor} onChange={e => setNombrePromotor(e.target.value)} />
-        </div>
-        <div className="space-y-2">
-          <Label>CIF</Label>
-          <Input value={cifPromotor} onChange={e => setCifPromotor(e.target.value)} />
-        </div>
-        <div className="col-span-2 space-y-2">
-          <Label>Domicilio</Label>
-          <Input value={domicilioPromotor} onChange={e => setDomicilioPromotor(e.target.value)} />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label>Observaciones</Label>
-        <Textarea value={observaciones} onChange={e => setObservaciones(e.target.value)} rows={3} />
       </div>
 
       <div className="flex justify-end pt-4">
