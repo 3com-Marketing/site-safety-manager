@@ -260,8 +260,14 @@ serve(async (req) => {
     const cliente = obra?.clientes;
     const extra = (doc.datos_extra as Record<string, any>) || {};
     
-    // SafeWork logo — use the public URL from the project
-    const safeworkLogo = `${supabaseUrl}/storage/v1/object/public/logos/safework-logo.png`;
+    // Fetch company config for logo and data
+    const { data: empresaConfig } = await supabase
+      .from("configuracion_empresa")
+      .select("*")
+      .limit(1)
+      .single();
+    
+    const safeworkLogo = empresaConfig?.logo_url || `${supabaseUrl}/storage/v1/object/public/logos/safework-logo.png`;
 
     let bodyHtml = "";
     const tipo = doc.tipo;
