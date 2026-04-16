@@ -385,37 +385,6 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
         <Textarea value={excusados} onChange={e => setExcusados(e.target.value)} rows={2} />
       </div>
 
-      {/* CAE: Punto 1 — Objetivo, alcance y ámbito de actuación */}
-      {isCAE && (
-        <SectionCollapsible title="1. Objetivo, alcance y ámbito de actuación" defaultOpen>
-          <div className="space-y-3">
-            <div>
-              <Label>Texto del punto 1</Label>
-              <RichTextEditor value={textoPunto1} onChange={setTextoPunto1} placeholder="En cumplimiento del RD 171/2004..." />
-            </div>
-            <div className="space-y-3">
-              <p className="text-sm font-semibold">Actividades a desarrollar</p>
-              {actividades.map((a: any, i: number) => (
-                <div key={a.id || i} className="flex items-center justify-between rounded-lg border border-border p-3">
-                  <div className="text-sm">
-                    <span className="font-medium">{a.actividad}</span>
-                    {a.numero_pedido && <span className="text-muted-foreground"> · Pedido: {a.numero_pedido}</span>}
-                  </div>
-                  <Button variant="ghost" size="icon" onClick={() => handleDeleteActividad(documento ? a.id : i)}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              ))}
-              <div className="grid grid-cols-3 gap-2">
-                <Input placeholder="Actividad" value={nuevaActividad.actividad} onChange={e => setNuevaActividad(p => ({ ...p, actividad: e.target.value }))} />
-                <Input placeholder="Nº pedido" value={nuevaActividad.numero_pedido} onChange={e => setNuevaActividad(p => ({ ...p, numero_pedido: e.target.value }))} />
-                <Button size="sm" onClick={handleAddActividad} disabled={!nuevaActividad.actividad.trim()} className="gap-1"><Plus className="h-4 w-4" /> Añadir</Button>
-              </div>
-            </div>
-          </div>
-        </SectionCollapsible>
-      )}
-
       {/* CAE: Empresas acceso */}
       {isCAE && (
         <div className="space-y-3 pt-2">
