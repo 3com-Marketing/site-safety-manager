@@ -1,0 +1,1 @@
+ALTER TABLE configuracion_empresa ADD COLUMN texto_cae_punto1 text NOT NULL DEFAULT '';
