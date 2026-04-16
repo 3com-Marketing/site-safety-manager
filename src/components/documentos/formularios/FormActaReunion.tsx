@@ -64,6 +64,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
 
   // CAE specific
   const [mesReunion, setMesReunion] = useState('');
+  const [textoPunto1, setTextoPunto1] = useState('');
   const [riesgos, setRiesgos] = useState<string[]>([]);
   const [otrosRiesgos, setOtrosRiesgos] = useState('');
   const [plataformaCAE, setPlataformaCAE] = useState('metacontratas');
@@ -101,10 +102,13 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   useEffect(() => {
     if (!documento && tipoActual) {
       const configField = TIPO_TO_CONFIG_FIELD[tipoActual];
-      if (configField) {
-        supabase.from('configuracion_empresa').select(configField).limit(1).single().then(({ data }) => {
-          if (data && (data as any)[configField]) {
-            setTextoLegal((data as any)[configField]);
+      const fieldsToLoad = configField ? [configField] : [];
+      if (tipoActual === 'acta_reunion_cae') fieldsToLoad.push('texto_cae_punto1');
+      if (fieldsToLoad.length > 0) {
+        supabase.from('configuracion_empresa').select(fieldsToLoad.join(',')).limit(1).single().then(({ data }) => {
+          if (data) {
+            if (configField && (data as any)[configField]) setTextoLegal((data as any)[configField]);
+            if ((data as any).texto_cae_punto1) setTextoPunto1((data as any).texto_cae_punto1);
           }
         });
       }
@@ -122,6 +126,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       setExcusados(extra.excusados || '');
       setTextoLegal(extra.texto_legal || '');
       setMesReunion(extra.mes_reunion || '');
+      setTextoPunto1(extra.texto_punto1 || '');
       setRiesgos(extra.riesgos || []);
       setOtrosRiesgos(extra.otros_riesgos || '');
       setPlataformaCAE(extra.plataforma_cae || 'metacontratas');
@@ -266,6 +271,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
     };
     if (isCAE) {
       datosExtra.mes_reunion = mesReunion;
+      datosExtra.texto_punto1 = textoPunto1;
       datosExtra.riesgos = riesgos;
       datosExtra.otros_riesgos = otrosRiesgos;
       datosExtra.plataforma_cae = plataformaCAE;
@@ -379,27 +385,35 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
         <Textarea value={excusados} onChange={e => setExcusados(e.target.value)} rows={2} />
       </div>
 
-      {/* CAE: Actividades */}
+      {/* CAE: Punto 1 — Objetivo, alcance y ámbito de actuación */}
       {isCAE && (
-        <div className="space-y-3 pt-2">
-          <p className="text-sm font-semibold">Actividades a desarrollar</p>
-          {actividades.map((a: any, i: number) => (
-            <div key={a.id || i} className="flex items-center justify-between rounded-lg border border-border p-3">
-              <div className="text-sm">
-                <span className="font-medium">{a.actividad}</span>
-                {a.numero_pedido && <span className="text-muted-foreground"> · Pedido: {a.numero_pedido}</span>}
-              </div>
-              <Button variant="ghost" size="icon" onClick={() => handleDeleteActividad(documento ? a.id : i)}>
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
+        <SectionCollapsible title="1. Objetivo, alcance y ámbito de actuación" defaultOpen>
+          <div className="space-y-3">
+            <div>
+              <Label>Texto del punto 1</Label>
+              <RichTextEditor value={textoPunto1} onChange={setTextoPunto1} placeholder="En cumplimiento del RD 171/2004..." />
             </div>
-          ))}
-          <div className="grid grid-cols-3 gap-2">
-            <Input placeholder="Actividad" value={nuevaActividad.actividad} onChange={e => setNuevaActividad(p => ({ ...p, actividad: e.target.value }))} />
-            <Input placeholder="Nº pedido" value={nuevaActividad.numero_pedido} onChange={e => setNuevaActividad(p => ({ ...p, numero_pedido: e.target.value }))} />
-            <Button size="sm" onClick={handleAddActividad} disabled={!nuevaActividad.actividad.trim()} className="gap-1"><Plus className="h-4 w-4" /> Añadir</Button>
+            <div className="space-y-3">
+              <p className="text-sm font-semibold">Actividades a desarrollar</p>
+              {actividades.map((a: any, i: number) => (
+                <div key={a.id || i} className="flex items-center justify-between rounded-lg border border-border p-3">
+                  <div className="text-sm">
+                    <span className="font-medium">{a.actividad}</span>
+                    {a.numero_pedido && <span className="text-muted-foreground"> · Pedido: {a.numero_pedido}</span>}
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => handleDeleteActividad(documento ? a.id : i)}>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              ))}
+              <div className="grid grid-cols-3 gap-2">
+                <Input placeholder="Actividad" value={nuevaActividad.actividad} onChange={e => setNuevaActividad(p => ({ ...p, actividad: e.target.value }))} />
+                <Input placeholder="Nº pedido" value={nuevaActividad.numero_pedido} onChange={e => setNuevaActividad(p => ({ ...p, numero_pedido: e.target.value }))} />
+                <Button size="sm" onClick={handleAddActividad} disabled={!nuevaActividad.actividad.trim()} className="gap-1"><Plus className="h-4 w-4" /> Añadir</Button>
+              </div>
+            </div>
           </div>
-        </div>
+        </SectionCollapsible>
       )}
 
       {/* CAE: Empresas acceso */}

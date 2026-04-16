@@ -38,6 +38,7 @@ interface ConfigEmpresa {
   texto_acta_reunion_sys: string;
   texto_acta_nombramiento_cae: string;
   texto_acta_nombramiento_proyecto: string;
+  texto_cae_punto1: string;
 }
 
 const EMPTY_CONFIG: ConfigEmpresa = {
@@ -49,6 +50,7 @@ const EMPTY_CONFIG: ConfigEmpresa = {
   texto_acta_aprobacion_sys: '', texto_acta_aprobacion_dgpo: '',
   texto_acta_reunion_inicial: '', texto_acta_reunion_cae: '', texto_acta_reunion_sys: '',
   texto_acta_nombramiento_cae: '', texto_acta_nombramiento_proyecto: '',
+  texto_cae_punto1: '',
 };
 
 export default function AdminConfiguracion() {
@@ -310,9 +312,15 @@ export default function AdminConfiguracion() {
                 <AccordionTrigger>
                   <span className="flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> Acta Reunión CAE</span>
                 </AccordionTrigger>
-                <AccordionContent className="pt-2">
-                  <Label>Texto legal</Label>
-                  <RichTextEditor value={config.texto_acta_reunion_cae} onChange={v => update('texto_acta_reunion_cae', v)} placeholder="Texto legal para actas de reunión CAE..." />
+                <AccordionContent className="space-y-4 pt-2">
+                  <div>
+                    <Label>Punto 1 — Objetivo, alcance y ámbito de actuación</Label>
+                    <RichTextEditor value={config.texto_cae_punto1} onChange={v => update('texto_cae_punto1', v)} placeholder="En cumplimiento del RD 171/2004..." />
+                  </div>
+                  <div>
+                    <Label>Texto legal general</Label>
+                    <RichTextEditor value={config.texto_acta_reunion_cae} onChange={v => update('texto_acta_reunion_cae', v)} placeholder="Texto legal para actas de reunión CAE..." />
+                  </div>
                 </AccordionContent>
               </AccordionItem>
 
