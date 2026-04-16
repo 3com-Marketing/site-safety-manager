@@ -1,34 +1,18 @@
 
 
-# Plan: Texto fijo del Punto 1 en Configuración + tabla actividades en el formulario
+# Plan: Mover "Punto 1" dentro de las secciones ampliadas del Acta CAE
 
-## Resumen
+## Problema
 
-Añadir un campo específico en Configuración para el texto legal del Punto 1 del Acta Reunión CAE ("En cumplimiento del RD 171/2004..."), y en el formulario del documento mostrar ese texto seguido de la tabla de actividades que ya existe.
+La sección "1. Objetivo, alcance y ámbito de actuación" (texto legal + tabla actividades/nº pedido) está fuera del bloque "Secciones ampliadas del Acta CAE". El usuario quiere que aparezca como la primera sección colapsable dentro de ese bloque, igual que 3.1, 3.2, etc.
 
-## Cambios
+## Cambio
 
-### 1. Migración SQL
-Añadir columna `texto_cae_punto1` a `configuracion_empresa` para guardar el texto fijo del punto 1:
+**Archivo**: `src/components/documentos/formularios/FormActaReunion.tsx`
 
-```sql
-ALTER TABLE configuracion_empresa
-ADD COLUMN texto_cae_punto1 text NOT NULL DEFAULT '';
-```
+1. Eliminar el bloque `SectionCollapsible` del Punto 1 que está en las líneas 388-417 (fuera de las secciones ampliadas).
+2. Moverlo dentro del bloque "Secciones ampliadas del Acta CAE" (línea 469), como la primera `SectionCollapsible` antes de "3.1 — Empresas que intervienen".
+3. Se mantiene exactamente igual: RichTextEditor para el texto del punto 1 + tabla de actividades con columnas Actividad y Número de pedido.
 
-### 2. `AdminConfiguracion.tsx`
-Dentro del acordeón "Acta Reunión CAE", añadir un campo RichTextEditor etiquetado "Punto 1 — Objetivo, alcance y ámbito de actuación" para `texto_cae_punto1`. El campo `texto_acta_reunion_cae` existente se mantiene para el resto del texto legal general.
-
-### 3. `FormActaReunion.tsx`
-En la sección CAE del formulario, crear un bloque colapsable "1. Objetivo, alcance y ámbito de actuación" que:
-- Cargue y muestre el texto fijo desde configuración (`texto_cae_punto1`) como RichTextEditor editable (por si necesitan ajustarlo para esta acta concreta)
-- Debajo, muestre la tabla de "Actividades a desarrollar" con columnas **Actividad** y **Número de pedido** (ya existe, solo se reubica dentro de este bloque)
-
-### 4. Interfaz `ConfigEmpresa`
-Añadir `texto_cae_punto1: string` a la interfaz y al `EMPTY_CONFIG`.
-
-## Archivos afectados
-- **Migración SQL**: nueva columna en `configuracion_empresa`
-- **`src/pages/AdminConfiguracion.tsx`** — nuevo editor en el acordeón CAE
-- **`src/components/documentos/formularios/FormActaReunion.tsx`** — reorganizar actividades bajo sección "Punto 1" con texto precargado
+Solo es un reordenamiento visual — sin cambios en lógica ni en datos.
 
