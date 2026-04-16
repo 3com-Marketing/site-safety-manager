@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Save, Upload, Loader2, Building2, User, Landmark, CreditCard, FileText } from 'lucide-react';
+import { Save, Upload, Loader2, Building2, User, Landmark, CreditCard, FileText, BookOpen } from 'lucide-react';
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { Textarea } from '@/components/ui/textarea';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { toast } from 'sonner';
@@ -222,86 +223,110 @@ export default function AdminConfiguracion() {
             <div><Label>SWIFT / BIC</Label><Input value={config.swift_bic} onChange={e => update('swift_bic', e.target.value)} /></div>
           </CardContent>
         </Card>
-        {/* Textos legales por defecto */}
+        {/* Plantillas de Documentos */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <FileText className="h-4 w-4" /> Textos Legales por Defecto (Informes)
+              <BookOpen className="h-4 w-4" /> Plantillas de Documentos
             </CardTitle>
+            <p className="text-sm text-muted-foreground">Textos legales por defecto para cada tipo de documento. Se precargan al crear uno nuevo.</p>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label>Recomendaciones (sección 2 del informe)</Label>
-              <RichTextEditor
-                value={config.texto_recomendaciones}
-                onChange={v => update('texto_recomendaciones', v)}
-                placeholder="Texto legal de recomendaciones que se precargará en nuevos informes CSS/AT..."
-              />
-            </div>
-            <div>
-              <Label>Normativa aplicable (sección 11 del informe)</Label>
-              <RichTextEditor
-                value={config.texto_normativa}
-                onChange={v => update('texto_normativa', v)}
-                placeholder="Lista de normativa aplicable que se precargará en nuevos informes CSS/AT..."
-              />
-            </div>
-            <div>
-              <Label>Texto Acta Aprobación Plan SyS</Label>
-              <RichTextEditor
-                value={config.texto_acta_aprobacion_sys}
-                onChange={v => update('texto_acta_aprobacion_sys', v)}
-                placeholder="Texto legal por defecto para actas de aprobación del Plan de Seguridad y Salud..."
-              />
-            </div>
-            <div>
-              <Label>Texto Acta Aprobación DGPO</Label>
-              <RichTextEditor
-                value={config.texto_acta_aprobacion_dgpo}
-                onChange={v => update('texto_acta_aprobacion_dgpo', v)}
-                placeholder="Texto legal por defecto para actas de aprobación DGPO..."
-              />
-            </div>
-            <div>
-              <Label>Texto Acta Reunión Inicial</Label>
-              <RichTextEditor
-                value={config.texto_acta_reunion_inicial}
-                onChange={v => update('texto_acta_reunion_inicial', v)}
-                placeholder="Texto legal por defecto para actas de reunión inicial..."
-              />
-            </div>
-            <div>
-              <Label>Texto Acta Reunión CAE</Label>
-              <RichTextEditor
-                value={config.texto_acta_reunion_cae}
-                onChange={v => update('texto_acta_reunion_cae', v)}
-                placeholder="Texto legal por defecto para actas de reunión CAE..."
-              />
-            </div>
-            <div>
-              <Label>Texto Acta Reunión SyS</Label>
-              <RichTextEditor
-                value={config.texto_acta_reunion_sys}
-                onChange={v => update('texto_acta_reunion_sys', v)}
-                placeholder="Texto legal por defecto para actas de reunión de seguridad y salud..."
-              />
-            </div>
-            <div>
-              <Label>Texto Acta Nombramiento CAE</Label>
-              <RichTextEditor
-                value={config.texto_acta_nombramiento_cae}
-                onChange={v => update('texto_acta_nombramiento_cae', v)}
-                placeholder="Texto legal por defecto para actas de nombramiento CAE..."
-              />
-            </div>
-            <div>
-              <Label>Texto Acta Nombramiento Con Proyecto</Label>
-              <RichTextEditor
-                value={config.texto_acta_nombramiento_proyecto}
-                onChange={v => update('texto_acta_nombramiento_proyecto', v)}
-                placeholder="Texto legal por defecto para actas de nombramiento con proyecto..."
-              />
-            </div>
+          <CardContent>
+            <Accordion type="multiple" className="w-full">
+              {/* Informe CSS / AT */}
+              <AccordionItem value="informe-css">
+                <AccordionTrigger>
+                  <span className="flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> Informe CSS / AT</span>
+                </AccordionTrigger>
+                <AccordionContent className="space-y-4 pt-2">
+                  <div>
+                    <Label>Recomendaciones (sección 2)</Label>
+                    <RichTextEditor value={config.texto_recomendaciones} onChange={v => update('texto_recomendaciones', v)} placeholder="Texto de recomendaciones..." />
+                  </div>
+                  <div>
+                    <Label>Normativa aplicable (sección 11)</Label>
+                    <RichTextEditor value={config.texto_normativa} onChange={v => update('texto_normativa', v)} placeholder="Lista de normativa aplicable..." />
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Acta Nombramiento CAE */}
+              <AccordionItem value="acta-nombramiento-cae">
+                <AccordionTrigger>
+                  <span className="flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> Acta Nombramiento CAE</span>
+                </AccordionTrigger>
+                <AccordionContent className="pt-2">
+                  <Label>Texto legal</Label>
+                  <RichTextEditor value={config.texto_acta_nombramiento_cae} onChange={v => update('texto_acta_nombramiento_cae', v)} placeholder="Texto legal para actas de nombramiento CAE..." />
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Acta Nombramiento con Proyecto */}
+              <AccordionItem value="acta-nombramiento-proyecto">
+                <AccordionTrigger>
+                  <span className="flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> Acta Nombramiento con Proyecto</span>
+                </AccordionTrigger>
+                <AccordionContent className="pt-2">
+                  <Label>Texto legal</Label>
+                  <RichTextEditor value={config.texto_acta_nombramiento_proyecto} onChange={v => update('texto_acta_nombramiento_proyecto', v)} placeholder="Texto legal para actas de nombramiento con proyecto..." />
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Acta Aprobación Plan SyS */}
+              <AccordionItem value="acta-aprobacion-sys">
+                <AccordionTrigger>
+                  <span className="flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> Acta Aprobación Plan SyS</span>
+                </AccordionTrigger>
+                <AccordionContent className="pt-2">
+                  <Label>Texto legal</Label>
+                  <RichTextEditor value={config.texto_acta_aprobacion_sys} onChange={v => update('texto_acta_aprobacion_sys', v)} placeholder="Texto legal para actas de aprobación del Plan SyS..." />
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Acta Aprobación DGPO */}
+              <AccordionItem value="acta-aprobacion-dgpo">
+                <AccordionTrigger>
+                  <span className="flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> Acta Aprobación DGPO</span>
+                </AccordionTrigger>
+                <AccordionContent className="pt-2">
+                  <Label>Texto legal</Label>
+                  <RichTextEditor value={config.texto_acta_aprobacion_dgpo} onChange={v => update('texto_acta_aprobacion_dgpo', v)} placeholder="Texto legal para actas de aprobación DGPO..." />
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Acta Reunión Inicial */}
+              <AccordionItem value="acta-reunion-inicial">
+                <AccordionTrigger>
+                  <span className="flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> Acta Reunión Inicial</span>
+                </AccordionTrigger>
+                <AccordionContent className="pt-2">
+                  <Label>Texto legal</Label>
+                  <RichTextEditor value={config.texto_acta_reunion_inicial} onChange={v => update('texto_acta_reunion_inicial', v)} placeholder="Texto legal para actas de reunión inicial..." />
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Acta Reunión CAE */}
+              <AccordionItem value="acta-reunion-cae">
+                <AccordionTrigger>
+                  <span className="flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> Acta Reunión CAE</span>
+                </AccordionTrigger>
+                <AccordionContent className="pt-2">
+                  <Label>Texto legal</Label>
+                  <RichTextEditor value={config.texto_acta_reunion_cae} onChange={v => update('texto_acta_reunion_cae', v)} placeholder="Texto legal para actas de reunión CAE..." />
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Acta Reunión SyS */}
+              <AccordionItem value="acta-reunion-sys">
+                <AccordionTrigger>
+                  <span className="flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> Acta Reunión SyS</span>
+                </AccordionTrigger>
+                <AccordionContent className="pt-2">
+                  <Label>Texto legal</Label>
+                  <RichTextEditor value={config.texto_acta_reunion_sys} onChange={v => update('texto_acta_reunion_sys', v)} placeholder="Texto legal para actas de reunión SyS..." />
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </CardContent>
         </Card>
       </div>
