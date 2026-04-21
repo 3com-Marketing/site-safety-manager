@@ -466,6 +466,70 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
             </div>
           </SectionCollapsible>
 
+          {/* 2. Intercambio de documentación */}
+          <SectionCollapsible title="2. Intercambio de documentación">
+            <div className="space-y-4">
+              <div>
+                <Label>Texto legal del punto 2</Label>
+                <RichTextEditor value={textoPunto2} onChange={setTextoPunto2} placeholder="Texto sobre intercambio de documentación..." />
+              </div>
+
+              {/* Empresas con acceso a obra */}
+              <div className="space-y-3">
+                <p className="text-sm font-semibold">Empresas con acceso a obra</p>
+                {empresas.map((e: any, i: number) => (
+                  <div key={e.id || i} className="flex items-center justify-between rounded-lg border border-border p-3">
+                    <div className="text-sm">
+                      <span className="font-medium">{e.empresa}</span>
+                      {e.persona_contacto && <span className="text-muted-foreground"> · {e.persona_contacto}</span>}
+                      {e.email_referencia && <span className="text-muted-foreground"> · {e.email_referencia}</span>}
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => handleDeleteEmpresa(documento ? e.id : i)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+                <div className="grid grid-cols-4 gap-2">
+                  <Input placeholder="Empresa" value={nuevaEmpresa.empresa} onChange={e => setNuevaEmpresa(p => ({ ...p, empresa: e.target.value }))} />
+                  <Input placeholder="Contacto" value={nuevaEmpresa.persona_contacto} onChange={e => setNuevaEmpresa(p => ({ ...p, persona_contacto: e.target.value }))} />
+                  <Input placeholder="Email" value={nuevaEmpresa.email_referencia} onChange={e => setNuevaEmpresa(p => ({ ...p, email_referencia: e.target.value }))} />
+                  <Button size="sm" onClick={handleAddEmpresa} disabled={!nuevaEmpresa.empresa.trim()} className="gap-1"><Plus className="h-4 w-4" /> Añadir</Button>
+                </div>
+              </div>
+
+              {/* Documentación requerida */}
+              <div className="space-y-3">
+                <p className="text-sm font-semibold">Documentación a intercambiar</p>
+                <label className="flex items-start gap-2 text-sm">
+                  <Checkbox checked={docChecks.preventiva} onCheckedChange={(v) => setDocChecks(p => ({ ...p, preventiva: !!v }))} className="mt-0.5" />
+                  La documentación completa en materia preventiva y administrativa de Empresa y Trabajadores
+                </label>
+                <label className="flex items-start gap-2 text-sm">
+                  <Checkbox checked={docChecks.trabajadores} onCheckedChange={(v) => setDocChecks(p => ({ ...p, trabajadores: !!v }))} className="mt-0.5" />
+                  La relación nominal completa de trabajadores (Nombre, Apellidos, N.I.F. ó Pasaporte o N.I.E.)
+                </label>
+                <label className="flex items-start gap-2 text-sm">
+                  <Checkbox checked={docChecks.maquinaria} onCheckedChange={(v) => setDocChecks(p => ({ ...p, maquinaria: !!v }))} className="mt-0.5" />
+                  La relación completa de maquinaria, medios auxiliares y/o productos químicos, si procede
+                </label>
+                <label className="flex items-start gap-2 text-sm">
+                  <Checkbox checked={docChecks.trabajos} onCheckedChange={(v) => setDocChecks(p => ({ ...p, trabajos: !!v }))} className="mt-0.5" />
+                  La relación de los trabajos a realizar (tipología o zona de afectación)
+                </label>
+                <div className="flex items-center gap-4 pt-1">
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox checked={punto2NoProcede} onCheckedChange={(v) => setPunto2NoProcede(!!v)} />
+                    No procede
+                  </label>
+                </div>
+                <div className="space-y-1">
+                  <Label>Otros</Label>
+                  <Input value={punto2Otros} onChange={e => setPunto2Otros(e.target.value)} placeholder="Especificar..." />
+                </div>
+              </div>
+            </div>
+          </SectionCollapsible>
+
           {/* 3.1 Empresas que intervienen */}
           <SectionCollapsible title="3.1 — Empresas que intervienen en la obra">
             {empresasIntervienen.map((e, i) => (
