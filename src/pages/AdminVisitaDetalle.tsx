@@ -107,41 +107,6 @@ export default function AdminVisitaDetalle() {
       <FotoViewer
         url={fotoUrl}
         onClose={() => { setFotoUrl(null); setFotoMeta(null); }}
-        editable
-        visitaId={id}
-        onSave={async (newUrl) => {
-          if (fotoMeta) {
-            const { error } = await supabase.from(fotoMeta.table as any).update({ [fotoMeta.column]: newUrl }).eq('id', fotoMeta.id);
-            if (error) {
-              console.error('Error updating photo URL:', error);
-              toast.error('Error al guardar la foto editada');
-              throw error;
-            }
-            setFotoUrl(null);
-            setFotoMeta(null);
-            // re-fetch
-            const fetchData = async () => {
-              if (!id) return;
-              const { data: vis } = await supabase.from('visitas').select('id, estado, fecha, fecha_fin, lat_inicio, lng_inicio, lat_fin, lng_fin, obras(nombre, latitud, longitud), profiles!visitas_usuario_id_profiles_fkey(nombre)').eq('id', id).single();
-              if (vis) setVisita(vis);
-              const { data: inf } = await supabase.from('informes').select('id, estado, fecha, num_trabajadores, condiciones_climaticas, empresas_presentes, notas_generales').eq('visita_id', id).single();
-              if (inf) {
-                setInforme(inf);
-                const [incsRes, checkRes, amonRes, obsRes] = await Promise.all([
-                  supabase.from('incidencias').select('id, titulo, descripcion, categoria, normativa, fotos(id, url, created_at)').eq('informe_id', inf.id).order('orden'),
-                  supabase.from('checklist_bloques').select('categoria, estado, anotaciones(id, texto, normativa, foto_url, created_at)').eq('informe_id', inf.id).order('created_at'),
-                  supabase.from('amonestaciones').select('*').eq('informe_id', inf.id).order('created_at'),
-                  supabase.from('observaciones').select('*').eq('informe_id', inf.id).order('created_at'),
-                ]);
-                setIncidencias((incsRes.data || []).map((i: any) => ({ ...i, fotos: i.fotos || [] })));
-                setChecklist(checkRes.data || []);
-                setAmonestaciones(amonRes.data || []);
-                setObservaciones(obsRes.data || []);
-              }
-            };
-            fetchData();
-          }
-        }}
       />
       
       <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-card px-6 py-4">
