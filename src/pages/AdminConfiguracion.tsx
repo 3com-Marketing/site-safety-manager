@@ -372,6 +372,14 @@ export default function AdminConfiguracion() {
                     <Label>Punto 9 — Protecciones Individuales</Label>
                     <RichTextEditor value={config.texto_cae_punto9} onChange={v => update('texto_cae_punto9', v)} placeholder="Texto legal sobre protecciones individuales..." />
                   </div>
+                  <div>
+                    <Label>Punto 10 — Interferencias entre empresas (texto legal)</Label>
+                    <RichTextEditor value={config.texto_cae_punto10} onChange={v => update('texto_cae_punto10', v)} placeholder="Texto legal sobre interferencias entre empresas..." />
+                  </div>
+                  <div>
+                    <Label>Punto 10 — Texto cuando SÍ procede</Label>
+                    <RichTextEditor value={config.texto_cae_punto10_procede} onChange={v => update('texto_cae_punto10_procede', v)} placeholder="Medidas a aplicar cuando sí proceden interferencias..." />
+                  </div>
                 </AccordionContent>
               </AccordionItem>
 
