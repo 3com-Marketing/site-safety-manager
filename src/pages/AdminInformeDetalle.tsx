@@ -493,9 +493,7 @@ export default function AdminInformeDetalle() {
             <h2 className="font-heading text-lg font-semibold">Amonestaciones ({amonestaciones.length})</h2>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-3 mt-3">
-            {amonestaciones.length === 0 ? (
-              <p className="text-sm text-muted-foreground italic">Sin amonestaciones</p>
-            ) : amonestaciones.map((a: any) => {
+            {amonestaciones.map((a: any) => {
               const edited = editedAmonestaciones[a.id];
               return (
                 <div key={a.id} className="rounded-xl border border-border bg-card p-4 space-y-2">
@@ -524,9 +522,27 @@ export default function AdminInformeDetalle() {
                       <span className="whitespace-pre-line">{a.normativa}</span>
                     </div>
                   )}
-                </div>
-              );
+             );
             })}
+            {/* Formulario nueva amonestación */}
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 p-4 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Nueva amonestación</p>
+              <Input
+                value={newAmonestacion.trabajador}
+                onChange={e => setNewAmonestacion(prev => ({ ...prev, trabajador: e.target.value }))}
+                className="h-8 text-sm font-semibold"
+                placeholder="Nombre del trabajador"
+              />
+              <Textarea
+                value={newAmonestacion.descripcion}
+                onChange={e => setNewAmonestacion(prev => ({ ...prev, descripcion: e.target.value }))}
+                className="text-sm min-h-[60px]"
+                placeholder="Descripción..."
+              />
+              <Button onClick={addAmonestacion} size="sm" disabled={!newAmonestacion.trabajador.trim()}>
+                Añadir amonestación
+              </Button>
+            </div>
           </CollapsibleContent>
         </Collapsible>
 
