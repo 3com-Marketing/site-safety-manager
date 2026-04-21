@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Mic, MicOff, Sparkles, Loader2, Save } from 'lucide-react';
+import { ArrowLeft, Mic, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { useVoiceNote } from '@/hooks/useVoiceNote';
 import VoiceNoteDialog from './VoiceNoteDialog';
@@ -111,8 +111,9 @@ export default function SeccionDatosGenerales({ informeId, onBack }: Props) {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label className="font-heading text-sm font-semibold">Condiciones climáticas</Label>
-            <button onClick={() => openVoiceForField('condiciones')} className="flex items-center gap-1 text-xs text-primary font-medium">
-              🎤 Voz
+            <button onClick={() => openVoiceForField('condiciones')} className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold min-h-[44px] min-w-[44px] active:bg-primary/20 transition-colors">
+              <Mic className="h-4 w-4" />
+              Voz
             </button>
           </div>
           <Textarea
@@ -127,8 +128,9 @@ export default function SeccionDatosGenerales({ informeId, onBack }: Props) {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label className="font-heading text-sm font-semibold">Empresas presentes</Label>
-            <button onClick={() => openVoiceForField('empresas')} className="flex items-center gap-1 text-xs text-primary font-medium">
-              🎤 Voz
+            <button onClick={() => openVoiceForField('empresas')} className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold min-h-[44px] min-w-[44px] active:bg-primary/20 transition-colors">
+              <Mic className="h-4 w-4" />
+              Voz
             </button>
           </div>
           <Textarea
@@ -143,8 +145,9 @@ export default function SeccionDatosGenerales({ informeId, onBack }: Props) {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label className="font-heading text-sm font-semibold">Notas generales</Label>
-            <button onClick={() => openVoiceForField('notas')} className="flex items-center gap-1 text-xs text-primary font-medium">
-              🎤 Voz
+            <button onClick={() => openVoiceForField('notas')} className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold min-h-[44px] min-w-[44px] active:bg-primary/20 transition-colors">
+              <Mic className="h-4 w-4" />
+              Voz
             </button>
           </div>
           <Textarea
