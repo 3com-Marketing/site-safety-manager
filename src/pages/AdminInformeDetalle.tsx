@@ -39,7 +39,12 @@ export default function AdminInformeDetalle() {
   const [observaciones, setObservaciones] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editedFields, setEditedFields] = useState<Record<string, { titulo: string; descripcion: string }>>({});
-  const [editedInforme, setEditedInforme] = useState<Record<string, any>>({});
+  const [editedInforme, setEditedInforme] = useState<Partial<{
+    num_trabajadores: number | null;
+    condiciones_climaticas: string;
+    empresas_presentes: string;
+    notas_generales: string;
+  }>>({});
   const [editedAmonestaciones, setEditedAmonestaciones] = useState<Record<string, { trabajador: string; descripcion: string }>>({});
   const [editedObservaciones, setEditedObservaciones] = useState<Record<string, { texto: string }>>({});
   const [saving, setSaving] = useState(false);
