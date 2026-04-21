@@ -51,6 +51,11 @@ export default function AdminInformeDetalle() {
   const [saving, setSaving] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
 
+  // New item forms
+  const [newIncidencia, setNewIncidencia] = useState({ titulo: '', descripcion: '' });
+  const [newAmonestacion, setNewAmonestacion] = useState({ trabajador: '', descripcion: '' });
+  const [newObservacion, setNewObservacion] = useState({ texto: '' });
+
   const fetchData = async () => {
     if (!id) return;
 
@@ -167,6 +172,43 @@ export default function AdminInformeDetalle() {
     if (!id) return;
     await supabase.from('informes').update({ estado: 'cerrado' }).eq('id', id);
     toast.success('Informe marcado como revisado');
+    await fetchData();
+  };
+
+  const addIncidencia = async () => {
+    if (!id || !newIncidencia.titulo.trim()) return;
+    await supabase.from('incidencias').insert({
+      informe_id: id,
+      titulo: newIncidencia.titulo,
+      descripcion: newIncidencia.descripcion,
+      categoria: 'general',
+      orden: incidencias.length,
+    });
+    setNewIncidencia({ titulo: '', descripcion: '' });
+    toast.success('Incidencia añadida');
+    await fetchData();
+  };
+
+  const addAmonestacion = async () => {
+    if (!id || !newAmonestacion.trabajador.trim()) return;
+    await supabase.from('amonestaciones').insert({
+      informe_id: id,
+      trabajador: newAmonestacion.trabajador,
+      descripcion: newAmonestacion.descripcion,
+    });
+    setNewAmonestacion({ trabajador: '', descripcion: '' });
+    toast.success('Amonestación añadida');
+    await fetchData();
+  };
+
+  const addObservacion = async () => {
+    if (!id || !newObservacion.texto.trim()) return;
+    await supabase.from('observaciones').insert({
+      informe_id: id,
+      texto: newObservacion.texto,
+    });
+    setNewObservacion({ texto: '' });
+    toast.success('Observación añadida');
     await fetchData();
   };
 
@@ -422,6 +464,25 @@ export default function AdminInformeDetalle() {
                 </div>
               );
             })}
+            {/* Formulario nueva incidencia */}
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 p-5 space-y-3">
+              <p className="text-xs font-medium text-muted-foreground">Nueva incidencia</p>
+              <Input
+                value={newIncidencia.titulo}
+                onChange={e => setNewIncidencia(prev => ({ ...prev, titulo: e.target.value }))}
+                className="font-heading font-semibold text-sm"
+                placeholder="Título..."
+              />
+              <Textarea
+                value={newIncidencia.descripcion}
+                onChange={e => setNewIncidencia(prev => ({ ...prev, descripcion: e.target.value }))}
+                className="text-sm min-h-[60px]"
+                placeholder="Descripción..."
+              />
+              <Button onClick={addIncidencia} size="sm" disabled={!newIncidencia.titulo.trim()}>
+                Añadir incidencia
+              </Button>
+            </div>
           </CollapsibleContent>
         </Collapsible>
 
@@ -432,9 +493,7 @@ export default function AdminInformeDetalle() {
             <h2 className="font-heading text-lg font-semibold">Amonestaciones ({amonestaciones.length})</h2>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-3 mt-3">
-            {amonestaciones.length === 0 ? (
-              <p className="text-sm text-muted-foreground italic">Sin amonestaciones</p>
-            ) : amonestaciones.map((a: any) => {
+            {amonestaciones.map((a: any) => {
               const edited = editedAmonestaciones[a.id];
               return (
                 <div key={a.id} className="rounded-xl border border-border bg-card p-4 space-y-2">
@@ -466,6 +525,25 @@ export default function AdminInformeDetalle() {
                 </div>
               );
             })}
+            {/* Formulario nueva amonestación */}
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 p-4 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Nueva amonestación</p>
+              <Input
+                value={newAmonestacion.trabajador}
+                onChange={e => setNewAmonestacion(prev => ({ ...prev, trabajador: e.target.value }))}
+                className="h-8 text-sm font-semibold"
+                placeholder="Nombre del trabajador"
+              />
+              <Textarea
+                value={newAmonestacion.descripcion}
+                onChange={e => setNewAmonestacion(prev => ({ ...prev, descripcion: e.target.value }))}
+                className="text-sm min-h-[60px]"
+                placeholder="Descripción..."
+              />
+              <Button onClick={addAmonestacion} size="sm" disabled={!newAmonestacion.trabajador.trim()}>
+                Añadir amonestación
+              </Button>
+            </div>
           </CollapsibleContent>
         </Collapsible>
 
@@ -476,9 +554,7 @@ export default function AdminInformeDetalle() {
             <h2 className="font-heading text-lg font-semibold">Observaciones ({observaciones.length})</h2>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-3 mt-3">
-            {observaciones.length === 0 ? (
-              <p className="text-sm text-muted-foreground italic">Sin observaciones</p>
-            ) : observaciones.map((obs: any) => {
+            {observaciones.map((obs: any) => {
               const edited = editedObservaciones[obs.id];
               return (
                 <div key={obs.id} className="rounded-xl border border-border bg-card p-4 space-y-2">
@@ -498,6 +574,19 @@ export default function AdminInformeDetalle() {
                 </div>
               );
             })}
+            {/* Formulario nueva observación */}
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 p-4 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Nueva observación</p>
+              <Textarea
+                value={newObservacion.texto}
+                onChange={e => setNewObservacion({ texto: e.target.value })}
+                className="text-sm min-h-[60px]"
+                placeholder="Texto de la observación..."
+              />
+              <Button onClick={addObservacion} size="sm" disabled={!newObservacion.texto.trim()}>
+                Añadir observación
+              </Button>
+            </div>
           </CollapsibleContent>
         </Collapsible>
       </div>
