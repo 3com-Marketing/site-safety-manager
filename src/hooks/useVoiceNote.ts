@@ -28,19 +28,18 @@ export function useVoiceNote(categoriaLabel: string) {
     recognition.continuous = true;
     recognition.interimResults = true;
 
-    let finalTranscript = '';
-
     recognition.onresult = (event: any) => {
+      let final = '';
       let interim = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
+      for (let i = 0; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
-          finalTranscript += transcript + ' ';
+          final += transcript + ' ';
         } else {
           interim = transcript;
         }
       }
-      setRawTranscript(finalTranscript + interim);
+      setRawTranscript(final + interim);
     };
 
     recognition.onerror = (event: any) => {
