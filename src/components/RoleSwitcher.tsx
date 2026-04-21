@@ -1,12 +1,8 @@
 import { useAuth } from '@/lib/auth';
-import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
 import { Shield, HardHat } from 'lucide-react';
 
 export default function RoleSwitcher() {
-  const { role, roles, switchRole } = useAuth();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const { role, roles } = useAuth();
 
   if (roles.length <= 1) return null;
 
@@ -14,9 +10,8 @@ export default function RoleSwitcher() {
   const isAdmin = role === 'admin';
 
   const handleSwitch = () => {
-    queryClient.clear();
-    switchRole(nextRole);
-    navigate(nextRole === 'admin' ? '/admin' : '/', { replace: true });
+    localStorage.setItem('preferred_role', nextRole);
+    window.location.href = nextRole === 'admin' ? '/admin' : '/';
   };
 
   return (
