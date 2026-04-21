@@ -134,6 +134,15 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       setTextoLegal(extra.texto_legal || '');
       setMesReunion(extra.mes_reunion || '');
       setTextoPunto1(extra.texto_punto1 || '');
+      setTextoPunto2(extra.texto_punto2 || '');
+      setDocChecks({
+        preventiva: extra.punto2_doc_preventiva || false,
+        trabajadores: extra.punto2_doc_trabajadores || false,
+        maquinaria: extra.punto2_doc_maquinaria || false,
+        trabajos: extra.punto2_doc_trabajos || false,
+      });
+      setPunto2NoProcede(extra.punto2_no_procede || false);
+      setPunto2Otros(extra.punto2_otros || '');
       setRiesgos(extra.riesgos || []);
       setOtrosRiesgos(extra.otros_riesgos || '');
       setPlataformaCAE(extra.plataforma_cae || 'metacontratas');
