@@ -49,6 +49,8 @@ interface ConfigEmpresa {
   texto_cae_punto9: string;
   texto_cae_punto10: string;
   texto_cae_punto10_procede: string;
+  texto_cae_punto13: string;
+  texto_cae_punto13_procede: string;
 }
 
 const EMPTY_CONFIG: ConfigEmpresa = {
@@ -70,6 +72,8 @@ const EMPTY_CONFIG: ConfigEmpresa = {
   texto_cae_punto9: '',
   texto_cae_punto10: '',
   texto_cae_punto10_procede: '',
+  texto_cae_punto13: '',
+  texto_cae_punto13_procede: '',
 };
 
 export default function AdminConfiguracion() {
@@ -379,6 +383,14 @@ export default function AdminConfiguracion() {
                   <div>
                     <Label>Punto 10 — Texto cuando SÍ procede</Label>
                     <RichTextEditor value={config.texto_cae_punto10_procede} onChange={v => update('texto_cae_punto10_procede', v)} placeholder="Medidas a aplicar cuando sí proceden interferencias..." />
+                  </div>
+                  <div>
+                    <Label>Punto 13 — Ruegos y sugerencias (texto introductorio)</Label>
+                    <RichTextEditor value={config.texto_cae_punto13} onChange={v => update('texto_cae_punto13', v)} placeholder="Los asistentes comunican su total intención de realizar las tareas..." />
+                  </div>
+                  <div>
+                    <Label>Punto 13 — Texto cuando SÍ procede</Label>
+                    <RichTextEditor value={config.texto_cae_punto13_procede} onChange={v => update('texto_cae_punto13_procede', v)} placeholder="Se les recuerda en cada visita semanal al centro de trabajo..." />
                   </div>
                 </AccordionContent>
               </AccordionItem>

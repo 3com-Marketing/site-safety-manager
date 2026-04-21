@@ -98,8 +98,9 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   const [interferenciasTercerosTexto, setInterferenciasTercerosTexto] = useState('');
   const [medioAmbienteAplica, setMedioAmbienteAplica] = useState(false);
   const [medioAmbienteTexto, setMedioAmbienteTexto] = useState('');
-  const [ruegosAplica, setRuegosAplica] = useState(false);
-  const [ruegosTexto, setRuegosTexto] = useState('');
+  const [textoPunto13, setTextoPunto13] = useState('');
+  const [punto13Procede, setPunto13Procede] = useState<'no_procede' | 'si_procede'>('no_procede');
+  const [punto13TextoProcede, setPunto13TextoProcede] = useState('');
 
   // Local arrays for creation mode
   const [localAsistentes, setLocalAsistentes] = useState<Array<{ nombre: string; apellidos: string; cargo: string; empresa: string; dni_nie: string }>>([]);
@@ -119,7 +120,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       const configField = TIPO_TO_CONFIG_FIELD[tipoActual];
       const fieldsToLoad = configField ? [configField] : [];
       if (tipoActual === 'acta_reunion_cae') {
-        fieldsToLoad.push('texto_cae_punto1', 'texto_cae_punto2', 'texto_cae_punto2_bloque2', 'texto_recurso_preventivo', 'texto_acuerdos_generales', 'texto_cae_punto6', 'texto_cae_punto7', 'texto_cae_punto8', 'texto_cae_punto9', 'texto_cae_punto10', 'texto_cae_punto10_procede');
+        fieldsToLoad.push('texto_cae_punto1', 'texto_cae_punto2', 'texto_cae_punto2_bloque2', 'texto_recurso_preventivo', 'texto_acuerdos_generales', 'texto_cae_punto6', 'texto_cae_punto7', 'texto_cae_punto8', 'texto_cae_punto9', 'texto_cae_punto10', 'texto_cae_punto10_procede', 'texto_cae_punto13', 'texto_cae_punto13_procede');
       }
       if (fieldsToLoad.length > 0) {
         supabase.from('configuracion_empresa').select(fieldsToLoad.join(',')).limit(1).single().then(({ data }) => {
@@ -136,6 +137,8 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
             if ((data as any).texto_cae_punto9) setTextoPunto9((data as any).texto_cae_punto9);
             if ((data as any).texto_cae_punto10) setTextoPunto10((data as any).texto_cae_punto10);
             if ((data as any).texto_cae_punto10_procede) setPunto10TextoProcede((data as any).texto_cae_punto10_procede);
+            if ((data as any).texto_cae_punto13) setTextoPunto13((data as any).texto_cae_punto13);
+            if ((data as any).texto_cae_punto13_procede) setPunto13TextoProcede((data as any).texto_cae_punto13_procede);
           }
         });
       }
@@ -183,8 +186,9 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       setInterferenciasTercerosTexto(extra.interferencias_terceros_texto || '');
       setMedioAmbienteAplica(extra.medio_ambiente_aplica || false);
       setMedioAmbienteTexto(extra.medio_ambiente_texto || '');
-      setRuegosAplica(extra.ruegos_aplica || false);
-      setRuegosTexto(extra.ruegos_texto || '');
+      setTextoPunto13(extra.texto_punto13 || '');
+      setPunto13Procede(extra.punto13_procede || 'no_procede');
+      setPunto13TextoProcede(extra.punto13_texto_procede || '');
     } else if (defaultValues) {
       setObraActuacion(defaultValues.nombre_obra || '');
       setLocalidad(defaultValues.direccion_obra || '');
@@ -341,8 +345,9 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       datosExtra.interferencias_terceros_texto = interferenciasTercerosTexto;
       datosExtra.medio_ambiente_aplica = medioAmbienteAplica;
       datosExtra.medio_ambiente_texto = medioAmbienteTexto;
-      datosExtra.ruegos_aplica = ruegosAplica;
-      datosExtra.ruegos_texto = ruegosTexto;
+      datosExtra.texto_punto13 = textoPunto13;
+      datosExtra.punto13_procede = punto13Procede;
+      datosExtra.punto13_texto_procede = punto13TextoProcede;
     }
     if (isSYS) {
       datosExtra.numero_acta = numeroActa;
@@ -743,12 +748,41 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
 
           {/* 13. Ruegos y sugerencias */}
           <SectionCollapsible title="13 — Ruegos y sugerencias">
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox checked={ruegosAplica} onCheckedChange={(v) => setRuegosAplica(!!v)} />
-              ¿Hay ruegos o sugerencias?
-            </label>
-            {ruegosAplica && (
-              <Textarea value={ruegosTexto} onChange={e => setRuegosTexto(e.target.value)} rows={3} placeholder="Indicar ruegos y sugerencias..." />
+            <RichTextEditor
+              value={textoPunto13}
+              onChange={setTextoPunto13}
+              placeholder="Los asistentes comunican su total intención de realizar las tareas..."
+            />
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">¿Procede?</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={punto13Procede === 'no_procede' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setPunto13Procede('no_procede')}
+                >
+                  NO PROCEDE
+                </Button>
+                <Button
+                  type="button"
+                  variant={punto13Procede === 'si_procede' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setPunto13Procede('si_procede')}
+                >
+                  SÍ PROCEDE
+                </Button>
+              </div>
+            </div>
+            {punto13Procede === 'si_procede' && (
+              <div className="rounded-lg border-2 border-green-300 bg-green-50 p-3 space-y-2">
+                <Label className="text-sm font-medium text-green-800">Indicaciones</Label>
+                <RichTextEditor
+                  value={punto13TextoProcede}
+                  onChange={setPunto13TextoProcede}
+                  placeholder="Se les recuerda en cada visita semanal al centro de trabajo..."
+                />
+              </div>
             )}
           </SectionCollapsible>
         </div>
