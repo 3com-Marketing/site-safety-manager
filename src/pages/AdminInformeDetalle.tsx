@@ -554,9 +554,7 @@ export default function AdminInformeDetalle() {
             <h2 className="font-heading text-lg font-semibold">Observaciones ({observaciones.length})</h2>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-3 mt-3">
-            {observaciones.length === 0 ? (
-              <p className="text-sm text-muted-foreground italic">Sin observaciones</p>
-            ) : observaciones.map((obs: any) => {
+            {observaciones.map((obs: any) => {
               const edited = editedObservaciones[obs.id];
               return (
                 <div key={obs.id} className="rounded-xl border border-border bg-card p-4 space-y-2">
@@ -576,6 +574,19 @@ export default function AdminInformeDetalle() {
                 </div>
               );
             })}
+            {/* Formulario nueva observación */}
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 p-4 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Nueva observación</p>
+              <Textarea
+                value={newObservacion.texto}
+                onChange={e => setNewObservacion({ texto: e.target.value })}
+                className="text-sm min-h-[60px]"
+                placeholder="Texto de la observación..."
+              />
+              <Button onClick={addObservacion} size="sm" disabled={!newObservacion.texto.trim()}>
+                Añadir observación
+              </Button>
+            </div>
           </CollapsibleContent>
         </Collapsible>
       </div>
