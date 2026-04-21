@@ -408,29 +408,6 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
         <Textarea value={excusados} onChange={e => setExcusados(e.target.value)} rows={2} />
       </div>
 
-      {/* CAE: Empresas acceso */}
-      {isCAE && (
-        <div className="space-y-3 pt-2">
-          <p className="text-sm font-semibold">Empresas con acceso a obra</p>
-          {empresas.map((e: any, i: number) => (
-            <div key={e.id || i} className="flex items-center justify-between rounded-lg border border-border p-3">
-              <div className="text-sm">
-                <span className="font-medium">{e.empresa}</span>
-                {e.persona_contacto && <span className="text-muted-foreground"> · {e.persona_contacto}</span>}
-              </div>
-              <Button variant="ghost" size="icon" onClick={() => handleDeleteEmpresa(documento ? e.id : i)}>
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            </div>
-          ))}
-          <div className="grid grid-cols-4 gap-2">
-            <Input placeholder="Empresa" value={nuevaEmpresa.empresa} onChange={e => setNuevaEmpresa(p => ({ ...p, empresa: e.target.value }))} />
-            <Input placeholder="Contacto" value={nuevaEmpresa.persona_contacto} onChange={e => setNuevaEmpresa(p => ({ ...p, persona_contacto: e.target.value }))} />
-            <Input placeholder="Email" value={nuevaEmpresa.email_referencia} onChange={e => setNuevaEmpresa(p => ({ ...p, email_referencia: e.target.value }))} />
-            <Button size="sm" onClick={handleAddEmpresa} disabled={!nuevaEmpresa.empresa.trim()} className="gap-1"><Plus className="h-4 w-4" /> Añadir</Button>
-          </div>
-        </div>
-      )}
 
       {/* CAE: Riesgos */}
       {isCAE && (
