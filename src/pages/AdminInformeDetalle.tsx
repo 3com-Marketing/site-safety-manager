@@ -202,6 +202,30 @@ export default function AdminInformeDetalle() {
     setGeneratingPdf(false);
   };
 
+  const mergeAnotaciones = (anotaciones: any[]) => {
+    const merged: any[] = [];
+    let i = 0;
+    while (i < anotaciones.length) {
+      const current = anotaciones[i];
+      const next = anotaciones[i + 1];
+      if (current.foto_url && !current.texto && !current.normativa
+          && next && !next.foto_url && (next.texto || next.normativa)) {
+        merged.push({
+          id: next.id,
+          foto_id: current.id,
+          foto_url: current.foto_url,
+          texto: next.texto,
+          normativa: next.normativa,
+        });
+        i += 2;
+      } else {
+        merged.push(current);
+        i += 1;
+      }
+    }
+    return merged;
+  };
+
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center bg-background"><p className="text-muted-foreground">Cargando...</p></div>;
   }
@@ -319,7 +343,7 @@ export default function AdminInformeDetalle() {
                 <h3 className="text-sm font-semibold">{CATEGORIAS[bloque.categoria] || bloque.categoria}</h3>
                 {(!bloque.anotaciones || bloque.anotaciones.length === 0) ? (
                   <p className="text-xs text-muted-foreground italic">Sin anotaciones</p>
-                ) : bloque.anotaciones.map((a: any) => {
+                ) : mergeAnotaciones(bloque.anotaciones).map((a: any) => {
                     const editedAnot = editedAnotaciones[a.id];
                     return (
                       <div key={a.id} className="rounded-lg border border-border bg-card p-3 space-y-2">
