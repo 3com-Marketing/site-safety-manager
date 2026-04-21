@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
   MousePointer2, MoveHorizontal, Circle, Square, Type, Pencil,
-  Undo2, Redo2, Save, X, Minus, ChevronRight, ChevronLeft, Loader2,
+  Undo2, Redo2, Save, X, Minus, ChevronRight, ChevronLeft, Loader2, Trash2,
 } from 'lucide-react';
 import { SIGNOS_OBRA, type SignoObra } from './editorSignos';
 import * as fabric from 'fabric';
