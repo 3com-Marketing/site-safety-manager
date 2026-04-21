@@ -1,87 +1,37 @@
 
 
-# Plan: Editor de fotos con anotaciones y senales de obra
+# Plan: Conectar el editor de fotos en las vistas de admin
 
-## Resumen
+## Problema
 
-Crear un componente `FotoEditor` que reemplace al actual `FotoViewer` de solo lectura. El editor permitira dibujar sobre las fotografias (flechas, circulos/ovalos, texto libre) con colores configurables, y arrastrar iconos de senales de obra directamente sobre la imagen. La imagen editada se guardara como nueva version en el almacenamiento.
+El editor de fotos (FotoEditor) esta implementado pero no se puede acceder a el porque:
 
-## Funcionalidades
+1. En `AdminVisitaDetalle.tsx`: el FotoViewer se usa sin las props `editable`, `onSave` ni `visitaId`, asi que nunca muestra el boton "Editar foto".
+2. En `AdminInformeDetalle.tsx`: las fotos se renderizan como etiquetas `<img>` planas, sin usar FotoViewer, asi que no hay forma de abrirlas ni editarlas.
 
-1. **Herramientas de dibujo**: flechas, circulos/ovalos, rectangulos, linea libre, texto
-2. **Paleta de colores**: rojo, amarillo, verde, azul, blanco, negro (seleccionable)
-3. **Grosor de trazo**: ajustable (fino, medio, grueso)
-4. **Senales de obra**: panel lateral con iconos arrastrables de senales tipicas de construccion (prohibido el paso, obligatorio casco, riesgo electrico, extintor, salida de emergencia, obligatorio chaleco, prohibido fumar, atencion peligro, etc.)
-5. **Deshacer/Rehacer**: historial de acciones
-6. **Guardar**: exporta la imagen con las anotaciones superpuestas y la sube al bucket de almacenamiento, actualizando la URL en la base de datos
+## Solucion
 
-## Arquitectura tecnica
+### 1. `AdminVisitaDetalle.tsx` — Habilitar edicion en el visor
 
-### Tecnologia: HTML5 Canvas con Fabric.js
+- Pasar `editable`, `onSave` y `visitaId` al componente `FotoViewer` existente (linea 105).
+- El `visitaId` ya esta disponible como `id` (de `useParams`).
+- El `onSave` necesita identificar que registro actualizar. Se guardara junto con la URL un identificador del origen (tabla + id del registro) para poder hacer el UPDATE correcto al guardar.
+- Actualizar la foto en la tabla correspondiente (`anotaciones.foto_url`, `fotos.url`, `amonestaciones.foto_url`, `observaciones.foto_url`) segun de donde venga.
 
-Se usara `fabric.js` (libreria de canvas interactivo) porque ofrece:
-- Objetos manipulables (mover, redimensionar, rotar)
-- Soporte nativo de drag-and-drop de imagenes
-- Exportacion a imagen
-- Gestion de capas y seleccion
+### 2. `AdminInformeDetalle.tsx` — Usar FotoViewer en lugar de `<img>` planos
 
-### Nuevos archivos
-
-1. **`src/components/visita/FotoEditor.tsx`** — Componente principal del editor
-   - Carga la imagen original en un canvas Fabric.js dentro de un Dialog a pantalla completa
-   - Barra de herramientas superior: tipo de forma, color, grosor, deshacer/rehacer, guardar, cancelar
-   - Panel lateral derecho: grid de senales de obra como imagenes PNG/SVG arrastrables al canvas
-   - Al guardar: `canvas.toDataURL()` -> blob -> subida a bucket `incidencia-fotos` -> actualiza la URL en la tabla correspondiente
-
-2. **`src/components/visita/editorSignos.ts`** — Catalogo de senales de obra
-   - Array de objetos con `{ id, nombre, icono_url, categoria }` para senales como: prohibicion, obligacion, advertencia, emergencia, extintor, etc.
-   - Las imagenes de senales se almacenaran como SVGs inline o se subiran al bucket `logos`
-
-3. **`public/senales/`** — Carpeta con SVGs de senales de obra estandar
-   - Aproximadamente 12-15 senales basicas de seguridad en construccion
-
-### Cambios en archivos existentes
-
-4. **`src/components/visita/FotoViewer.tsx`** — Transformar en wrapper que abre el editor
-   - Anadir prop `editable?: boolean` y `onSave?: (newUrl: string) => void`
-   - Si `editable=true`, al hacer click en la foto se abre `FotoEditor`
-   - Si `editable=false`, se mantiene el visor actual de solo lectura
-
-5. **`src/pages/AdminInformeDetalle.tsx`** — Pasar `editable={true}` y handler `onSave` al FotoViewer/FotoEditor en las secciones de checklist, incidencias, amonestaciones y observaciones
-
-6. **`src/pages/AdminVisitaDetalle.tsx`** — Pasar `editable={false}` (vista de solo lectura de la visita)
-
-7. **`src/components/visita/ChecklistBloque.tsx`**, **`SeccionIncidencias.tsx`**, **`SeccionAmonestaciones.tsx`**, **`SeccionObservaciones.tsx`** — Conectar el callback `onSave` del editor para actualizar la URL de la foto en la base de datos tras guardar la version editada
-
-### Dependencia nueva
-
-- **`fabric`** (npm) — libreria de canvas interactivo, ~300KB
-
-### Flujo de guardado
-
-```text
-Canvas con anotaciones
-  -> canvas.toDataURL('image/png')
-  -> fetch() para convertir a Blob
-  -> supabase.storage.from('incidencia-fotos').upload(path_nuevo)
-  -> getPublicUrl()
-  -> UPDATE tabla correspondiente SET foto_url = nueva_url / url = nueva_url
-  -> Callback onSave(nueva_url) para actualizar el estado local
-```
-
-La imagen original se mantiene intacta; se guarda una nueva version con sufijo `_edited` en el nombre del archivo.
+- Importar `FotoViewer`.
+- Anadir estado `viewingFoto` y `fotoMeta` (para saber tabla e ID del registro).
+- Reemplazar los `<img>` clickeables por thumbnails que al hacer click abren el FotoViewer con `editable={true}`.
+- Secciones afectadas:
+  - Checklist: las fotos de anotaciones (linea ~401)
+  - Incidencias: las fotos de la tabla `fotos` (linea ~451-455)
+  - Amonestaciones: las fotos (linea ~518)
+  - Observaciones: las fotos (linea ~567)
+- El `onSave` hara UPDATE en la tabla correspondiente y recargara los datos.
 
 ## Archivos afectados
 
-- **Nuevo**: `src/components/visita/FotoEditor.tsx`
-- **Nuevo**: `src/components/visita/editorSignos.ts`
-- **Nuevo**: `public/senales/*.svg` (12-15 archivos SVG de senales)
-- **Modificado**: `src/components/visita/FotoViewer.tsx`
-- **Modificado**: `src/pages/AdminInformeDetalle.tsx`
-- **Modificado**: `src/pages/AdminVisitaDetalle.tsx`
-- **Modificado**: `src/components/visita/ChecklistBloque.tsx`
-- **Modificado**: `src/components/visita/SeccionIncidencias.tsx`
-- **Modificado**: `src/components/visita/SeccionAmonestaciones.tsx`
-- **Modificado**: `src/components/visita/SeccionObservaciones.tsx`
-- **Modificado**: `package.json` (anadir `fabric`)
+- **`src/pages/AdminVisitaDetalle.tsx`** — Pasar `editable={true}`, `onSave` y `visitaId` al FotoViewer.
+- **`src/pages/AdminInformeDetalle.tsx`** — Importar FotoViewer, anadir estado para foto seleccionada, reemplazar `<img>` por thumbnails clickeables que abren el visor/editor.
 
