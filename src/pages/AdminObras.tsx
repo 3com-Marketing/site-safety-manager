@@ -375,7 +375,7 @@ export default function AdminObras() {
                 </div>
               )}
               <div className="border-t border-border pt-4 mt-4">
-                <DocumentosList obraId={viewObra.id} />
+                <DocumentosList obraId={viewObra.id} isAdmin={true} />
               </div>
             </div>
           )}
