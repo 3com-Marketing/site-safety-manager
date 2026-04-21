@@ -1,36 +1,25 @@
 
 
-# Plan: Arreglar el guardado de fotos editadas
+# Plan: Ocultar "Editar foto" en la vista no editable
 
 ## Problema
 
-Los logs muestran que la imagen editada se sube correctamente al storage (blob de ~3MB, URL generada). Sin embargo, la URL nueva no se persiste en la base de datos porque:
-
-1. El `supabase.from(fotoMeta.table).update(...)` en `AdminVisitaDetalle.tsx` no comprueba si hay error en la respuesta. Si falla por RLS o por cualquier otro motivo, se ignora silenciosamente.
-2. En `AdminInformeDetalle.tsx` puede haber el mismo problema.
-3. No hay feedback al usuario si el UPDATE falla.
+En `AdminVisitaDetalle.tsx` (la vista de detalle de visita, que es de solo lectura), el `FotoViewer` tiene la prop `editable` activada. Esto muestra el boton "Editar foto" y confunde al usuario, ya que esa vista no es para editar.
 
 ## Solucion
 
-### 1. `src/pages/AdminVisitaDetalle.tsx` (lineas 111-137)
+En `src/pages/AdminVisitaDetalle.tsx`, eliminar las props `editable`, `onSave` y `visitaId` del componente `FotoViewer`. Esto hara que las fotos se abran en modo solo visualizacion (sin boton de editar).
 
-- Capturar el resultado del `update` y comprobar `error`.
-- Si hay error, mostrarlo con `toast.error` y hacer `console.error`.
-- Si no hay error, proceder con el re-fetch.
+El FotoViewer quedara simplemente como:
 
-### 2. `src/pages/AdminInformeDetalle.tsx`
+```tsx
+<FotoViewer
+  url={fotoUrl}
+  onClose={() => { setFotoUrl(null); setFotoMeta(null); }}
+/>
+```
 
-- Mismo cambio: verificar error en el `handleSaveFoto` o la funcion equivalente que hace el UPDATE.
-- Anadir `toast.error` si falla.
+## Archivo afectado
 
-### 3. `src/components/visita/FotoEditor.tsx` (linea 323)
-
-- Envolver `await onSave(...)` en try/catch para que si el callback falla, el editor no se cierre y el usuario vea el error.
-- Solo llamar `onClose()` si `onSave` resolvio sin error.
-
-## Archivos afectados
-
-- **`src/pages/AdminVisitaDetalle.tsx`** -- Anadir comprobacion de error en el UPDATE de la foto.
-- **`src/pages/AdminInformeDetalle.tsx`** -- Anadir comprobacion de error en el UPDATE de la foto.
-- **`src/components/visita/FotoEditor.tsx`** -- Proteger `onClose()` para que solo se ejecute si `onSave` no lanza error.
+- **`src/pages/AdminVisitaDetalle.tsx`** — Eliminar props `editable`, `onSave` y `visitaId` del FotoViewer (lineas 107-145).
 
