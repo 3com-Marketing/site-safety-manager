@@ -21,6 +21,7 @@ import AdminDocumentoPreview from "./pages/AdminDocumentoPreview";
 import TechDocumentos from "./pages/TechDocumentos";
 import AdminConfiguracion from "./pages/AdminConfiguracion";
 import RoleSwitcher from "./components/RoleSwitcher";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => (
       <AuthProvider>
         <BrowserRouter>
           <RoleSwitcher />
+          <ErrorBoundary>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
@@ -50,6 +52,7 @@ const App = () => (
             <Route path="/admin/configuracion" element={<AdminConfiguracion />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </ErrorBoundary>
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
