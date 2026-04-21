@@ -396,7 +396,7 @@ export default function AdminVisitaDetalle() {
                       src={a.foto_url}
                       alt="Foto"
                       className="h-20 w-20 rounded-lg object-cover border border-border cursor-pointer hover:ring-2 hover:ring-primary"
-                      onClick={() => setFotoUrl(a.foto_url)}
+                      onClick={() => { setFotoUrl(a.foto_url); setFotoMeta({ table: 'amonestaciones', id: a.id, column: 'foto_url' }); }}
                     />
                     <p className="text-[10px] text-muted-foreground mt-1">📅 {format(new Date(a.created_at), "dd MMM yyyy, HH:mm", { locale: es })}</p>
                   </div>
