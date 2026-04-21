@@ -1,35 +1,25 @@
 
 
-# Plan: Hacer editables las anotaciones del checklist
+# Plan: Unificar lógica de visibilidad de Descripción y Normativa en el checklist
 
-## Problema
+## Cambio
 
-Todo el contenido real del informe (textos descriptivos, normativa, fotos) esta en las anotaciones del checklist. Esta seccion muestra los datos como texto estatico sin posibilidad de edicion. Las secciones de incidencias, amonestaciones y observaciones ya tienen campos editables implementados, pero estan vacias en este informe.
+En `src/pages/AdminInformeDetalle.tsx` (líneas 325-347), ambos campos (Descripción y Normativa) seguirán la misma lógica:
 
-## Solucion
+- **Siempre se muestra el Textarea**, tanto si tiene texto como si está vacío.
+- Si tiene texto, aparece con el contenido para editarlo.
+- Si está vacío, aparece el recuadro vacío para rellenarlo.
 
-Convertir cada anotacion del checklist en campos editables (Textarea para texto y normativa) y ampliar la logica de guardado.
+El código actual ya hace esto para Descripción, pero no para Normativa. El cambio es simplemente asegurar que ambos Textareas se renderizan siempre (sin condicionales), que es exactamente lo que ya ocurre en las líneas 326-346. No hay que quitar ni añadir condicionales — el código actual ya muestra ambos siempre.
 
-### Cambios en `src/pages/AdminInformeDetalle.tsx`
+**Sin embargo**, revisando el código, veo que ambos campos YA se muestran siempre. Si en la vista actual no aparecen editables, el problema puede ser que los valores `null` no se manejan bien. Ajustaré los valores por defecto para evitar que `null` cause problemas:
 
-1. **Nuevo estado** `editedAnotaciones` para trackear cambios:
-```typescript
-const [editedAnotaciones, setEditedAnotaciones] = useState<
-  Record<string, { texto?: string; normativa?: string }>
->({});
-```
+- `value={editedAnot?.texto ?? a.texto ?? ''}` (añadir `?? ''` al final)
+- `value={editedAnot?.normativa ?? a.normativa ?? ''}` (añadir `?? ''` al final)
 
-2. **Handler** para cambios en anotaciones.
+Esto garantiza que ambos campos siempre aparezcan como Textareas editables, con contenido si lo hay o vacíos si no.
 
-3. **Incluir `editedAnotaciones` en `hasEdits`** para que el boton "Guardar cambios" aparezca.
+## Archivo afectado
 
-4. **Incluir en `saveChanges`** el guardado contra la tabla `anotaciones` (que ya tiene RLS con UPDATE para owners y admins).
-
-5. **Reemplazar el bloque de renderizado** (lineas 308-319): cambiar los `<p>` estaticos por `<Textarea>` editables para texto y normativa, manteniendo las fotos como imagen.
-
-Resultado: cada anotacion del checklist mostrara campos editables para su texto y normativa. Las fotos seguiran siendo solo visualizacion.
-
-## Archivos afectados
-
-- **`src/pages/AdminInformeDetalle.tsx`** -- Anadir estado, handler, campos editables y logica de guardado para anotaciones del checklist
+- **`src/pages/AdminInformeDetalle.tsx`** — Líneas 329 y 341: añadir fallback `?? ''` para que los valores null se muestren como campo vacío editable.
 
