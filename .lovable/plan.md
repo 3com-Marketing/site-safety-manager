@@ -1,10 +1,10 @@
 
 
-# Plan: Rediseñar Punto 13 — Ruegos y sugerencias (igual que Punto 10)
+# Plan: Reestructurar Punto 3 — Trabajos Realizados y Previstos
 
 ## Resumen
 
-Cambiar el Punto 13 para que tenga: un texto legal configurable, selección "No Procede" / "Sí Procede", y si procede, un texto editable con las medidas. Mismo patrón que el Punto 10.
+Mover la sección de "Riesgos previstos" (checkboxes + otros riesgos) dentro del Punto 3, añadir un texto legal configurable desde Configuración, y agrupar todo (texto introductorio, riesgos, 3.1, 3.2, 3.3) dentro de una única sección colapsable "3 — Trabajos Realizados y Previstos".
 
 ## Cambios
 
@@ -12,36 +12,34 @@ Cambiar el Punto 13 para que tenga: un texto legal configurable, selección "No 
 
 ```sql
 ALTER TABLE configuracion_empresa
-ADD COLUMN texto_cae_punto13 text NOT NULL DEFAULT '',
-ADD COLUMN texto_cae_punto13_procede text NOT NULL DEFAULT '';
+ADD COLUMN texto_cae_punto3 text NOT NULL DEFAULT '';
 ```
 
-- `texto_cae_punto13`: texto introductorio ("Los asistentes comunican su total intención...").
-- `texto_cae_punto13_procede`: texto por defecto del recuadro cuando procede ("Se les recuerda en cada visita semanal...").
+- `texto_cae_punto3`: texto introductorio del punto 3 ("Los trabajos planificados a continuación son tratados desde el punto de vista del RD 171/04...").
 
 ### 2. `AdminConfiguracion.tsx`
 
-- Añadir `texto_cae_punto13` y `texto_cae_punto13_procede` a la interfaz y a `EMPTY_CONFIG`.
-- En el acordeón "Acta Reunión CAE", añadir 2 RichTextEditors:
-  - **"Punto 13 — Ruegos y sugerencias (texto introductorio)"**
-  - **"Punto 13 — Texto cuando SI procede"**
+- Añadir `texto_cae_punto3` a la interfaz `ConfigEmpresa` y a `EMPTY_CONFIG`.
+- En el acordeón "Acta Reunión CAE", añadir un RichTextEditor:
+  - **"Punto 3 — Trabajos Realizados y Previstos (texto introductorio)"**
 
 ### 3. `FormActaReunion.tsx`
 
-- Reemplazar `ruegosAplica` (boolean) y `ruegosTexto` por:
-  - `textoPunto13`: texto introductorio (precargado desde configuración).
-  - `punto13Procede`: `'no_procede' | 'si_procede'` (por defecto `'no_procede'`).
-  - `punto13TextoProcede`: texto editable del recuadro (precargado desde configuración).
-- En el `useEffect` de configuración, cargar `texto_cae_punto13` y `texto_cae_punto13_procede`.
-- En el `useEffect` de documento existente, leer de `datos_extra`.
-- Rediseñar la sección 13:
+- Añadir estado `textoPunto3` (string).
+- En el `useEffect` de configuración, cargar `texto_cae_punto3`.
+- En el `useEffect` de documento existente, leer `texto_punto3` de `datos_extra`.
+- Guardar en `datos_extra` como `texto_punto3`.
+- **Eliminar** la sección standalone de "Riesgos previstos" (líneas ~449-470) que está fuera de las secciones numeradas.
+- **Crear** una nueva `SectionCollapsible` "3 — Trabajos Realizados y Previstos" que contenga (en orden):
   1. RichTextEditor con el texto introductorio.
-  2. Dos botones: "NO PROCEDE" / "SÍ PROCEDE".
-  3. Si "Sí Procede", mostrar un RichTextEditor con fondo verde claro para las indicaciones.
-- Guardar en `datos_extra` como `texto_punto13`, `punto13_procede`, `punto13_texto_procede`.
+  2. Los checkboxes de riesgos previstos (Atrapamiento, Arrollamiento, etc.) + campo "Otros riesgos".
+  3. Subsección 3.1 — Empresas que intervienen (el contenido actual de la sección 3.1).
+  4. Subsección 3.2 — Duración y ubicación de los trabajos (contenido actual).
+  5. Subsección 3.3 — Trabajos a realizar (contenido actual).
+- Las subsecciones 3.1, 3.2, 3.3 pueden ser `SectionCollapsible` anidadas o simplemente separadores con título dentro del punto 3.
 
 ## Archivos afectados
-- **Migración SQL**: 2 nuevas columnas
-- **`src/pages/AdminConfiguracion.tsx`** — 2 nuevos editores en el acordeón CAE
-- **`src/components/documentos/formularios/FormActaReunion.tsx`** — rediseño de la sección 13
+- **Migración SQL**: 1 nueva columna `texto_cae_punto3`
+- **`src/pages/AdminConfiguracion.tsx`** — 1 nuevo editor en el acordeón CAE
+- **`src/components/documentos/formularios/FormActaReunion.tsx`** — reestructuración del punto 3
 
