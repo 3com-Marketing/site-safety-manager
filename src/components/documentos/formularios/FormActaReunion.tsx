@@ -91,8 +91,9 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   const [textoPunto7, setTextoPunto7] = useState('');
   const [textoPunto8, setTextoPunto8] = useState('');
   const [textoPunto9, setTextoPunto9] = useState('');
-  const [interferenciasEmpresasAplica, setInterferenciasEmpresasAplica] = useState(false);
-  const [interferenciasEmpresasTexto, setInterferenciasEmpresasTexto] = useState('');
+  const [textoPunto10, setTextoPunto10] = useState('');
+  const [punto10Procede, setPunto10Procede] = useState<'no_procede' | 'si_procede'>('no_procede');
+  const [punto10TextoProcede, setPunto10TextoProcede] = useState('');
   const [interferenciasTercerosAplica, setInterferenciasTercerosAplica] = useState(false);
   const [interferenciasTercerosTexto, setInterferenciasTercerosTexto] = useState('');
   const [medioAmbienteAplica, setMedioAmbienteAplica] = useState(false);
@@ -118,7 +119,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       const configField = TIPO_TO_CONFIG_FIELD[tipoActual];
       const fieldsToLoad = configField ? [configField] : [];
       if (tipoActual === 'acta_reunion_cae') {
-        fieldsToLoad.push('texto_cae_punto1', 'texto_cae_punto2', 'texto_cae_punto2_bloque2', 'texto_recurso_preventivo', 'texto_acuerdos_generales', 'texto_cae_punto6', 'texto_cae_punto7', 'texto_cae_punto8', 'texto_cae_punto9');
+        fieldsToLoad.push('texto_cae_punto1', 'texto_cae_punto2', 'texto_cae_punto2_bloque2', 'texto_recurso_preventivo', 'texto_acuerdos_generales', 'texto_cae_punto6', 'texto_cae_punto7', 'texto_cae_punto8', 'texto_cae_punto9', 'texto_cae_punto10', 'texto_cae_punto10_procede');
       }
       if (fieldsToLoad.length > 0) {
         supabase.from('configuracion_empresa').select(fieldsToLoad.join(',')).limit(1).single().then(({ data }) => {
@@ -133,6 +134,8 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
             if ((data as any).texto_cae_punto7) setTextoPunto7((data as any).texto_cae_punto7);
             if ((data as any).texto_cae_punto8) setTextoPunto8((data as any).texto_cae_punto8);
             if ((data as any).texto_cae_punto9) setTextoPunto9((data as any).texto_cae_punto9);
+            if ((data as any).texto_cae_punto10) setTextoPunto10((data as any).texto_cae_punto10);
+            if ((data as any).texto_cae_punto10_procede) setPunto10TextoProcede((data as any).texto_cae_punto10_procede);
           }
         });
       }
@@ -173,8 +176,9 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       setTextoPunto7(extra.texto_punto7 || '');
       setTextoPunto8(extra.texto_punto8 || '');
       setTextoPunto9(extra.texto_punto9 || '');
-      setInterferenciasEmpresasAplica(extra.interferencias_empresas_aplica || false);
-      setInterferenciasEmpresasTexto(extra.interferencias_empresas_texto || '');
+      setTextoPunto10(extra.texto_punto10 || '');
+      setPunto10Procede(extra.punto10_procede || 'no_procede');
+      setPunto10TextoProcede(extra.punto10_texto_procede || '');
       setInterferenciasTercerosAplica(extra.interferencias_terceros_aplica || false);
       setInterferenciasTercerosTexto(extra.interferencias_terceros_texto || '');
       setMedioAmbienteAplica(extra.medio_ambiente_aplica || false);
@@ -330,8 +334,9 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       datosExtra.texto_punto7 = textoPunto7;
       datosExtra.texto_punto8 = textoPunto8;
       datosExtra.texto_punto9 = textoPunto9;
-      datosExtra.interferencias_empresas_aplica = interferenciasEmpresasAplica;
-      datosExtra.interferencias_empresas_texto = interferenciasEmpresasTexto;
+      datosExtra.texto_punto10 = textoPunto10;
+      datosExtra.punto10_procede = punto10Procede;
+      datosExtra.punto10_texto_procede = punto10TextoProcede;
       datosExtra.interferencias_terceros_aplica = interferenciasTercerosAplica;
       datosExtra.interferencias_terceros_texto = interferenciasTercerosTexto;
       datosExtra.medio_ambiente_aplica = medioAmbienteAplica;
@@ -676,12 +681,41 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
 
           {/* 10. Interferencias entre empresas */}
           <SectionCollapsible title="10 — Interferencias entre empresas">
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox checked={interferenciasEmpresasAplica} onCheckedChange={(v) => setInterferenciasEmpresasAplica(!!v)} />
-              ¿Se detectan interferencias entre empresas?
-            </label>
-            {interferenciasEmpresasAplica && (
-              <Textarea value={interferenciasEmpresasTexto} onChange={e => setInterferenciasEmpresasTexto(e.target.value)} rows={3} placeholder="Describir las interferencias detectadas..." />
+            <RichTextEditor
+              value={textoPunto10}
+              onChange={setTextoPunto10}
+              placeholder="Texto legal sobre interferencias entre empresas..."
+            />
+            <div className="space-y-2 pt-2">
+              <Label className="text-sm font-medium">¿Procede?</Label>
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant={punto10Procede === 'no_procede' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setPunto10Procede('no_procede')}
+                >
+                  NO PROCEDE
+                </Button>
+                <Button
+                  type="button"
+                  variant={punto10Procede === 'si_procede' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setPunto10Procede('si_procede')}
+                >
+                  SÍ PROCEDE
+                </Button>
+              </div>
+            </div>
+            {punto10Procede === 'si_procede' && (
+              <div className="rounded-lg border-2 border-green-300 bg-green-50 p-3 space-y-2">
+                <Label className="text-sm font-medium text-green-800">Medidas a aplicar</Label>
+                <RichTextEditor
+                  value={punto10TextoProcede}
+                  onChange={setPunto10TextoProcede}
+                  placeholder="Describir las medidas para evitar interferencias..."
+                />
+              </div>
             )}
           </SectionCollapsible>
 

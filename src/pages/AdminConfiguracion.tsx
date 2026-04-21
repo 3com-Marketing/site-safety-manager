@@ -47,6 +47,8 @@ interface ConfigEmpresa {
   texto_cae_punto7: string;
   texto_cae_punto8: string;
   texto_cae_punto9: string;
+  texto_cae_punto10: string;
+  texto_cae_punto10_procede: string;
 }
 
 const EMPTY_CONFIG: ConfigEmpresa = {
@@ -66,6 +68,8 @@ const EMPTY_CONFIG: ConfigEmpresa = {
   texto_cae_punto7: '',
   texto_cae_punto8: '',
   texto_cae_punto9: '',
+  texto_cae_punto10: '',
+  texto_cae_punto10_procede: '',
 };
 
 export default function AdminConfiguracion() {
@@ -367,6 +371,14 @@ export default function AdminConfiguracion() {
                   <div>
                     <Label>Punto 9 — Protecciones Individuales</Label>
                     <RichTextEditor value={config.texto_cae_punto9} onChange={v => update('texto_cae_punto9', v)} placeholder="Texto legal sobre protecciones individuales..." />
+                  </div>
+                  <div>
+                    <Label>Punto 10 — Interferencias entre empresas (texto legal)</Label>
+                    <RichTextEditor value={config.texto_cae_punto10} onChange={v => update('texto_cae_punto10', v)} placeholder="Texto legal sobre interferencias entre empresas..." />
+                  </div>
+                  <div>
+                    <Label>Punto 10 — Texto cuando SÍ procede</Label>
+                    <RichTextEditor value={config.texto_cae_punto10_procede} onChange={v => update('texto_cae_punto10_procede', v)} placeholder="Medidas a aplicar cuando sí proceden interferencias..." />
                   </div>
                 </AccordionContent>
               </AccordionItem>
