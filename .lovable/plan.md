@@ -1,46 +1,40 @@
 
 
-# Plan: Corregir iconos PWA para que la app sea instalable
+# Plan: Agrandar botones de voz en Datos Generales
 
 ## Problema
 
-Los archivos `icon-192.png` e `icon-512.png` son en realidad imágenes JPEG renombradas con extensión `.png`. Los navegadores validan que los iconos del manifest PWA sean PNG reales. Al no serlo, el criterio de instalabilidad falla y no aparece la opción "Instalar app" / "Añadir a pantalla de inicio".
+Los botones de "Voz" en la sección Datos Generales son enlaces de texto tiny (`text-xs`) que son difíciles de pulsar con el dedo en móvil/tablet. Las otras secciones (Incidencias, Observaciones, etc.) ya usan botones más grandes con la clase `field-action-btn`.
 
 ## Solución
 
-Generar iconos PNG reales con un script Python (usando Pillow) que cree iconos de SafeWork (casco de obra naranja sobre fondo blanco) en formato PNG válido, en los tamaños 192x192 y 512x512.
+Reemplazar los 3 botones de voz inline en `SeccionDatosGenerales.tsx` por botones tipo pill/chip con un tamaño mínimo de toque de 44x44px (estándar de accesibilidad táctil), con icono de micrófono de Lucide y texto "Voz" visible.
 
 ## Cambios
 
-### 1. Generar iconos PNG válidos (`public/icon-192.png`, `public/icon-512.png`)
+### `src/components/visita/SeccionDatosGenerales.tsx`
 
-- Usar Python con Pillow para crear iconos PNG reales con el logo de SafeWork (casco naranja #F37520 sobre fondo blanco redondeado).
-- Guardar como PNG real en 192x192 y 512x512.
-- También generar un `icon-180.png` para el Apple Touch Icon (tamaño recomendado por Apple).
+Cambiar los 3 botones de voz de:
+```tsx
+<button className="flex items-center gap-1 text-xs text-primary font-medium">
+  🎤 Voz
+</button>
+```
 
-### 2. Actualizar `index.html`
+A un botón tipo pill touch-friendly:
+```tsx
+<button className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold min-h-[44px] min-w-[44px] active:bg-primary/20 transition-colors">
+  <Mic className="h-4 w-4" />
+  Voz
+</button>
+```
 
-- Cambiar el Apple Touch Icon a `icon-180.png` (tamaño estándar de Apple).
-
-### 3. Actualizar manifest en `vite.config.ts`
-
-- Añadir el icono 180x180 para Apple.
-- Verificar que `purpose: "any"` esté en al menos un icono (necesario para instalabilidad).
-
-## Resultado esperado
-
-- En Android (Chrome): aparecerá un banner o la opción en el menú de "Instalar app".
-- En iOS (Safari): la opción "Añadir a pantalla de inicio" funcionará correctamente con el icono naranja.
-- La app se abrirá sin barra del navegador (modo standalone).
-
-## Nota importante
-
-Las funciones PWA (instalación, offline) solo funcionan en la versión publicada (hc-hub.lovable.app), no en el preview de Lovable.
+Esto da:
+- Area de toque minima de 44px (recomendacion Apple/Google)
+- Fondo con color para que sea visible como boton
+- Icono de Lucide `Mic` en vez del emoji (mas consistente con el resto de la app)
+- Feedback tactil con `active:bg-primary/20`
 
 ## Archivos afectados
-- **`public/icon-192.png`** — regenerar como PNG real
-- **`public/icon-512.png`** — regenerar como PNG real
-- **`public/icon-180.png`** — nuevo, Apple Touch Icon
-- **`index.html`** — actualizar apple-touch-icon
-- **`vite.config.ts`** — verificar iconos en manifest
+- **`src/components/visita/SeccionDatosGenerales.tsx`** -- 3 botones de voz mas grandes
 
