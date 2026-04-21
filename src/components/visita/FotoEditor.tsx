@@ -62,7 +62,9 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
   }, [showSigns]);
 
   const saveHistory = useCallback((c: fabric.Canvas) => {
-    const json = JSON.stringify(c.toJSON());
+    // Only serialize objects, not backgroundImage (avoids revoked blob URL issue)
+    const objectsJson = c.getObjects().map(o => o.toObject());
+    const json = JSON.stringify(objectsJson);
     const arr = historyRef.current.slice(0, historyIdxRef.current + 1);
     arr.push(json);
     historyRef.current = arr;
