@@ -51,6 +51,11 @@ export default function AdminInformeDetalle() {
   const [saving, setSaving] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
 
+  // New item forms
+  const [newIncidencia, setNewIncidencia] = useState({ titulo: '', descripcion: '' });
+  const [newAmonestacion, setNewAmonestacion] = useState({ trabajador: '', descripcion: '' });
+  const [newObservacion, setNewObservacion] = useState({ texto: '' });
+
   const fetchData = async () => {
     if (!id) return;
 
@@ -167,6 +172,43 @@ export default function AdminInformeDetalle() {
     if (!id) return;
     await supabase.from('informes').update({ estado: 'cerrado' }).eq('id', id);
     toast.success('Informe marcado como revisado');
+    await fetchData();
+  };
+
+  const addIncidencia = async () => {
+    if (!id || !newIncidencia.titulo.trim()) return;
+    await supabase.from('incidencias').insert({
+      informe_id: id,
+      titulo: newIncidencia.titulo,
+      descripcion: newIncidencia.descripcion,
+      categoria: 'general',
+      orden: incidencias.length,
+    });
+    setNewIncidencia({ titulo: '', descripcion: '' });
+    toast.success('Incidencia añadida');
+    await fetchData();
+  };
+
+  const addAmonestacion = async () => {
+    if (!id || !newAmonestacion.trabajador.trim()) return;
+    await supabase.from('amonestaciones').insert({
+      informe_id: id,
+      trabajador: newAmonestacion.trabajador,
+      descripcion: newAmonestacion.descripcion,
+    });
+    setNewAmonestacion({ trabajador: '', descripcion: '' });
+    toast.success('Amonestación añadida');
+    await fetchData();
+  };
+
+  const addObservacion = async () => {
+    if (!id || !newObservacion.texto.trim()) return;
+    await supabase.from('observaciones').insert({
+      informe_id: id,
+      texto: newObservacion.texto,
+    });
+    setNewObservacion({ texto: '' });
+    toast.success('Observación añadida');
     await fetchData();
   };
 
