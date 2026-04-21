@@ -450,29 +450,6 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       </div>
 
 
-      {/* CAE: Riesgos */}
-      {isCAE && (
-        <div className="space-y-3 pt-2">
-          <p className="text-sm font-semibold">Riesgos previstos</p>
-          <div className="grid grid-cols-3 gap-3">
-            {RIESGOS_OPTIONS.map(r => (
-              <label key={r} className="flex items-center gap-2 text-sm">
-                <Checkbox checked={riesgos.includes(r)} onCheckedChange={() => toggleRiesgo(r)} />
-                {r}
-              </label>
-            ))}
-          </div>
-          <div className="space-y-2">
-            <Label>Otros riesgos</Label>
-            <Input value={otrosRiesgos} onChange={e => setOtrosRiesgos(e.target.value)} placeholder="Especificar..." />
-          </div>
-          <div className="space-y-2">
-            <Label>Plataforma CAE</Label>
-            <Input value={plataformaCAE} onChange={e => setPlataformaCAE(e.target.value)} />
-          </div>
-        </div>
-      )}
-
       {/* ===== NEW CAE SECTIONS ===== */}
       {isCAE && (
         <div className="space-y-4 pt-4">
@@ -580,58 +557,92 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
             </div>
           </SectionCollapsible>
 
-          {/* 3.1 Empresas que intervienen */}
-          <SectionCollapsible title="3.1 — Empresas que intervienen en la obra">
-            {empresasIntervienen.map((e, i) => (
-              <div key={i} className="flex items-center justify-between rounded-lg border border-border p-3">
-                <div className="text-sm">
-                  <span className="font-medium">{e.razon_social}</span>
-                  {e.acronimo && <span className="text-muted-foreground"> ({e.acronimo})</span>}
-                  {e.responsable && <span className="text-muted-foreground"> · {e.responsable}</span>}
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => setEmpresasIntervienen(prev => prev.filter((_, idx) => idx !== i))}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
+          {/* 3. Trabajos Realizados y Previstos */}
+          <SectionCollapsible title="3 — Trabajos Realizados y Previstos">
+            <div className="space-y-4">
+              <div>
+                <Label>Texto introductorio del punto 3</Label>
+                <RichTextEditor value={textoPunto3} onChange={setTextoPunto3} placeholder="Los trabajos planificados a continuación son tratados desde el punto de vista del RD 171/04..." />
               </div>
-            ))}
-            <div className="grid grid-cols-4 gap-2">
-              <Input placeholder="Razón social" value={nuevaEmpresaInterviene.razon_social} onChange={e => setNuevaEmpresaInterviene(p => ({ ...p, razon_social: e.target.value }))} />
-              <Input placeholder="Acrónimo" value={nuevaEmpresaInterviene.acronimo} onChange={e => setNuevaEmpresaInterviene(p => ({ ...p, acronimo: e.target.value }))} />
-              <Input placeholder="Persona responsable" value={nuevaEmpresaInterviene.responsable} onChange={e => setNuevaEmpresaInterviene(p => ({ ...p, responsable: e.target.value }))} />
-              <Button size="sm" onClick={handleAddEmpresaInterviene} disabled={!nuevaEmpresaInterviene.razon_social.trim()} className="gap-1"><Plus className="h-4 w-4" /> Añadir</Button>
-            </div>
-          </SectionCollapsible>
 
-          {/* 3.2 Duración y ubicación de trabajos */}
-          <SectionCollapsible title="3.2 — Duración y ubicación de los trabajos">
-            {duracionTrabajos.map((d, i) => (
-              <div key={i} className="flex items-center justify-between rounded-lg border border-border p-3">
-                <div className="text-sm">
-                  <span className="font-medium">{d.titulo}</span>
-                  <span className="text-muted-foreground"> · {d.inicio} — {d.fin}</span>
-                  {d.observaciones && <span className="text-muted-foreground"> · {d.observaciones}</span>}
+              {/* Riesgos previstos */}
+              <div className="space-y-3">
+                <p className="text-sm font-semibold">Riesgos previstos</p>
+                <div className="grid grid-cols-3 gap-3">
+                  {RIESGOS_OPTIONS.map(r => (
+                    <label key={r} className="flex items-center gap-2 text-sm">
+                      <Checkbox checked={riesgos.includes(r)} onCheckedChange={() => toggleRiesgo(r)} />
+                      {r}
+                    </label>
+                  ))}
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => setDuracionTrabajos(prev => prev.filter((_, idx) => idx !== i))}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
+                <div className="space-y-2">
+                  <Label>Otros riesgos</Label>
+                  <Input value={otrosRiesgos} onChange={e => setOtrosRiesgos(e.target.value)} placeholder="Especificar..." />
+                </div>
+                <div className="space-y-2">
+                  <Label>Plataforma CAE</Label>
+                  <Input value={plataformaCAE} onChange={e => setPlataformaCAE(e.target.value)} />
+                </div>
               </div>
-            ))}
-            <div className="grid grid-cols-5 gap-2">
-              <Input placeholder="Título trabajo" value={nuevaDuracion.titulo} onChange={e => setNuevaDuracion(p => ({ ...p, titulo: e.target.value }))} />
-              <Input placeholder="Inicio" value={nuevaDuracion.inicio} onChange={e => setNuevaDuracion(p => ({ ...p, inicio: e.target.value }))} />
-              <Input placeholder="Fin" value={nuevaDuracion.fin} onChange={e => setNuevaDuracion(p => ({ ...p, fin: e.target.value }))} />
-              <Input placeholder="Observaciones" value={nuevaDuracion.observaciones} onChange={e => setNuevaDuracion(p => ({ ...p, observaciones: e.target.value }))} />
-              <Button size="sm" onClick={handleAddDuracion} disabled={!nuevaDuracion.titulo.trim()} className="gap-1"><Plus className="h-4 w-4" /> Añadir</Button>
-            </div>
-          </SectionCollapsible>
 
-          {/* 3.3 Trabajos a realizar */}
-          <SectionCollapsible title="3.3 — Trabajos a realizar (descripción)">
-            <RichTextEditor
-              value={textoTrabajosRealizar}
-              onChange={setTextoTrabajosRealizar}
-              placeholder="Descripción de los trabajos a realizar..."
-            />
+              {/* 3.1 Empresas que intervienen */}
+              <div className="space-y-3 border-t border-border pt-4">
+                <p className="text-sm font-semibold">3.1 — Empresas que intervienen en la obra</p>
+                {empresasIntervienen.map((e, i) => (
+                  <div key={i} className="flex items-center justify-between rounded-lg border border-border p-3">
+                    <div className="text-sm">
+                      <span className="font-medium">{e.razon_social}</span>
+                      {e.acronimo && <span className="text-muted-foreground"> ({e.acronimo})</span>}
+                      {e.responsable && <span className="text-muted-foreground"> · {e.responsable}</span>}
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => setEmpresasIntervienen(prev => prev.filter((_, idx) => idx !== i))}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+                <div className="grid grid-cols-4 gap-2">
+                  <Input placeholder="Razón social" value={nuevaEmpresaInterviene.razon_social} onChange={e => setNuevaEmpresaInterviene(p => ({ ...p, razon_social: e.target.value }))} />
+                  <Input placeholder="Acrónimo" value={nuevaEmpresaInterviene.acronimo} onChange={e => setNuevaEmpresaInterviene(p => ({ ...p, acronimo: e.target.value }))} />
+                  <Input placeholder="Persona responsable" value={nuevaEmpresaInterviene.responsable} onChange={e => setNuevaEmpresaInterviene(p => ({ ...p, responsable: e.target.value }))} />
+                  <Button size="sm" onClick={handleAddEmpresaInterviene} disabled={!nuevaEmpresaInterviene.razon_social.trim()} className="gap-1"><Plus className="h-4 w-4" /> Añadir</Button>
+                </div>
+              </div>
+
+              {/* 3.2 Duración y ubicación de trabajos */}
+              <div className="space-y-3 border-t border-border pt-4">
+                <p className="text-sm font-semibold">3.2 — Duración y ubicación de los trabajos</p>
+                {duracionTrabajos.map((d, i) => (
+                  <div key={i} className="flex items-center justify-between rounded-lg border border-border p-3">
+                    <div className="text-sm">
+                      <span className="font-medium">{d.titulo}</span>
+                      <span className="text-muted-foreground"> · {d.inicio} — {d.fin}</span>
+                      {d.observaciones && <span className="text-muted-foreground"> · {d.observaciones}</span>}
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => setDuracionTrabajos(prev => prev.filter((_, idx) => idx !== i))}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+                <div className="grid grid-cols-5 gap-2">
+                  <Input placeholder="Título trabajo" value={nuevaDuracion.titulo} onChange={e => setNuevaDuracion(p => ({ ...p, titulo: e.target.value }))} />
+                  <Input placeholder="Inicio" value={nuevaDuracion.inicio} onChange={e => setNuevaDuracion(p => ({ ...p, inicio: e.target.value }))} />
+                  <Input placeholder="Fin" value={nuevaDuracion.fin} onChange={e => setNuevaDuracion(p => ({ ...p, fin: e.target.value }))} />
+                  <Input placeholder="Observaciones" value={nuevaDuracion.observaciones} onChange={e => setNuevaDuracion(p => ({ ...p, observaciones: e.target.value }))} />
+                  <Button size="sm" onClick={handleAddDuracion} disabled={!nuevaDuracion.titulo.trim()} className="gap-1"><Plus className="h-4 w-4" /> Añadir</Button>
+                </div>
+              </div>
+
+              {/* 3.3 Trabajos a realizar */}
+              <div className="space-y-3 border-t border-border pt-4">
+                <p className="text-sm font-semibold">3.3 — Trabajos a realizar (descripción)</p>
+                <RichTextEditor
+                  value={textoTrabajosRealizar}
+                  onChange={setTextoTrabajosRealizar}
+                  placeholder="Descripción de los trabajos a realizar..."
+                />
+              </div>
+            </div>
           </SectionCollapsible>
 
           {/* 4. Recurso preventivo */}
