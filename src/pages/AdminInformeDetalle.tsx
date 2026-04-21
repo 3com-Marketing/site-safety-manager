@@ -326,7 +326,7 @@ export default function AdminInformeDetalle() {
                         <div className="space-y-1">
                           <p className="text-xs text-muted-foreground">Descripción</p>
                           <Textarea
-                            value={editedAnot?.texto ?? a.texto}
+                            value={editedAnot?.texto ?? a.texto ?? ''}
                             onChange={e => handleAnotacionChange(a.id, 'texto', e.target.value)}
                             className="text-sm min-h-[60px]"
                             placeholder="Texto de la anotación..."
@@ -338,7 +338,7 @@ export default function AdminInformeDetalle() {
                             <Scale className="h-3 w-3 text-primary" /> Normativa
                           </p>
                           <Textarea
-                            value={editedAnot?.normativa ?? a.normativa}
+                            value={editedAnot?.normativa ?? a.normativa ?? ''}
                             onChange={e => handleAnotacionChange(a.id, 'normativa', e.target.value)}
                             className="text-sm min-h-[40px]"
                             placeholder="Normativa aplicable..."
