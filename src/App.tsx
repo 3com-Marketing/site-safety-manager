@@ -19,6 +19,7 @@ import AdminDocumentos from "./pages/AdminDocumentos";
 import AdminDocumentoDetalle from "./pages/AdminDocumentoDetalle";
 import AdminDocumentoPreview from "./pages/AdminDocumentoPreview";
 import TechDocumentos from "./pages/TechDocumentos";
+import TechDocumentoDetalle from "./pages/TechDocumentoDetalle";
 import AdminConfiguracion from "./pages/AdminConfiguracion";
 import RoleSwitcher from "./components/RoleSwitcher";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -49,6 +50,7 @@ const App = () => (
             <Route path="/admin/documento/:id" element={<AdminDocumentoDetalle />} />
             <Route path="/admin/documento/:id/preview" element={<AdminDocumentoPreview />} />
             <Route path="/documentos" element={<TechDocumentos />} />
+            <Route path="/documento/:id" element={<TechDocumentoDetalle />} />
             <Route path="/admin/configuracion" element={<AdminConfiguracion />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

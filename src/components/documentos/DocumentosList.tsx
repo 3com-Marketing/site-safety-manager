@@ -16,6 +16,7 @@ import AdjuntarDocumentoDialog from './AdjuntarDocumentoDialog';
 interface Props {
   obraId: string;
   readOnly?: boolean;
+  isAdmin?: boolean;
 }
 
 const ESTADO_LABELS: Record<string, string> = {
@@ -25,7 +26,8 @@ const ESTADO_LABELS: Record<string, string> = {
   firmado: 'Firmado',
 };
 
-export default function DocumentosList({ obraId, readOnly = false }: Props) {
+export default function DocumentosList({ obraId, readOnly = false, isAdmin = false }: Props) {
+  const navigate = useNavigate();
   const { documentos, isLoading, actualizarEstado } = useDocumentosObra(obraId);
   const [nuevoOpen, setNuevoOpen] = useState(false);
   const [adjuntarDocId, setAdjuntarDocId] = useState<string | null>(null);
@@ -76,6 +78,16 @@ export default function DocumentosList({ obraId, readOnly = false }: Props) {
                   <Badge className={`border-0 ${colors}`}>
                     {ESTADO_LABELS[doc.estado as EstadoDocumento] || doc.estado}
                   </Badge>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1"
+                    onClick={() => navigate(isAdmin ? `/admin/documento/${doc.id}` : `/documento/${doc.id}`)}
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Editar
+                  </Button>
 
                   {doc.archivo_url && (
                     <a href={doc.archivo_url} target="_blank" rel="noopener noreferrer">
