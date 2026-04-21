@@ -66,7 +66,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   const [mesReunion, setMesReunion] = useState('');
   const [textoPunto1, setTextoPunto1] = useState('');
   const [textoPunto2, setTextoPunto2] = useState('');
-  // (removed: docChecks, punto2NoProcede, punto2Otros — no longer used)
+  
   const [riesgos, setRiesgos] = useState<string[]>([]);
   const [otrosRiesgos, setOtrosRiesgos] = useState('');
   const [plataformaCAE, setPlataformaCAE] = useState('metacontratas');
