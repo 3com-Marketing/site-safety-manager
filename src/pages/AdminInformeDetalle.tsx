@@ -522,7 +522,8 @@ export default function AdminInformeDetalle() {
                       <span className="whitespace-pre-line">{a.normativa}</span>
                     </div>
                   )}
-             );
+                </div>
+              );
             })}
             {/* Formulario nueva amonestación */}
             <div className="rounded-xl border border-dashed border-border bg-muted/30 p-4 space-y-2">
