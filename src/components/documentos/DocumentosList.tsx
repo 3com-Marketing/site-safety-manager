@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { FileText, Plus, Upload, CheckCircle, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { FileText, Plus, Upload, CheckCircle, ExternalLink, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
