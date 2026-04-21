@@ -287,8 +287,23 @@ export default function AdminInformeDetalle() {
   // Helper to get current value (edited or original)
   const informeVal = (field: string) => editedInforme[field] ?? informe[field] ?? '';
 
+  const handleSaveFoto = async (newUrl: string) => {
+    if (!fotoMeta) return;
+    await supabase.from(fotoMeta.table as any).update({ [fotoMeta.column]: newUrl }).eq('id', fotoMeta.id);
+    setViewingFoto(null);
+    setFotoMeta(null);
+    await fetchData();
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      <FotoViewer
+        url={viewingFoto}
+        onClose={() => { setViewingFoto(null); setFotoMeta(null); }}
+        editable
+        visitaId={visitaId || undefined}
+        onSave={handleSaveFoto}
+      />
       <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-card px-6 py-4">
         <Button variant="ghost" size="icon" onClick={() => navigate('/admin')}>
           <ArrowLeft className="h-5 w-5" />
@@ -403,7 +418,14 @@ export default function AdminInformeDetalle() {
                             placeholder="Texto de la anotación..."
                           />
                         </div>
-                        {a.foto_url && <img src={a.foto_url} alt="Foto" className="h-20 w-20 rounded-lg object-cover border border-border" />}
+                        {a.foto_url && (
+                          <img
+                            src={a.foto_url}
+                            alt="Foto"
+                            className="h-20 w-20 rounded-lg object-cover border border-border cursor-pointer hover:ring-2 hover:ring-primary"
+                            onClick={() => { setViewingFoto(a.foto_url); setFotoMeta({ table: 'anotaciones', id: a.foto_id || a.id, column: 'foto_url' }); }}
+                          />
+                        )}
                         <div className="space-y-1">
                           <p className="text-xs text-muted-foreground flex items-center gap-1">
                             <Scale className="h-3 w-3 text-primary" /> Normativa
@@ -454,9 +476,13 @@ export default function AdminInformeDetalle() {
                   {inc.fotos.length > 0 && (
                     <div className="flex gap-3 flex-wrap">
                       {inc.fotos.map(f => (
-                        <a key={f.id} href={f.url} target="_blank" rel="noopener noreferrer">
-                          <img src={f.url} alt="Foto" className="h-24 w-24 rounded-lg object-cover border border-border hover:ring-2 hover:ring-primary transition-all" />
-                        </a>
+                        <img
+                          key={f.id}
+                          src={f.url}
+                          alt="Foto"
+                          className="h-24 w-24 rounded-lg object-cover border border-border hover:ring-2 hover:ring-primary transition-all cursor-pointer"
+                          onClick={() => { setViewingFoto(f.url); setFotoMeta({ table: 'fotos', id: f.id, column: 'url' }); }}
+                        />
                       ))}
                     </div>
                   )}
@@ -520,7 +546,14 @@ export default function AdminInformeDetalle() {
                       placeholder="Descripción..."
                     />
                   </div>
-                  {a.foto_url && <img src={a.foto_url} alt="Foto" className="h-20 w-20 rounded-lg object-cover border border-border" />}
+                  {a.foto_url && (
+                    <img
+                      src={a.foto_url}
+                      alt="Foto"
+                      className="h-20 w-20 rounded-lg object-cover border border-border cursor-pointer hover:ring-2 hover:ring-primary"
+                      onClick={() => { setViewingFoto(a.foto_url); setFotoMeta({ table: 'amonestaciones', id: a.id, column: 'foto_url' }); }}
+                    />
+                  )}
                   {a.normativa && (
                     <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
                       <Scale className="h-3 w-3 text-primary mt-0.5 shrink-0" />
@@ -569,7 +602,14 @@ export default function AdminInformeDetalle() {
                     className="text-sm min-h-[60px]"
                     placeholder="Texto de la observación..."
                   />
-                  {obs.foto_url && <img src={obs.foto_url} alt="Foto" className="h-20 w-20 rounded-lg object-cover border border-border" />}
+                  {obs.foto_url && (
+                    <img
+                      src={obs.foto_url}
+                      alt="Foto"
+                      className="h-20 w-20 rounded-lg object-cover border border-border cursor-pointer hover:ring-2 hover:ring-primary"
+                      onClick={() => { setViewingFoto(obs.foto_url); setFotoMeta({ table: 'observaciones', id: obs.id, column: 'foto_url' }); }}
+                    />
+                  )}
                   {obs.normativa && (
                     <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
                       <Scale className="h-3 w-3 text-primary mt-0.5 shrink-0" />
