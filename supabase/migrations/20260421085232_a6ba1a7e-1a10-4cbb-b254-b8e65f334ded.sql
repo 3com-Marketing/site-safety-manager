@@ -1,0 +1,1 @@
+ALTER TABLE configuracion_empresa ADD COLUMN texto_acuerdos_generales text NOT NULL DEFAULT '';

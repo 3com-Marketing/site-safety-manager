@@ -86,6 +86,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   const [duracionTrabajos, setDuracionTrabajos] = useState<Array<{ titulo: string; inicio: string; fin: string; observaciones: string }>>([]);
   const [textoTrabajosRealizar, setTextoTrabajosRealizar] = useState('');
   const [textoRecursoPreventivo, setTextoRecursoPreventivo] = useState('');
+  const [textoAcuerdosGenerales, setTextoAcuerdosGenerales] = useState('');
   const [interferenciasEmpresasAplica, setInterferenciasEmpresasAplica] = useState(false);
   const [interferenciasEmpresasTexto, setInterferenciasEmpresasTexto] = useState('');
   const [interferenciasTercerosAplica, setInterferenciasTercerosAplica] = useState(false);
@@ -113,7 +114,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       const configField = TIPO_TO_CONFIG_FIELD[tipoActual];
       const fieldsToLoad = configField ? [configField] : [];
       if (tipoActual === 'acta_reunion_cae') {
-        fieldsToLoad.push('texto_cae_punto1', 'texto_cae_punto2', 'texto_cae_punto2_bloque2', 'texto_recurso_preventivo');
+        fieldsToLoad.push('texto_cae_punto1', 'texto_cae_punto2', 'texto_cae_punto2_bloque2', 'texto_recurso_preventivo', 'texto_acuerdos_generales');
       }
       if (fieldsToLoad.length > 0) {
         supabase.from('configuracion_empresa').select(fieldsToLoad.join(',')).limit(1).single().then(({ data }) => {
@@ -123,6 +124,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
             if ((data as any).texto_cae_punto2) setTextoPunto2((data as any).texto_cae_punto2);
             if ((data as any).texto_cae_punto2_bloque2) setTextoPunto2Bloque2((data as any).texto_cae_punto2_bloque2);
             if ((data as any).texto_recurso_preventivo) setTextoRecursoPreventivo((data as any).texto_recurso_preventivo);
+            if ((data as any).texto_acuerdos_generales) setTextoAcuerdosGenerales((data as any).texto_acuerdos_generales);
           }
         });
       }
@@ -158,6 +160,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       setDuracionTrabajos(extra.duracion_trabajos || []);
       setTextoTrabajosRealizar(extra.texto_trabajos_realizar || '');
       setTextoRecursoPreventivo(extra.texto_recurso_preventivo || '');
+      setTextoAcuerdosGenerales(extra.texto_acuerdos_generales || '');
       setInterferenciasEmpresasAplica(extra.interferencias_empresas_aplica || false);
       setInterferenciasEmpresasTexto(extra.interferencias_empresas_texto || '');
       setInterferenciasTercerosAplica(extra.interferencias_terceros_aplica || false);
@@ -310,6 +313,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       datosExtra.duracion_trabajos = duracionTrabajos;
       datosExtra.texto_trabajos_realizar = textoTrabajosRealizar;
       datosExtra.texto_recurso_preventivo = textoRecursoPreventivo;
+      datosExtra.texto_acuerdos_generales = textoAcuerdosGenerales;
       datosExtra.interferencias_empresas_aplica = interferenciasEmpresasAplica;
       datosExtra.interferencias_empresas_texto = interferenciasEmpresasTexto;
       datosExtra.interferencias_terceros_aplica = interferenciasTercerosAplica;
@@ -606,6 +610,15 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
               value={textoRecursoPreventivo}
               onChange={setTextoRecursoPreventivo}
               placeholder="Indicar recurso preventivo designado, funciones, etc."
+            />
+          </SectionCollapsible>
+
+          {/* 5. Acuerdos Generales */}
+          <SectionCollapsible title="5 — Acuerdos Generales">
+            <RichTextEditor
+              value={textoAcuerdosGenerales}
+              onChange={setTextoAcuerdosGenerales}
+              placeholder="Texto sobre acuerdos generales adoptados..."
             />
           </SectionCollapsible>
 
