@@ -52,8 +52,8 @@ export default function VoiceNoteDialog({
         </DialogHeader>
 
         {dialogStep === 'recording' && (
-          <div className="space-y-4">
-            <div className="flex flex-col items-center gap-4 py-4">
+          <div className="flex flex-col max-h-[70vh]">
+            <div className="flex flex-col items-center gap-4 py-4 shrink-0">
               <button
                 onClick={isRecording ? onStopRecording : onStartRecording}
                 className={`flex h-20 w-20 items-center justify-center rounded-full transition-all active:scale-95 ${
@@ -70,7 +70,7 @@ export default function VoiceNoteDialog({
             </div>
 
             {rawTranscript && (
-              <div className="rounded-lg bg-muted p-3">
+              <div className="rounded-lg bg-muted p-3 max-h-[30vh] overflow-y-auto">
                 <p className="text-xs text-muted-foreground mb-1">Transcripción:</p>
                 <p className="text-sm">{rawTranscript}</p>
               </div>
@@ -79,7 +79,7 @@ export default function VoiceNoteDialog({
             <Button
               onClick={onFinishRecording}
               disabled={!rawTranscript.trim()}
-              className="h-12 w-full text-base font-semibold gap-2"
+              className="h-12 w-full mt-4 shrink-0 text-base font-semibold gap-2"
             >
               <Sparkles className="h-5 w-5" />
               Mejorar con IA
