@@ -73,8 +73,8 @@
 
 @layer utilities {
   .field-action-btn {
-    @apply flex flex-col items-center justify-center gap-3 rounded-2xl bg-card border-2 border-border p-6 text-foreground shadow-sm transition-all active:scale-95;
-    min-height: 140px;
+    @apply flex flex-col items-center justify-center gap-2 rounded-2xl bg-card border-2 border-border p-4 text-foreground shadow-sm transition-all active:scale-95;
+    min-height: 90px;
   }
 
   .field-action-btn:hover {
@@ -82,7 +82,7 @@
   }
 
   .field-action-btn .icon {
-    @apply text-4xl;
+    @apply text-3xl;
   }
 
   .field-action-btn .label {

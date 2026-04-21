@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Trash2, Pencil, Scale } from 'lucide-react';
+import { Trash2, Pencil, Scale, Camera, Mic, FileText, ChevronLeft, CheckCircle2, StickyNote } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -28,6 +28,10 @@ interface Props {
   obraNombre: string;
   onBack: () => void;
   onRefresh: () => void;
+  bloqueEstado?: string;
+  onMarcarCompletado?: () => void;
+  prevSeccionLabel?: string;
+  onPrevSeccion?: () => void;
 }
 
 export default function ChecklistBloque({
@@ -38,12 +42,18 @@ export default function ChecklistBloque({
   obraNombre,
   onBack,
   onRefresh,
+  bloqueEstado,
+  onMarcarCompletado,
+  prevSeccionLabel,
+  onPrevSeccion,
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingFoto, setViewingFoto] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
+  const [showManualNote, setShowManualNote] = useState(false);
+  const [manualNoteText, setManualNoteText] = useState('');
 
   const voice = useVoiceNote(categoriaLabel);
 
@@ -94,6 +104,19 @@ export default function ChecklistBloque({
     onRefresh();
   };
 
+  const saveManualNote = async () => {
+    if (!manualNoteText.trim()) return;
+    const { error } = await supabase.from('anotaciones').insert({
+      bloque_id: bloqueId,
+      texto: manualNoteText.trim(),
+    });
+    if (error) { toast.error('Error al guardar nota'); return; }
+    toast.success('Nota guardada');
+    setManualNoteText('');
+    setShowManualNote(false);
+    onRefresh();
+  };
+
   const startEditAnotacion = (a: Anotacion) => { setEditingId(a.id); setEditText(a.texto); };
 
   const saveEditAnotacion = async () => {
@@ -111,31 +134,65 @@ export default function ChecklistBloque({
     onRefresh();
   };
 
+  const isCompleted = bloqueEstado === 'completado';
+
   return (
     <div className="space-y-5">
       <input ref={fileInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileUpload} />
 
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0"><ArrowLeft className="h-5 w-5" /></Button>
-        <h2 className="font-heading text-base font-semibold">{categoriaLabel}</h2>
+      {/* Breadcrumb header */}
+      <div className="space-y-1">
+        <button onClick={onBack} className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+          <ChevronLeft className="h-4 w-4" />
+          {obraNombre}
+        </button>
+        <h2 className="font-heading text-xl font-bold">{categoriaLabel}</h2>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      {/* Action buttons */}
+      <div className="grid grid-cols-3 gap-2">
         <button onClick={handlePhotoCapture} className="field-action-btn">
-          <span className="icon">📷</span>
+          <Camera className="h-7 w-7 text-primary" />
           <span className="label">Foto</span>
         </button>
         <button onClick={voice.openDialog} className="field-action-btn">
-          <span className="icon">🎤</span>
-          <span className="label">Nota por voz</span>
+          <Mic className="h-7 w-7 text-primary" />
+          <span className="label">Voz</span>
+        </button>
+        <button onClick={() => setShowManualNote(true)} className="field-action-btn">
+          <StickyNote className="h-7 w-7 text-primary" />
+          <span className="label">Nota</span>
         </button>
       </div>
 
+      {/* Manual note input */}
+      {showManualNote && (
+        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+          <Textarea
+            value={manualNoteText}
+            onChange={(e) => setManualNoteText(e.target.value)}
+            placeholder="Escribe tu anotación aquí..."
+            className="min-h-[80px] text-sm"
+            autoFocus
+          />
+          <div className="flex gap-2">
+            <Button size="sm" onClick={saveManualNote} disabled={!manualNoteText.trim()} className="flex-1">Guardar nota</Button>
+            <Button size="sm" variant="outline" onClick={() => { setShowManualNote(false); setManualNoteText(''); }} className="flex-1">Cancelar</Button>
+          </div>
+        </div>
+      )}
+
+      {/* Anotaciones list */}
       <div className="space-y-3">
         <h3 className="font-heading text-sm font-semibold">Anotaciones ({anotaciones.length})</h3>
 
         {anotaciones.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Sin anotaciones aún. Usa los botones de arriba.</p>
+          <div className="flex flex-col items-center gap-3 py-10 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+              <FileText className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <p className="text-sm text-muted-foreground">Sin anotaciones aún.<br />Usa los botones de arriba para añadir.</p>
+          </div>
         ) : (
           <div className="space-y-2">
             {anotaciones.map((a) => (
@@ -186,6 +243,27 @@ export default function ChecklistBloque({
           </div>
         )}
       </div>
+
+      {/* Contextual bottom bar */}
+      {(prevSeccionLabel || onMarcarCompletado) && (
+        <div className="flex gap-2 pt-2">
+          {prevSeccionLabel && onPrevSeccion && (
+            <Button variant="outline" onClick={onPrevSeccion} className="h-12 flex-1 text-sm font-semibold gap-1">
+              <ChevronLeft className="h-4 w-4" />
+              {prevSeccionLabel}
+            </Button>
+          )}
+          {onMarcarCompletado && (
+            <Button
+              onClick={onMarcarCompletado}
+              className={`h-12 flex-1 text-sm font-bold gap-1 ${isCompleted ? 'bg-success hover:bg-success/90 text-success-foreground' : ''}`}
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              {isCompleted ? 'Completado' : 'Marcar completado'}
+            </Button>
+          )}
+        </div>
+      )}
 
       <VoiceNoteDialog
         open={voice.showDialog}
