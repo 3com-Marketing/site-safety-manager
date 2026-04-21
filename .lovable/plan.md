@@ -1,33 +1,34 @@
 
 
-# Plan: Permitir editar documentos (informes) tanto para técnicos como administradores
+# Plan: Hacer los informes de visita editables
 
 ## Problema
 
-Los documentos de obra (informes CSS, AT, actas, etc.) no tienen botón de edición en la lista. El administrador tiene la ruta `/admin/documento/:id` para editar, pero no hay enlace visible en la lista del técnico (`DocumentosList`). Los técnicos no pueden acceder a la edición de ninguna forma.
+1. **"Ver informe completo (editable)" no permite editar** — La página `AdminInformeDetalle` muestra los datos generales (nº trabajadores, condiciones climáticas, empresas presentes, notas) como texto estático. Solo las incidencias tienen campos editables. Las amonestaciones y observaciones tampoco se pueden editar.
+
+2. **El botón "Editar" de DocumentosList no aparece en la web publicada** — El código ya está implementado correctamente, pero necesitas publicar de nuevo la aplicación y limpiar la caché del navegador.
 
 ## Solución
 
-### 1. Añadir botón "Editar" en `DocumentosList`
+### 1. Hacer editables todos los campos en `AdminInformeDetalle`
 
-Añadir un botón de edición (icono lápiz) en cada fila de documento que navegue a la página de detalle/edición. El componente detectará si el usuario es admin o técnico para usar la ruta correcta:
-- Admin: `/admin/documento/:id`
-- Técnico: `/documento/:id` (nueva ruta)
+Convertir los campos de solo lectura en campos editables:
 
-### 2. Crear página `TechDocumentoDetalle`
+- **Datos generales**: Cambiar los `<p>` estáticos por `<Input>` y `<Textarea>` para: nº trabajadores, condiciones climáticas, empresas presentes, notas generales.
+- **Amonestaciones**: Añadir `<Input>` para trabajador, `<Textarea>` para descripción.
+- **Observaciones**: Añadir `<Textarea>` para texto.
+- **Guardar**: Ampliar `saveChanges` para guardar también los cambios en la tabla `informes` (datos generales), `amonestaciones` y `observaciones`, además de las incidencias que ya funcionan.
 
-Nueva página en `src/pages/TechDocumentoDetalle.tsx` que reutiliza la misma lógica de `AdminDocumentoDetalle` pero con navegación adaptada al técnico (botón atrás va a `/documentos`), sin el layout de admin. Incluirá el formulario de edición correspondiente al tipo de documento y el botón de generar PDF.
+### 2. Estado de edición
 
-### 3. Añadir ruta para técnicos
+Añadir estados para trackear cambios en:
+- `editedInforme`: objeto con los campos generales modificados (`num_trabajadores`, `condiciones_climaticas`, `empresas_presentes`, `notas_generales`)
+- `editedAmonestaciones`: mapa `id → { trabajador, descripcion }`
+- `editedObservaciones`: mapa `id → { texto }`
 
-En `App.tsx`, añadir:
-```
-/documento/:id → TechDocumentoDetalle
-```
+El botón "Guardar cambios" aparecerá cuando haya cualquier cambio pendiente en cualquier sección.
 
 ## Archivos afectados
 
-- **`src/components/documentos/DocumentosList.tsx`** — Añadir botón "Editar" con icono `Pencil` que navega a la ruta de detalle (admin o tech según prop)
-- **`src/pages/TechDocumentoDetalle.tsx`** — Nueva página de edición para técnicos, basada en `AdminDocumentoDetalle` pero con header/navegación de técnico
-- **`src/App.tsx`** — Añadir ruta `/documento/:id`
+- **`src/pages/AdminInformeDetalle.tsx`** — Convertir datos generales, amonestaciones y observaciones de solo lectura a editables, ampliar lógica de guardado
 
