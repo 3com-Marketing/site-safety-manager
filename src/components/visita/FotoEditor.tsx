@@ -132,23 +132,59 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
     c.renderAll();
   }, [showSigns, getCanvasSize]);
 
+  const restoreHistory = useCallback((idx: number) => {
+    const c = fabricRef.current;
+    if (!c) return;
+    const objectsJson = JSON.parse(historyRef.current[idx]);
+    // Remove all objects but keep backgroundImage
+    c.remove(...c.getObjects());
+    if (objectsJson.length > 0) {
+      fabric.util.enlivenObjects(objectsJson).then((objs: fabric.FabricObject[]) => {
+        objs.forEach(o => c.add(o));
+        c.renderAll();
+      });
+    } else {
+      c.renderAll();
+    }
+    forceRender(n => n + 1);
+  }, []);
+
   const undo = () => {
-    if (historyIdxRef.current <= 0 || !fabricRef.current) return;
+    if (historyIdxRef.current <= 0) return;
     historyIdxRef.current -= 1;
-    fabricRef.current.loadFromJSON(JSON.parse(historyRef.current[historyIdxRef.current])).then(() => {
-      fabricRef.current?.renderAll();
-      forceRender(n => n + 1);
-    });
+    restoreHistory(historyIdxRef.current);
   };
 
   const redo = () => {
-    if (historyIdxRef.current >= historyRef.current.length - 1 || !fabricRef.current) return;
+    if (historyIdxRef.current >= historyRef.current.length - 1) return;
     historyIdxRef.current += 1;
-    fabricRef.current.loadFromJSON(JSON.parse(historyRef.current[historyIdxRef.current])).then(() => {
-      fabricRef.current?.renderAll();
-      forceRender(n => n + 1);
-    });
+    restoreHistory(historyIdxRef.current);
   };
+
+  const deleteSelected = useCallback(() => {
+    const c = fabricRef.current;
+    if (!c) return;
+    const active = c.getActiveObject();
+    if (!active) return;
+    c.remove(active);
+    c.discardActiveObject();
+    c.renderAll();
+    saveHistory(c);
+  }, [saveHistory]);
+
+  // Keyboard Delete/Backspace listener
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        // Don't delete if user is editing text
+        const active = fabricRef.current?.getActiveObject();
+        if (active && active instanceof fabric.IText && (active as fabric.IText).isEditing) return;
+        deleteSelected();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [deleteSelected]);
 
   // Tool handling
   useEffect(() => {
