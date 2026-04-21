@@ -1,37 +1,28 @@
 
 
-# Plan: Conectar el editor de fotos en las vistas de admin
+# Plan: Arreglar el editor de fotos (tamano, carga de imagen y herramientas)
 
-## Problema
+## Problemas detectados
 
-El editor de fotos (FotoEditor) esta implementado pero no se puede acceder a el porque:
-
-1. En `AdminVisitaDetalle.tsx`: el FotoViewer se usa sin las props `editable`, `onSave` ni `visitaId`, asi que nunca muestra el boton "Editar foto".
-2. En `AdminInformeDetalle.tsx`: las fotos se renderizan como etiquetas `<img>` planas, sin usar FotoViewer, asi que no hay forma de abrirlas ni editarlas.
+1. **Dialogo demasiado pequeno**: El `DialogContent` base tiene `max-w-2xl` (672px). Aunque el editor pasa `max-w-[98vw]`, el canvas fijo de 900x600 se recorta. Ademas hay un boton X duplicado del propio DialogContent.
+2. **La foto original no carga**: La imagen de Supabase Storage puede fallar por CORS al usar `crossOrigin = 'anonymous'`. Si falla, el canvas queda en blanco sin error visible.
+3. **Las herramientas no funcionan**: El `saveHistory` tiene un bug de closure obsoleta con `historyIdx` -- al depender de `historyIdx` en `useCallback`, cada cambio de historial recrea la funcion, y como el segundo `useEffect` (de herramientas) tambien depende de `saveHistory`, se re-bindean los eventos continuamente, causando comportamientos erraticos.
 
 ## Solucion
 
-### 1. `AdminVisitaDetalle.tsx` — Habilitar edicion en el visor
+### Cambios en `src/components/visita/FotoEditor.tsx`
 
-- Pasar `editable`, `onSave` y `visitaId` al componente `FotoViewer` existente (linea 105).
-- El `visitaId` ya esta disponible como `id` (de `useParams`).
-- El `onSave` necesita identificar que registro actualizar. Se guardara junto con la URL un identificador del origen (tabla + id del registro) para poder hacer el UPDATE correcto al guardar.
-- Actualizar la foto en la tabla correspondiente (`anotaciones.foto_url`, `fotos.url`, `amonestaciones.foto_url`, `observaciones.foto_url`) segun de donde venga.
+1. **Dialogo a pantalla completa**: Reemplazar el Dialog de shadcn por un `div` fijo a pantalla completa (`fixed inset-0 z-50`) con fondo oscuro. Esto elimina las restricciones de tamano del DialogContent y el boton X duplicado.
 
-### 2. `AdminInformeDetalle.tsx` — Usar FotoViewer en lugar de `<img>` planos
+2. **Canvas adaptativo**: En lugar de tamano fijo 900x600, calcular el tamano disponible en funcion de la ventana del navegador (`window.innerWidth`, `window.innerHeight` menos la barra de herramientas). La foto se escala para llenar ese espacio.
 
-- Importar `FotoViewer`.
-- Anadir estado `viewingFoto` y `fotoMeta` (para saber tabla e ID del registro).
-- Reemplazar los `<img>` clickeables por thumbnails que al hacer click abren el FotoViewer con `editable={true}`.
-- Secciones afectadas:
-  - Checklist: las fotos de anotaciones (linea ~401)
-  - Incidencias: las fotos de la tabla `fotos` (linea ~451-455)
-  - Amonestaciones: las fotos (linea ~518)
-  - Observaciones: las fotos (linea ~567)
-- El `onSave` hara UPDATE en la tabla correspondiente y recargara los datos.
+3. **Cargar imagen sin CORS bloqueante**: Descargar la imagen via `fetch()` como blob, crear un `URL.createObjectURL()` local, y cargarla desde ahi. Esto evita problemas de CORS con el atributo `crossOrigin`.
 
-## Archivos afectados
+4. **Arreglar `saveHistory`**: Usar un `useRef` para el indice de historial en lugar de depender de estado React en el `useCallback`. Esto elimina la dependencia circular y evita que los eventos se re-bindeen constantemente.
 
-- **`src/pages/AdminVisitaDetalle.tsx`** — Pasar `editable={true}`, `onSave` y `visitaId` al FotoViewer.
-- **`src/pages/AdminInformeDetalle.tsx`** — Importar FotoViewer, anadir estado para foto seleccionada, reemplazar `<img>` por thumbnails clickeables que abren el visor/editor.
+5. **Arreglar `getScenePoint`**: Verificar que la API de fabric 6.6.1 usa `getScenePoint` o `getViewportPoint` (la API cambio entre versiones). Usar `getPointer` como fallback seguro si es necesario.
+
+## Archivo afectado
+
+- **`src/components/visita/FotoEditor.tsx`** -- Reescribir el componente con las correcciones de layout, carga de imagen, y gestion de estado del historial.
 
