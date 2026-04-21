@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Scale, ChevronDown, FileText, MapPin, Clock } from 'lucide-react';
 import { format, differenceInMinutes, differenceInHours } from 'date-fns';
@@ -110,7 +111,12 @@ export default function AdminVisitaDetalle() {
         visitaId={id}
         onSave={async (newUrl) => {
           if (fotoMeta) {
-            await supabase.from(fotoMeta.table as any).update({ [fotoMeta.column]: newUrl }).eq('id', fotoMeta.id);
+            const { error } = await supabase.from(fotoMeta.table as any).update({ [fotoMeta.column]: newUrl }).eq('id', fotoMeta.id);
+            if (error) {
+              console.error('Error updating photo URL:', error);
+              toast.error('Error al guardar la foto editada');
+              throw error;
+            }
             setFotoUrl(null);
             setFotoMeta(null);
             // re-fetch

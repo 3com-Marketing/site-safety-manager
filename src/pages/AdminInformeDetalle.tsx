@@ -289,7 +289,12 @@ export default function AdminInformeDetalle() {
 
   const handleSaveFoto = async (newUrl: string) => {
     if (!fotoMeta) return;
-    await supabase.from(fotoMeta.table as any).update({ [fotoMeta.column]: newUrl }).eq('id', fotoMeta.id);
+    const { error } = await supabase.from(fotoMeta.table as any).update({ [fotoMeta.column]: newUrl }).eq('id', fotoMeta.id);
+    if (error) {
+      console.error('Error updating photo URL:', error);
+      toast.error('Error al guardar la foto editada');
+      throw error;
+    }
     setViewingFoto(null);
     setFotoMeta(null);
     await fetchData();
