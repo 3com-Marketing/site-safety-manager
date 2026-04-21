@@ -65,6 +65,10 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   // CAE specific
   const [mesReunion, setMesReunion] = useState('');
   const [textoPunto1, setTextoPunto1] = useState('');
+  const [textoPunto2, setTextoPunto2] = useState('');
+  const [docChecks, setDocChecks] = useState({ preventiva: false, trabajadores: false, maquinaria: false, trabajos: false });
+  const [punto2NoProcede, setPunto2NoProcede] = useState(false);
+  const [punto2Otros, setPunto2Otros] = useState('');
   const [riesgos, setRiesgos] = useState<string[]>([]);
   const [otrosRiesgos, setOtrosRiesgos] = useState('');
   const [plataformaCAE, setPlataformaCAE] = useState('metacontratas');
@@ -103,12 +107,15 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
     if (!documento && tipoActual) {
       const configField = TIPO_TO_CONFIG_FIELD[tipoActual];
       const fieldsToLoad = configField ? [configField] : [];
-      if (tipoActual === 'acta_reunion_cae') fieldsToLoad.push('texto_cae_punto1');
+      if (tipoActual === 'acta_reunion_cae') {
+        fieldsToLoad.push('texto_cae_punto1', 'texto_cae_punto2');
+      }
       if (fieldsToLoad.length > 0) {
         supabase.from('configuracion_empresa').select(fieldsToLoad.join(',')).limit(1).single().then(({ data }) => {
           if (data) {
             if (configField && (data as any)[configField]) setTextoLegal((data as any)[configField]);
             if ((data as any).texto_cae_punto1) setTextoPunto1((data as any).texto_cae_punto1);
+            if ((data as any).texto_cae_punto2) setTextoPunto2((data as any).texto_cae_punto2);
           }
         });
       }
@@ -127,6 +134,15 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       setTextoLegal(extra.texto_legal || '');
       setMesReunion(extra.mes_reunion || '');
       setTextoPunto1(extra.texto_punto1 || '');
+      setTextoPunto2(extra.texto_punto2 || '');
+      setDocChecks({
+        preventiva: extra.punto2_doc_preventiva || false,
+        trabajadores: extra.punto2_doc_trabajadores || false,
+        maquinaria: extra.punto2_doc_maquinaria || false,
+        trabajos: extra.punto2_doc_trabajos || false,
+      });
+      setPunto2NoProcede(extra.punto2_no_procede || false);
+      setPunto2Otros(extra.punto2_otros || '');
       setRiesgos(extra.riesgos || []);
       setOtrosRiesgos(extra.otros_riesgos || '');
       setPlataformaCAE(extra.plataforma_cae || 'metacontratas');
@@ -272,6 +288,13 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
     if (isCAE) {
       datosExtra.mes_reunion = mesReunion;
       datosExtra.texto_punto1 = textoPunto1;
+      datosExtra.texto_punto2 = textoPunto2;
+      datosExtra.punto2_doc_preventiva = docChecks.preventiva;
+      datosExtra.punto2_doc_trabajadores = docChecks.trabajadores;
+      datosExtra.punto2_doc_maquinaria = docChecks.maquinaria;
+      datosExtra.punto2_doc_trabajos = docChecks.trabajos;
+      datosExtra.punto2_no_procede = punto2NoProcede;
+      datosExtra.punto2_otros = punto2Otros;
       datosExtra.riesgos = riesgos;
       datosExtra.otros_riesgos = otrosRiesgos;
       datosExtra.plataforma_cae = plataformaCAE;
@@ -385,29 +408,6 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
         <Textarea value={excusados} onChange={e => setExcusados(e.target.value)} rows={2} />
       </div>
 
-      {/* CAE: Empresas acceso */}
-      {isCAE && (
-        <div className="space-y-3 pt-2">
-          <p className="text-sm font-semibold">Empresas con acceso a obra</p>
-          {empresas.map((e: any, i: number) => (
-            <div key={e.id || i} className="flex items-center justify-between rounded-lg border border-border p-3">
-              <div className="text-sm">
-                <span className="font-medium">{e.empresa}</span>
-                {e.persona_contacto && <span className="text-muted-foreground"> · {e.persona_contacto}</span>}
-              </div>
-              <Button variant="ghost" size="icon" onClick={() => handleDeleteEmpresa(documento ? e.id : i)}>
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            </div>
-          ))}
-          <div className="grid grid-cols-4 gap-2">
-            <Input placeholder="Empresa" value={nuevaEmpresa.empresa} onChange={e => setNuevaEmpresa(p => ({ ...p, empresa: e.target.value }))} />
-            <Input placeholder="Contacto" value={nuevaEmpresa.persona_contacto} onChange={e => setNuevaEmpresa(p => ({ ...p, persona_contacto: e.target.value }))} />
-            <Input placeholder="Email" value={nuevaEmpresa.email_referencia} onChange={e => setNuevaEmpresa(p => ({ ...p, email_referencia: e.target.value }))} />
-            <Button size="sm" onClick={handleAddEmpresa} disabled={!nuevaEmpresa.empresa.trim()} className="gap-1"><Plus className="h-4 w-4" /> Añadir</Button>
-          </div>
-        </div>
-      )}
 
       {/* CAE: Riesgos */}
       {isCAE && (
@@ -461,6 +461,70 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
                   <Input placeholder="Actividad" value={nuevaActividad.actividad} onChange={e => setNuevaActividad(p => ({ ...p, actividad: e.target.value }))} />
                   <Input placeholder="Nº pedido" value={nuevaActividad.numero_pedido} onChange={e => setNuevaActividad(p => ({ ...p, numero_pedido: e.target.value }))} />
                   <Button size="sm" onClick={handleAddActividad} disabled={!nuevaActividad.actividad.trim()} className="gap-1"><Plus className="h-4 w-4" /> Añadir</Button>
+                </div>
+              </div>
+            </div>
+          </SectionCollapsible>
+
+          {/* 2. Intercambio de documentación */}
+          <SectionCollapsible title="2. Intercambio de documentación">
+            <div className="space-y-4">
+              <div>
+                <Label>Texto legal del punto 2</Label>
+                <RichTextEditor value={textoPunto2} onChange={setTextoPunto2} placeholder="Texto sobre intercambio de documentación..." />
+              </div>
+
+              {/* Empresas con acceso a obra */}
+              <div className="space-y-3">
+                <p className="text-sm font-semibold">Empresas con acceso a obra</p>
+                {empresas.map((e: any, i: number) => (
+                  <div key={e.id || i} className="flex items-center justify-between rounded-lg border border-border p-3">
+                    <div className="text-sm">
+                      <span className="font-medium">{e.empresa}</span>
+                      {e.persona_contacto && <span className="text-muted-foreground"> · {e.persona_contacto}</span>}
+                      {e.email_referencia && <span className="text-muted-foreground"> · {e.email_referencia}</span>}
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => handleDeleteEmpresa(documento ? e.id : i)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+                <div className="grid grid-cols-4 gap-2">
+                  <Input placeholder="Empresa" value={nuevaEmpresa.empresa} onChange={e => setNuevaEmpresa(p => ({ ...p, empresa: e.target.value }))} />
+                  <Input placeholder="Contacto" value={nuevaEmpresa.persona_contacto} onChange={e => setNuevaEmpresa(p => ({ ...p, persona_contacto: e.target.value }))} />
+                  <Input placeholder="Email" value={nuevaEmpresa.email_referencia} onChange={e => setNuevaEmpresa(p => ({ ...p, email_referencia: e.target.value }))} />
+                  <Button size="sm" onClick={handleAddEmpresa} disabled={!nuevaEmpresa.empresa.trim()} className="gap-1"><Plus className="h-4 w-4" /> Añadir</Button>
+                </div>
+              </div>
+
+              {/* Documentación requerida */}
+              <div className="space-y-3">
+                <p className="text-sm font-semibold">Documentación a intercambiar</p>
+                <label className="flex items-start gap-2 text-sm">
+                  <Checkbox checked={docChecks.preventiva} onCheckedChange={(v) => setDocChecks(p => ({ ...p, preventiva: !!v }))} className="mt-0.5" />
+                  La documentación completa en materia preventiva y administrativa de Empresa y Trabajadores
+                </label>
+                <label className="flex items-start gap-2 text-sm">
+                  <Checkbox checked={docChecks.trabajadores} onCheckedChange={(v) => setDocChecks(p => ({ ...p, trabajadores: !!v }))} className="mt-0.5" />
+                  La relación nominal completa de trabajadores (Nombre, Apellidos, N.I.F. ó Pasaporte o N.I.E.)
+                </label>
+                <label className="flex items-start gap-2 text-sm">
+                  <Checkbox checked={docChecks.maquinaria} onCheckedChange={(v) => setDocChecks(p => ({ ...p, maquinaria: !!v }))} className="mt-0.5" />
+                  La relación completa de maquinaria, medios auxiliares y/o productos químicos, si procede
+                </label>
+                <label className="flex items-start gap-2 text-sm">
+                  <Checkbox checked={docChecks.trabajos} onCheckedChange={(v) => setDocChecks(p => ({ ...p, trabajos: !!v }))} className="mt-0.5" />
+                  La relación de los trabajos a realizar (tipología o zona de afectación)
+                </label>
+                <div className="flex items-center gap-4 pt-1">
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox checked={punto2NoProcede} onCheckedChange={(v) => setPunto2NoProcede(!!v)} />
+                    No procede
+                  </label>
+                </div>
+                <div className="space-y-1">
+                  <Label>Otros</Label>
+                  <Input value={punto2Otros} onChange={e => setPunto2Otros(e.target.value)} placeholder="Especificar..." />
                 </div>
               </div>
             </div>
