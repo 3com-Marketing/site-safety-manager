@@ -1,25 +1,70 @@
 
 
-# Plan: Unificar lógica de visibilidad de Descripción y Normativa en el checklist
+# Plan: Fusionar anotaciones de foto y texto en una sola tarjeta
 
-## Cambio
+## Problema
 
-En `src/pages/AdminInformeDetalle.tsx` (líneas 325-347), ambos campos (Descripción y Normativa) seguirán la misma lógica:
+Los datos en la base de datos almacenan las fotos y el texto como registros separados en la tabla `anotaciones`:
+- Registro 1: solo `foto_url` (sin texto ni normativa)
+- Registro 2: solo `texto` y `normativa` (sin foto)
 
-- **Siempre se muestra el Textarea**, tanto si tiene texto como si está vacío.
-- Si tiene texto, aparece con el contenido para editarlo.
-- Si está vacío, aparece el recuadro vacío para rellenarlo.
+El código actual renderiza cada registro como una tarjeta independiente con sus propios campos de Descripción y Normativa. Esto crea la "doble pantalla": una tarjeta vacía con foto y otra con texto.
 
-El código actual ya hace esto para Descripción, pero no para Normativa. El cambio es simplemente asegurar que ambos Textareas se renderizan siempre (sin condicionales), que es exactamente lo que ya ocurre en las líneas 326-346. No hay que quitar ni añadir condicionales — el código actual ya muestra ambos siempre.
+## Solución
 
-**Sin embargo**, revisando el código, veo que ambos campos YA se muestran siempre. Si en la vista actual no aparecen editables, el problema puede ser que los valores `null` no se manejan bien. Ajustaré los valores por defecto para evitar que `null` cause problemas:
+Antes de renderizar, agrupar las anotaciones de cada bloque en pares lógicos:
 
-- `value={editedAnot?.texto ?? a.texto ?? ''}` (añadir `?? ''` al final)
-- `value={editedAnot?.normativa ?? a.normativa ?? ''}` (añadir `?? ''` al final)
+1. Recorrer las anotaciones de cada bloque del checklist
+2. Si una anotación tiene `foto_url` pero no tiene `texto` ni `normativa`, y la siguiente anotación tiene `texto`/`normativa` pero no `foto_url`, fusionarlas en un solo objeto
+3. Si una anotación tiene todo (foto + texto), dejarla tal cual
+4. Si una anotación es solo foto sin par de texto, mostrarla sola con campos editables vacíos
 
-Esto garantiza que ambos campos siempre aparezcan como Textareas editables, con contenido si lo hay o vacíos si no.
+Cada tarjeta resultante mostrará:
+- La foto (si existe)
+- Un Textarea de Descripción (con texto si lo hay, vacío si no)
+- Un Textarea de Normativa (con texto si lo hay, vacío si no)
+
+Para guardar, se usará el ID del registro de texto (si existe) o el de la foto para las actualizaciones.
+
+## Cambios técnicos
+
+### `src/pages/AdminInformeDetalle.tsx`
+
+1. **Añadir función de fusión** antes del return:
+
+```typescript
+const mergeAnotaciones = (anotaciones: any[]) => {
+  const merged: any[] = [];
+  let i = 0;
+  while (i < anotaciones.length) {
+    const current = anotaciones[i];
+    const next = anotaciones[i + 1];
+    
+    // Foto sin texto + siguiente con texto sin foto → fusionar
+    if (current.foto_url && !current.texto && !current.normativa 
+        && next && !next.foto_url && (next.texto || next.normativa)) {
+      merged.push({
+        id: next.id,           // ID del texto para edición
+        foto_id: current.id,   // ID de la foto
+        foto_url: current.foto_url,
+        texto: next.texto,
+        normativa: next.normativa,
+      });
+      i += 2;
+    } else {
+      merged.push(current);
+      i += 1;
+    }
+  }
+  return merged;
+};
+```
+
+2. **Usar `mergeAnotaciones`** en el map del checklist, reemplazando `bloque.anotaciones.map(...)` por `mergeAnotaciones(bloque.anotaciones).map(...)`.
+
+3. **Mantener el renderizado actual** (foto + Textarea Descripción + Textarea Normativa) pero ahora cada tarjeta tendrá los datos combinados, eliminando las tarjetas duplicadas.
 
 ## Archivo afectado
 
-- **`src/pages/AdminInformeDetalle.tsx`** — Líneas 329 y 341: añadir fallback `?? ''` para que los valores null se muestren como campo vacío editable.
+- **`src/pages/AdminInformeDetalle.tsx`** — Añadir función de fusión y usarla en el bucle del checklist.
 
