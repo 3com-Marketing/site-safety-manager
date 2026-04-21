@@ -1,34 +1,35 @@
 
 
-# Plan: Hacer los informes de visita editables
+# Plan: Hacer editables las anotaciones del checklist
 
 ## Problema
 
-1. **"Ver informe completo (editable)" no permite editar** — La página `AdminInformeDetalle` muestra los datos generales (nº trabajadores, condiciones climáticas, empresas presentes, notas) como texto estático. Solo las incidencias tienen campos editables. Las amonestaciones y observaciones tampoco se pueden editar.
+Todo el contenido real del informe (textos descriptivos, normativa, fotos) esta en las anotaciones del checklist. Esta seccion muestra los datos como texto estatico sin posibilidad de edicion. Las secciones de incidencias, amonestaciones y observaciones ya tienen campos editables implementados, pero estan vacias en este informe.
 
-2. **El botón "Editar" de DocumentosList no aparece en la web publicada** — El código ya está implementado correctamente, pero necesitas publicar de nuevo la aplicación y limpiar la caché del navegador.
+## Solucion
 
-## Solución
+Convertir cada anotacion del checklist en campos editables (Textarea para texto y normativa) y ampliar la logica de guardado.
 
-### 1. Hacer editables todos los campos en `AdminInformeDetalle`
+### Cambios en `src/pages/AdminInformeDetalle.tsx`
 
-Convertir los campos de solo lectura en campos editables:
+1. **Nuevo estado** `editedAnotaciones` para trackear cambios:
+```typescript
+const [editedAnotaciones, setEditedAnotaciones] = useState<
+  Record<string, { texto?: string; normativa?: string }>
+>({});
+```
 
-- **Datos generales**: Cambiar los `<p>` estáticos por `<Input>` y `<Textarea>` para: nº trabajadores, condiciones climáticas, empresas presentes, notas generales.
-- **Amonestaciones**: Añadir `<Input>` para trabajador, `<Textarea>` para descripción.
-- **Observaciones**: Añadir `<Textarea>` para texto.
-- **Guardar**: Ampliar `saveChanges` para guardar también los cambios en la tabla `informes` (datos generales), `amonestaciones` y `observaciones`, además de las incidencias que ya funcionan.
+2. **Handler** para cambios en anotaciones.
 
-### 2. Estado de edición
+3. **Incluir `editedAnotaciones` en `hasEdits`** para que el boton "Guardar cambios" aparezca.
 
-Añadir estados para trackear cambios en:
-- `editedInforme`: objeto con los campos generales modificados (`num_trabajadores`, `condiciones_climaticas`, `empresas_presentes`, `notas_generales`)
-- `editedAmonestaciones`: mapa `id → { trabajador, descripcion }`
-- `editedObservaciones`: mapa `id → { texto }`
+4. **Incluir en `saveChanges`** el guardado contra la tabla `anotaciones` (que ya tiene RLS con UPDATE para owners y admins).
 
-El botón "Guardar cambios" aparecerá cuando haya cualquier cambio pendiente en cualquier sección.
+5. **Reemplazar el bloque de renderizado** (lineas 308-319): cambiar los `<p>` estaticos por `<Textarea>` editables para texto y normativa, manteniendo las fotos como imagen.
+
+Resultado: cada anotacion del checklist mostrara campos editables para su texto y normativa. Las fotos seguiran siendo solo visualizacion.
 
 ## Archivos afectados
 
-- **`src/pages/AdminInformeDetalle.tsx`** — Convertir datos generales, amonestaciones y observaciones de solo lectura a editables, ampliar lógica de guardado
+- **`src/pages/AdminInformeDetalle.tsx`** -- Anadir estado, handler, campos editables y logica de guardado para anotaciones del checklist
 
