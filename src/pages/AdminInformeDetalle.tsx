@@ -47,6 +47,7 @@ export default function AdminInformeDetalle() {
   }>>({});
   const [editedAmonestaciones, setEditedAmonestaciones] = useState<Record<string, { trabajador: string; descripcion: string }>>({});
   const [editedObservaciones, setEditedObservaciones] = useState<Record<string, { texto: string }>>({});
+  const [editedAnotaciones, setEditedAnotaciones] = useState<Record<string, { texto?: string; normativa?: string }>>({});
   const [saving, setSaving] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
 
@@ -111,10 +112,18 @@ export default function AdminInformeDetalle() {
     }));
   };
 
+  const handleAnotacionChange = (anotId: string, field: 'texto' | 'normativa', value: string) => {
+    setEditedAnotaciones(prev => ({
+      ...prev,
+      [anotId]: { ...prev[anotId], [field]: value },
+    }));
+  };
+
   const hasEdits = Object.keys(editedFields).length > 0
     || Object.keys(editedInforme).length > 0
     || Object.keys(editedAmonestaciones).length > 0
-    || Object.keys(editedObservaciones).length > 0;
+    || Object.keys(editedObservaciones).length > 0
+    || Object.keys(editedAnotaciones).length > 0;
 
   const saveChanges = async () => {
     setSaving(true);
@@ -139,10 +148,16 @@ export default function AdminInformeDetalle() {
       await supabase.from('observaciones').update({ texto: fields.texto }).eq('id', obsId);
     }
 
+    // Save anotaciones
+    for (const [anotId, fields] of Object.entries(editedAnotaciones)) {
+      await supabase.from('anotaciones').update(fields).eq('id', anotId);
+    }
+
     setEditedFields({});
     setEditedInforme({});
     setEditedAmonestaciones({});
     setEditedObservaciones({});
+    setEditedAnotaciones({});
     toast.success('Cambios guardados');
     await fetchData();
     setSaving(false);
@@ -304,20 +319,34 @@ export default function AdminInformeDetalle() {
                 <h3 className="text-sm font-semibold">{CATEGORIAS[bloque.categoria] || bloque.categoria}</h3>
                 {(!bloque.anotaciones || bloque.anotaciones.length === 0) ? (
                   <p className="text-xs text-muted-foreground italic">Sin anotaciones</p>
-                ) : (
-                  bloque.anotaciones.map((a: any) => (
-                    <div key={a.id} className="rounded-lg border border-border bg-card p-3 space-y-1.5">
-                      {a.texto && <p className="text-sm">{a.texto}</p>}
-                      {a.foto_url && <img src={a.foto_url} alt="Foto" className="h-20 w-20 rounded-lg object-cover border border-border" />}
-                      {a.normativa && (
-                        <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
-                          <Scale className="h-3 w-3 text-primary mt-0.5 shrink-0" />
-                          <span className="whitespace-pre-line">{a.normativa}</span>
+                ) : bloque.anotaciones.map((a: any) => {
+                    const editedAnot = editedAnotaciones[a.id];
+                    return (
+                      <div key={a.id} className="rounded-lg border border-border bg-card p-3 space-y-2">
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground">Descripción</p>
+                          <Textarea
+                            value={editedAnot?.texto ?? a.texto}
+                            onChange={e => handleAnotacionChange(a.id, 'texto', e.target.value)}
+                            className="text-sm min-h-[60px]"
+                            placeholder="Texto de la anotación..."
+                          />
                         </div>
-                      )}
-                    </div>
-                  ))
-                )}
+                        {a.foto_url && <img src={a.foto_url} alt="Foto" className="h-20 w-20 rounded-lg object-cover border border-border" />}
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Scale className="h-3 w-3 text-primary" /> Normativa
+                          </p>
+                          <Textarea
+                            value={editedAnot?.normativa ?? a.normativa}
+                            onChange={e => handleAnotacionChange(a.id, 'normativa', e.target.value)}
+                            className="text-sm min-h-[40px]"
+                            placeholder="Normativa aplicable..."
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
               </div>
             ))}
           </CollapsibleContent>
