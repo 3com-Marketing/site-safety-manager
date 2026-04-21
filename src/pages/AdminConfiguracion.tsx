@@ -47,6 +47,8 @@ interface ConfigEmpresa {
   texto_cae_punto7: string;
   texto_cae_punto8: string;
   texto_cae_punto9: string;
+  texto_cae_punto10: string;
+  texto_cae_punto10_procede: string;
 }
 
 const EMPTY_CONFIG: ConfigEmpresa = {
@@ -66,6 +68,8 @@ const EMPTY_CONFIG: ConfigEmpresa = {
   texto_cae_punto7: '',
   texto_cae_punto8: '',
   texto_cae_punto9: '',
+  texto_cae_punto10: '',
+  texto_cae_punto10_procede: '',
 };
 
 export default function AdminConfiguracion() {
