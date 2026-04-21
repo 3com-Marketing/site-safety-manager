@@ -25,7 +25,10 @@ export default function TechHome() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     const fetchAll = async () => {
       try {
