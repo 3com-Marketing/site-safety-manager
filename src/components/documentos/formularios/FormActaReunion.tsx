@@ -288,6 +288,13 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
     if (isCAE) {
       datosExtra.mes_reunion = mesReunion;
       datosExtra.texto_punto1 = textoPunto1;
+      datosExtra.texto_punto2 = textoPunto2;
+      datosExtra.punto2_doc_preventiva = docChecks.preventiva;
+      datosExtra.punto2_doc_trabajadores = docChecks.trabajadores;
+      datosExtra.punto2_doc_maquinaria = docChecks.maquinaria;
+      datosExtra.punto2_doc_trabajos = docChecks.trabajos;
+      datosExtra.punto2_no_procede = punto2NoProcede;
+      datosExtra.punto2_otros = punto2Otros;
       datosExtra.riesgos = riesgos;
       datosExtra.otros_riesgos = otrosRiesgos;
       datosExtra.plataforma_cae = plataformaCAE;
