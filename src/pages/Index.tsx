@@ -16,6 +16,14 @@ export default function Index() {
 
   if (!session) return <Navigate to="/login" replace />;
 
+  if (!role) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p className="text-muted-foreground font-heading">Cargando...</p>
+      </div>
+    );
+  }
+
   if (role === 'admin') return <AdminInformes />;
   return <TechHome />;
 }

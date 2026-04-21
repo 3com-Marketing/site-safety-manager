@@ -28,42 +28,44 @@ export default function TechHome() {
     if (!user) return;
 
     const fetchAll = async () => {
-      // Fetch visitas
-      const { data: visitasData } = await supabase
-        .from('visitas')
-        .select('id, fecha, estado, obras(nombre)')
-        .eq('usuario_id', user.id)
-        .order('fecha', { ascending: false })
-        .limit(10);
+      try {
+        const { data: visitasData } = await supabase
+          .from('visitas')
+          .select('id, fecha, estado, obras(nombre)')
+          .eq('usuario_id', user.id)
+          .order('fecha', { ascending: false })
+          .limit(10);
 
-      setVisitas(
-        (visitasData || []).map((v: any) => ({
-          id: v.id,
-          fecha: v.fecha,
-          estado: v.estado,
-          obra_nombre: v.obras?.nombre || 'Obra',
-        }))
-      );
+        setVisitas(
+          (visitasData || []).map((v: any) => ({
+            id: v.id,
+            fecha: v.fecha,
+            estado: v.estado,
+            obra_nombre: v.obras?.nombre || 'Obra',
+          }))
+        );
 
-      // Fetch pending docs for tech's obras
-      const tiposTecnico = ['acta_reunion_cae', 'acta_reunion_inicial', 'acta_reunion_sys', 'informe_css', 'informe_at'];
-      const tiposTecnicoTyped = tiposTecnico as Array<'acta_reunion_cae' | 'acta_reunion_inicial' | 'acta_reunion_sys' | 'informe_css' | 'informe_at'>;
-      const { data: docsData } = await supabase
-        .from('documentos_obra')
-        .select('id, tipo, estado, obra_id, obras(nombre)')
-        .in('tipo', tiposTecnicoTyped)
-        .eq('estado', 'pendiente');
+        const tiposTecnico = ['acta_reunion_cae', 'acta_reunion_inicial', 'acta_reunion_sys', 'informe_css', 'informe_at'];
+        const tiposTecnicoTyped = tiposTecnico as Array<'acta_reunion_cae' | 'acta_reunion_inicial' | 'acta_reunion_sys' | 'informe_css' | 'informe_at'>;
+        const { data: docsData } = await supabase
+          .from('documentos_obra')
+          .select('id, tipo, estado, obra_id, obras(nombre)')
+          .in('tipo', tiposTecnicoTyped)
+          .eq('estado', 'pendiente');
 
-      setDocsPendientes(
-        (docsData || []).map((d: any) => ({
-          id: d.id,
-          tipo: d.tipo,
-          obra_nombre: d.obras?.nombre || 'Obra',
-          obra_id: d.obra_id,
-        }))
-      );
-
-      setLoading(false);
+        setDocsPendientes(
+          (docsData || []).map((d: any) => ({
+            id: d.id,
+            tipo: d.tipo,
+            obra_nombre: d.obras?.nombre || 'Obra',
+            obra_id: d.obra_id,
+          }))
+        );
+      } catch (err) {
+        console.error('Error fetching tech data:', err);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchAll();
