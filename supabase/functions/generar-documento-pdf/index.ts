@@ -404,7 +404,8 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
 
   // 1. Objetivo y alcance + Actividades table
   html += `<h2 style="font-size:12pt;color:#F37520;border-bottom:2px solid #F37520;padding-bottom:3pt;margin-top:0;"><span style="font-weight:bold;">1.</span> OBJETIVO Y ALCANCE</h2>`;
-  html += `<div class="section-text" style="font-size:9pt;text-align:justify;"><p>El presente protocolo tiene por objeto establecer los criterios de coordinación de actividades empresariales para la prevención de los riesgos laborales de las empresas contratadas para la ejecución de los trabajos descritos en la siguiente tabla, conforme a lo dispuesto en el Real Decreto 171/2004.</p></div>`;
+  const textoPunto1 = extra.texto_punto1 || "El presente protocolo tiene por objeto establecer los criterios de coordinación de actividades empresariales para la prevención de los riesgos laborales de las empresas contratadas para la ejecución de los trabajos descritos en la siguiente tabla, conforme a lo dispuesto en el Real Decreto 171/2004.";
+  html += `<div class="section-text" style="font-size:9pt;text-align:justify;">${renderRichText(textoPunto1)}</div>`;
 
   // Actividades table
   if (actividades.length > 0) {
@@ -417,7 +418,8 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
 
   // 2. Intercambio documentación + Empresas table
   html += `<h2 style="font-size:12pt;color:#F37520;border-bottom:2px solid #F37520;padding-bottom:3pt;"><span style="font-weight:bold;">2.</span> INTERCAMBIO DE DOCUMENTACIÓN Y ACCESO A OBRA</h2>`;
-  html += `<div class="section-text" style="font-size:9pt;text-align:justify;"><p>Se acuerda que las empresas que se relacionan a continuación deberán entregar la documentación necesaria para el acceso a la obra antes del inicio de los trabajos.</p></div>`;
+  const textoPunto2 = extra.texto_punto2 || "Se acuerda que las empresas que se relacionan a continuación deberán entregar la documentación necesaria para el acceso a la obra antes del inicio de los trabajos.";
+  html += `<div class="section-text" style="font-size:9pt;text-align:justify;">${renderRichText(textoPunto2)}</div>`;
 
   if (empresas.length > 0) {
     html += `<table><tr><th>Empresa</th><th>Persona de contacto</th><th>Email</th></tr>`;
@@ -427,25 +429,61 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
     html += `</table>`;
   }
 
-  // Checklist documentación (fixed)
+  // Checklist documentación — dynamic from datos_extra or fixed fallback
   html += `<p style="font-size:9pt;font-weight:bold;margin-top:10pt;">Documentación a entregar por cada empresa:</p>`;
-  const checkDocs = [
-    "Alta en la Seguridad Social (TC2 / RNT) — último mes",
-    "Certificado de estar al corriente con la Seguridad Social",
-    "Seguro de responsabilidad civil",
-    "Evaluación de riesgos del puesto de trabajo",
-    "Planificación de la actividad preventiva",
-    "Formación e información en PRL de los trabajadores",
-    "Aptitud médica de los trabajadores",
-    "Entrega de EPIs a los trabajadores",
-    "Autorización de uso de maquinaria y equipos de trabajo",
-    "Nombramiento de Recurso Preventivo",
+  const docCheckboxKeys = [
+    { key: 'punto2_doc_preventiva', label: 'Documentación preventiva' },
+    { key: 'punto2_doc_tc2', label: 'Alta en la Seguridad Social (TC2 / RNT) — último mes' },
+    { key: 'punto2_doc_ss', label: 'Certificado de estar al corriente con la Seguridad Social' },
+    { key: 'punto2_doc_seguro', label: 'Seguro de responsabilidad civil' },
+    { key: 'punto2_doc_evaluacion', label: 'Evaluación de riesgos del puesto de trabajo' },
+    { key: 'punto2_doc_planificacion', label: 'Planificación de la actividad preventiva' },
+    { key: 'punto2_doc_formacion', label: 'Formación e información en PRL de los trabajadores' },
+    { key: 'punto2_doc_aptitud', label: 'Aptitud médica de los trabajadores' },
+    { key: 'punto2_doc_epis', label: 'Entrega de EPIs a los trabajadores' },
+    { key: 'punto2_doc_maquinaria', label: 'Autorización de uso de maquinaria y equipos de trabajo' },
+    { key: 'punto2_doc_recurso', label: 'Nombramiento de Recurso Preventivo' },
   ];
-  html += `<table><tr><th style="width:85%">Documento</th><th style="text-align:center;">✓</th></tr>`;
-  for (const d of checkDocs) {
-    html += `<tr><td style="font-size:8pt;">${d}</td><td style="text-align:center;">☐</td></tr>`;
+  // Check if any dynamic checkbox exists in extra
+  const hasDynamicChecks = docCheckboxKeys.some(d => extra[d.key] !== undefined);
+  if (hasDynamicChecks) {
+    html += `<table><tr><th style="width:85%">Documento</th><th style="text-align:center;">✓</th></tr>`;
+    for (const d of docCheckboxKeys) {
+      const checked = extra[d.key] === true;
+      html += `<tr><td style="font-size:8pt;">${d.label}</td><td style="text-align:center;">${checked ? '☑' : '☐'}</td></tr>`;
+    }
+    if (extra.punto2_otros) {
+      html += `<tr><td style="font-size:8pt;">Otros: ${extra.punto2_otros}</td><td style="text-align:center;">☑</td></tr>`;
+    }
+    html += `</table>`;
+    if (extra.punto2_no_procede) {
+      html += `<p style="font-size:9pt;font-weight:bold;color:#666;margin-top:6pt;">No procede la entrega de documentación adicional.</p>`;
+    }
+  } else {
+    // Fallback: fixed checklist
+    const checkDocs = [
+      "Alta en la Seguridad Social (TC2 / RNT) — último mes",
+      "Certificado de estar al corriente con la Seguridad Social",
+      "Seguro de responsabilidad civil",
+      "Evaluación de riesgos del puesto de trabajo",
+      "Planificación de la actividad preventiva",
+      "Formación e información en PRL de los trabajadores",
+      "Aptitud médica de los trabajadores",
+      "Entrega de EPIs a los trabajadores",
+      "Autorización de uso de maquinaria y equipos de trabajo",
+      "Nombramiento de Recurso Preventivo",
+    ];
+    html += `<table><tr><th style="width:85%">Documento</th><th style="text-align:center;">✓</th></tr>`;
+    for (const d of checkDocs) {
+      html += `<tr><td style="font-size:8pt;">${d}</td><td style="text-align:center;">☐</td></tr>`;
+    }
+    html += `</table>`;
   }
-  html += `</table>`;
+
+  // Bloque 2 text (segundo bloque)
+  if (extra.texto_punto2_bloque2) {
+    html += `<div class="section-text" style="font-size:9pt;text-align:justify;margin-top:8pt;">${renderRichText(extra.texto_punto2_bloque2)}</div>`;
+  }
 
   // Plataforma CAE
   if (extra.plataforma_cae) {
@@ -455,9 +493,14 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
   // 3. Trabajos realizados y previstos + Riesgos
   html += `<h2 style="font-size:12pt;color:#F37520;border-bottom:2px solid #F37520;padding-bottom:3pt;"><span style="font-weight:bold;">3.</span> TRABAJOS REALIZADOS Y PREVISTOS. ANÁLISIS DE RIESGOS Y MEDIDAS PREVENTIVAS</h2>`;
 
+  // Texto introductorio del punto 3
+  if (extra.texto_punto3) {
+    html += `<div class="section-text" style="font-size:9pt;text-align:justify;">${renderRichText(extra.texto_punto3)}</div>`;
+  }
+
   // Riesgos previstos
   if (extra.riesgos?.length > 0) {
-    html += `<p style="font-size:9pt;font-weight:bold;">Riesgos previstos:</p>`;
+    html += `<p style="font-size:9pt;font-weight:bold;margin-top:8pt;">Riesgos previstos:</p>`;
     html += `<ul style="font-size:9pt;">`;
     for (const r of extra.riesgos) html += `<li>${r}</li>`;
     if (extra.otros_riesgos) html += `<li>Otros: ${extra.otros_riesgos}</li>`;
@@ -506,35 +549,56 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
     html += `<p style="font-size:9pt;">Se designará Recurso Preventivo por parte de cada empresa contratista cuando sea necesario conforme al Art. 32 bis de la Ley 31/1995 de Prevención de Riesgos Laborales.</p>`;
   }
 
-  // 5-9: Legal text from configuración (texto_legal field)
-  const textoLegal = extra.texto_legal || "";
-  if (textoLegal) {
-    html += `<h2 style="font-size:12pt;color:#F37520;border-bottom:2px solid #F37520;padding-bottom:3pt;"><span style="font-weight:bold;">5.</span> ACUERDOS GENERALES ADOPTADOS EN MATERIA DE PRL</h2>`;
-    html += `<div class="legal-text" style="text-align:justify;">${renderRichText(textoLegal)}</div>`;
-  } else {
-    // Fixed default text for sections 5-9
-    const fixedSections = [
-      { num: 5, title: "ACUERDOS GENERALES ADOPTADOS EN MATERIA DE PRL", text: "Se acuerda la aplicación de las medidas preventivas establecidas en la evaluación de riesgos y la planificación de la actividad preventiva de cada empresa, así como las medidas de coordinación que se estimen necesarias." },
-      { num: 6, title: "FORMACIÓN E INFORMACIÓN", text: "Cada empresa garantizará que sus trabajadores disponen de la formación e información necesaria en materia de prevención de riesgos laborales, conforme al Art. 18 y 19 de la Ley 31/1995." },
-      { num: 7, title: "CONTROL DE MAQUINARIA, EQUIPOS DE TRABAJO, MEDIOS AUXILIARES Y CERTIFICADOS", text: "Cada empresa será responsable de que la maquinaria, equipos de trabajo y medios auxiliares que emplee cumplan la normativa vigente y dispongan de la documentación correspondiente (marcado CE, revisiones periódicas, etc.)." },
-      { num: 8, title: "PROTECCIONES COLECTIVAS", text: "Se establecerán las protecciones colectivas necesarias (redes de seguridad, barandillas, líneas de vida, etc.) antes del inicio de los trabajos que las requieran." },
-      { num: 9, title: "PROTECCIONES INDIVIDUALES", text: "Los trabajadores deberán utilizar los Equipos de Protección Individual (EPI) adecuados a los riesgos de su puesto de trabajo, conforme a la evaluación de riesgos realizada." },
-    ];
-    for (const s of fixedSections) {
-      html += `<h2 style="font-size:12pt;color:#F37520;border-bottom:2px solid #F37520;padding-bottom:3pt;"><span style="font-weight:bold;">${s.num}.</span> ${s.title}</h2>`;
-      html += `<div class="section-text" style="font-size:9pt;text-align:justify;"><p>${s.text}</p></div>`;
-    }
-  }
+  // 5. Acuerdos generales (fallback to texto_legal for retrocompatibility)
+  html += `<h2 style="font-size:12pt;color:#F37520;border-bottom:2px solid #F37520;padding-bottom:3pt;"><span style="font-weight:bold;">5.</span> ACUERDOS GENERALES ADOPTADOS EN MATERIA DE PRL</h2>`;
+  const textoP5 = extra.texto_acuerdos_generales || extra.texto_legal || "Se acuerda la aplicación de las medidas preventivas establecidas en la evaluación de riesgos y la planificación de la actividad preventiva de cada empresa, así como las medidas de coordinación que se estimen necesarias.";
+  html += `<div class="legal-text" style="text-align:justify;">${renderRichText(textoP5)}</div>`;
+
+  // 6. Formación e información
+  html += `<h2 style="font-size:12pt;color:#F37520;border-bottom:2px solid #F37520;padding-bottom:3pt;"><span style="font-weight:bold;">6.</span> FORMACIÓN E INFORMACIÓN</h2>`;
+  const textoP6 = extra.texto_punto6 || "Cada empresa garantizará que sus trabajadores disponen de la formación e información necesaria en materia de prevención de riesgos laborales, conforme al Art. 18 y 19 de la Ley 31/1995.";
+  html += `<div class="section-text" style="font-size:9pt;text-align:justify;">${renderRichText(textoP6)}</div>`;
+
+  // 7. Control de maquinaria
+  html += `<h2 style="font-size:12pt;color:#F37520;border-bottom:2px solid #F37520;padding-bottom:3pt;"><span style="font-weight:bold;">7.</span> CONTROL DE MAQUINARIA, EQUIPOS DE TRABAJO, MEDIOS AUXILIARES Y CERTIFICADOS</h2>`;
+  const textoP7 = extra.texto_punto7 || "Cada empresa será responsable de que la maquinaria, equipos de trabajo y medios auxiliares que emplee cumplan la normativa vigente y dispongan de la documentación correspondiente (marcado CE, revisiones periódicas, etc.).";
+  html += `<div class="section-text" style="font-size:9pt;text-align:justify;">${renderRichText(textoP7)}</div>`;
+
+  // 8. Protecciones colectivas
+  html += `<h2 style="font-size:12pt;color:#F37520;border-bottom:2px solid #F37520;padding-bottom:3pt;"><span style="font-weight:bold;">8.</span> PROTECCIONES COLECTIVAS</h2>`;
+  const textoP8 = extra.texto_punto8 || "Se establecerán las protecciones colectivas necesarias (redes de seguridad, barandillas, líneas de vida, etc.) antes del inicio de los trabajos que las requieran.";
+  html += `<div class="section-text" style="font-size:9pt;text-align:justify;">${renderRichText(textoP8)}</div>`;
+
+  // 9. Protecciones individuales
+  html += `<h2 style="font-size:12pt;color:#F37520;border-bottom:2px solid #F37520;padding-bottom:3pt;"><span style="font-weight:bold;">9.</span> PROTECCIONES INDIVIDUALES</h2>`;
+  const textoP9 = extra.texto_punto9 || "Los trabajadores deberán utilizar los Equipos de Protección Individual (EPI) adecuados a los riesgos de su puesto de trabajo, conforme a la evaluación de riesgos realizada.";
+  html += `<div class="section-text" style="font-size:9pt;text-align:justify;">${renderRichText(textoP9)}</div>`;
 
   // 10. Interferencias entre empresas
   html += `<h2 style="font-size:12pt;color:#F37520;border-bottom:2px solid #F37520;padding-bottom:3pt;"><span style="font-weight:bold;">10.</span> INTERFERENCIAS ENTRE EMPRESAS</h2>`;
-  if (extra.interferencias_empresas_aplica) {
-    html += `<p style="font-size:9pt;"><strong>Sí se detectan interferencias.</strong></p>`;
-    if (extra.interferencias_empresas_texto) {
-      html += `<div class="section-text" style="font-size:9pt;">${renderRichText(extra.interferencias_empresas_texto)}</div>`;
+  // New format with texto_punto10 + procede
+  if (extra.texto_punto10 !== undefined || extra.punto10_procede !== undefined) {
+    if (extra.texto_punto10) {
+      html += `<div class="section-text" style="font-size:9pt;text-align:justify;">${renderRichText(extra.texto_punto10)}</div>`;
+    }
+    if (extra.punto10_procede === 'si_procede') {
+      html += `<p style="font-size:9pt;font-weight:bold;color:#16a34a;margin-top:8pt;">✔ SÍ PROCEDE</p>`;
+      if (extra.punto10_texto_procede) {
+        html += `<div style="border:2px solid #16a34a;border-radius:6pt;padding:8pt;margin-top:6pt;background:#f0fdf4;"><div class="section-text" style="font-size:9pt;">${renderRichText(extra.punto10_texto_procede)}</div></div>`;
+      }
+    } else {
+      html += `<p style="font-size:9pt;font-weight:bold;color:#666;margin-top:8pt;">✘ NO PROCEDE</p>`;
     }
   } else {
-    html += `<p style="font-size:9pt;">No se detectan interferencias entre las empresas presentes en la obra durante el periodo analizado.</p>`;
+    // Retrocompatibility: old boolean format
+    if (extra.interferencias_empresas_aplica) {
+      html += `<p style="font-size:9pt;"><strong>Sí se detectan interferencias.</strong></p>`;
+      if (extra.interferencias_empresas_texto) {
+        html += `<div class="section-text" style="font-size:9pt;">${renderRichText(extra.interferencias_empresas_texto)}</div>`;
+      }
+    } else {
+      html += `<p style="font-size:9pt;">No se detectan interferencias entre las empresas presentes en la obra durante el periodo analizado.</p>`;
+    }
   }
 
   // 11. Interferencias con terceros
@@ -561,14 +625,30 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
 
   // 13. Ruegos y sugerencias
   html += `<h2 style="font-size:12pt;color:#F37520;border-bottom:2px solid #F37520;padding-bottom:3pt;"><span style="font-weight:bold;">13.</span> RUEGOS Y SUGERENCIAS</h2>`;
-  if (extra.ruegos_aplica) {
-    if (extra.ruegos_texto) {
-      html += `<div class="section-text" style="font-size:9pt;">${renderRichText(extra.ruegos_texto)}</div>`;
+  // New format with texto_punto13 + procede
+  if (extra.texto_punto13 !== undefined || extra.punto13_procede !== undefined) {
+    if (extra.texto_punto13) {
+      html += `<div class="section-text" style="font-size:9pt;text-align:justify;">${renderRichText(extra.texto_punto13)}</div>`;
+    }
+    if (extra.punto13_procede === 'si_procede') {
+      html += `<p style="font-size:9pt;font-weight:bold;color:#16a34a;margin-top:8pt;">✔ SÍ PROCEDE</p>`;
+      if (extra.punto13_texto_procede) {
+        html += `<div style="border:2px solid #16a34a;border-radius:6pt;padding:8pt;margin-top:6pt;background:#f0fdf4;"><div class="section-text" style="font-size:9pt;">${renderRichText(extra.punto13_texto_procede)}</div></div>`;
+      }
     } else {
-      html += `<p style="font-size:9pt;">Se recogen ruegos y sugerencias.</p>`;
+      html += `<p style="font-size:9pt;font-weight:bold;color:#666;margin-top:8pt;">✘ NO PROCEDE</p>`;
     }
   } else {
-    html += `<p style="font-size:9pt;">Sin ruegos ni sugerencias.</p>`;
+    // Retrocompatibility: old boolean format
+    if (extra.ruegos_aplica) {
+      if (extra.ruegos_texto) {
+        html += `<div class="section-text" style="font-size:9pt;">${renderRichText(extra.ruegos_texto)}</div>`;
+      } else {
+        html += `<p style="font-size:9pt;">Se recogen ruegos y sugerencias.</p>`;
+      }
+    } else {
+      html += `<p style="font-size:9pt;">Sin ruegos ni sugerencias.</p>`;
+    }
   }
 
   // Firma
