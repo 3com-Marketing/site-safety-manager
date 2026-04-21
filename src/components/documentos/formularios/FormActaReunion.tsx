@@ -84,6 +84,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   // NEW CAE fields (sections 3.1, 3.2, 3.3, 4, 10-13)
   const [empresasIntervienen, setEmpresasIntervienen] = useState<Array<{ razon_social: string; acronimo: string; responsable: string }>>([]);
   const [duracionTrabajos, setDuracionTrabajos] = useState<Array<{ titulo: string; inicio: string; fin: string; observaciones: string }>>([]);
+  const [textoPunto3, setTextoPunto3] = useState('');
   const [textoTrabajosRealizar, setTextoTrabajosRealizar] = useState('');
   const [textoRecursoPreventivo, setTextoRecursoPreventivo] = useState('');
   const [textoAcuerdosGenerales, setTextoAcuerdosGenerales] = useState('');
@@ -120,12 +121,13 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       const configField = TIPO_TO_CONFIG_FIELD[tipoActual];
       const fieldsToLoad = configField ? [configField] : [];
       if (tipoActual === 'acta_reunion_cae') {
-        fieldsToLoad.push('texto_cae_punto1', 'texto_cae_punto2', 'texto_cae_punto2_bloque2', 'texto_recurso_preventivo', 'texto_acuerdos_generales', 'texto_cae_punto6', 'texto_cae_punto7', 'texto_cae_punto8', 'texto_cae_punto9', 'texto_cae_punto10', 'texto_cae_punto10_procede', 'texto_cae_punto13', 'texto_cae_punto13_procede');
+        fieldsToLoad.push('texto_cae_punto3', 'texto_cae_punto1', 'texto_cae_punto2', 'texto_cae_punto2_bloque2', 'texto_recurso_preventivo', 'texto_acuerdos_generales', 'texto_cae_punto6', 'texto_cae_punto7', 'texto_cae_punto8', 'texto_cae_punto9', 'texto_cae_punto10', 'texto_cae_punto10_procede', 'texto_cae_punto13', 'texto_cae_punto13_procede');
       }
       if (fieldsToLoad.length > 0) {
         supabase.from('configuracion_empresa').select(fieldsToLoad.join(',')).limit(1).single().then(({ data }) => {
           if (data) {
             if (configField && (data as any)[configField]) setTextoLegal((data as any)[configField]);
+            if ((data as any).texto_cae_punto3) setTextoPunto3((data as any).texto_cae_punto3);
             if ((data as any).texto_cae_punto1) setTextoPunto1((data as any).texto_cae_punto1);
             if ((data as any).texto_cae_punto2) setTextoPunto2((data as any).texto_cae_punto2);
             if ((data as any).texto_cae_punto2_bloque2) setTextoPunto2Bloque2((data as any).texto_cae_punto2_bloque2);
@@ -170,6 +172,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       setPlataformaCAE(extra.plataforma_cae || 'metacontratas');
       setNumeroActa(extra.numero_acta || '');
       // New CAE fields
+      setTextoPunto3(extra.texto_punto3 || '');
       setEmpresasIntervienen(extra.empresas_intervienen || []);
       setDuracionTrabajos(extra.duracion_trabajos || []);
       setTextoTrabajosRealizar(extra.texto_trabajos_realizar || '');
@@ -329,6 +332,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       datosExtra.otros_riesgos = otrosRiesgos;
       datosExtra.plataforma_cae = plataformaCAE;
       // New CAE fields
+      datosExtra.texto_punto3 = textoPunto3;
       datosExtra.empresas_intervienen = empresasIntervienen;
       datosExtra.duracion_trabajos = duracionTrabajos;
       datosExtra.texto_trabajos_realizar = textoTrabajosRealizar;
