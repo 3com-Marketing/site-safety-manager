@@ -323,11 +323,6 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
       await onSave(urlData.publicUrl);
       toast.success('Imagen editada guardada');
       onClose();
-    } catch (err: any) {
-      console.error('Save error:', err);
-      if (!err?.message?.includes('updating photo')) {
-        toast.error('Error al guardar la imagen');
-      }
     } catch (err) {
       console.error('Save error:', err);
       toast.error('Error al guardar la imagen');
