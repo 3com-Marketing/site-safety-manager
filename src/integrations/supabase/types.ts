@@ -265,6 +265,7 @@ export type Database = {
           texto_acta_reunion_cae: string
           texto_acta_reunion_inicial: string
           texto_acta_reunion_sys: string
+          texto_acuerdos_generales: string
           texto_cae_punto1: string
           texto_cae_punto2: string
           texto_cae_punto2_bloque2: string
@@ -299,6 +300,7 @@ export type Database = {
           texto_acta_reunion_cae?: string
           texto_acta_reunion_inicial?: string
           texto_acta_reunion_sys?: string
+          texto_acuerdos_generales?: string
           texto_cae_punto1?: string
           texto_cae_punto2?: string
           texto_cae_punto2_bloque2?: string
@@ -333,6 +335,7 @@ export type Database = {
           texto_acta_reunion_cae?: string
           texto_acta_reunion_inicial?: string
           texto_acta_reunion_sys?: string
+          texto_acuerdos_generales?: string
           texto_cae_punto1?: string
           texto_cae_punto2?: string
           texto_cae_punto2_bloque2?: string
