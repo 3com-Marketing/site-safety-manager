@@ -43,6 +43,10 @@ interface ConfigEmpresa {
   texto_cae_punto2: string;
   texto_recurso_preventivo: string;
   texto_acuerdos_generales: string;
+  texto_cae_punto6: string;
+  texto_cae_punto7: string;
+  texto_cae_punto8: string;
+  texto_cae_punto9: string;
 }
 
 const EMPTY_CONFIG: ConfigEmpresa = {
@@ -58,6 +62,10 @@ const EMPTY_CONFIG: ConfigEmpresa = {
   texto_cae_punto2: '',
   texto_recurso_preventivo: '',
   texto_acuerdos_generales: '',
+  texto_cae_punto6: '',
+  texto_cae_punto7: '',
+  texto_cae_punto8: '',
+  texto_cae_punto9: '',
 };
 
 export default function AdminConfiguracion() {
@@ -343,6 +351,22 @@ export default function AdminConfiguracion() {
                   <div>
                     <Label>Punto 5 — Acuerdos Generales</Label>
                     <RichTextEditor value={config.texto_acuerdos_generales} onChange={v => update('texto_acuerdos_generales', v)} placeholder="Texto legal sobre acuerdos generales..." />
+                  </div>
+                  <div>
+                    <Label>Punto 6 — Formación e Información</Label>
+                    <RichTextEditor value={config.texto_cae_punto6} onChange={v => update('texto_cae_punto6', v)} placeholder="Texto legal sobre formación e información..." />
+                  </div>
+                  <div>
+                    <Label>Punto 7 — Control de maquinaria</Label>
+                    <RichTextEditor value={config.texto_cae_punto7} onChange={v => update('texto_cae_punto7', v)} placeholder="Texto legal sobre control de maquinaria..." />
+                  </div>
+                  <div>
+                    <Label>Punto 8 — Protecciones Colectivas y Medios Auxiliares</Label>
+                    <RichTextEditor value={config.texto_cae_punto8} onChange={v => update('texto_cae_punto8', v)} placeholder="Texto legal sobre protecciones colectivas y medios auxiliares..." />
+                  </div>
+                  <div>
+                    <Label>Punto 9 — Protecciones Individuales</Label>
+                    <RichTextEditor value={config.texto_cae_punto9} onChange={v => update('texto_cae_punto9', v)} placeholder="Texto legal sobre protecciones individuales..." />
                   </div>
                 </AccordionContent>
               </AccordionItem>

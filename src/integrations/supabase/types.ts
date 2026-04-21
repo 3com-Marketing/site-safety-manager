@@ -269,6 +269,10 @@ export type Database = {
           texto_cae_punto1: string
           texto_cae_punto2: string
           texto_cae_punto2_bloque2: string
+          texto_cae_punto6: string
+          texto_cae_punto7: string
+          texto_cae_punto8: string
+          texto_cae_punto9: string
           texto_normativa: string
           texto_recomendaciones: string
           texto_recurso_preventivo: string
@@ -304,6 +308,10 @@ export type Database = {
           texto_cae_punto1?: string
           texto_cae_punto2?: string
           texto_cae_punto2_bloque2?: string
+          texto_cae_punto6?: string
+          texto_cae_punto7?: string
+          texto_cae_punto8?: string
+          texto_cae_punto9?: string
           texto_normativa?: string
           texto_recomendaciones?: string
           texto_recurso_preventivo?: string
@@ -339,6 +347,10 @@ export type Database = {
           texto_cae_punto1?: string
           texto_cae_punto2?: string
           texto_cae_punto2_bloque2?: string
+          texto_cae_punto6?: string
+          texto_cae_punto7?: string
+          texto_cae_punto8?: string
+          texto_cae_punto9?: string
           texto_normativa?: string
           texto_recomendaciones?: string
           texto_recurso_preventivo?: string

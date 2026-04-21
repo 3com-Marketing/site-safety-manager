@@ -87,6 +87,10 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   const [textoTrabajosRealizar, setTextoTrabajosRealizar] = useState('');
   const [textoRecursoPreventivo, setTextoRecursoPreventivo] = useState('');
   const [textoAcuerdosGenerales, setTextoAcuerdosGenerales] = useState('');
+  const [textoPunto6, setTextoPunto6] = useState('');
+  const [textoPunto7, setTextoPunto7] = useState('');
+  const [textoPunto8, setTextoPunto8] = useState('');
+  const [textoPunto9, setTextoPunto9] = useState('');
   const [interferenciasEmpresasAplica, setInterferenciasEmpresasAplica] = useState(false);
   const [interferenciasEmpresasTexto, setInterferenciasEmpresasTexto] = useState('');
   const [interferenciasTercerosAplica, setInterferenciasTercerosAplica] = useState(false);
@@ -114,7 +118,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       const configField = TIPO_TO_CONFIG_FIELD[tipoActual];
       const fieldsToLoad = configField ? [configField] : [];
       if (tipoActual === 'acta_reunion_cae') {
-        fieldsToLoad.push('texto_cae_punto1', 'texto_cae_punto2', 'texto_cae_punto2_bloque2', 'texto_recurso_preventivo', 'texto_acuerdos_generales');
+        fieldsToLoad.push('texto_cae_punto1', 'texto_cae_punto2', 'texto_cae_punto2_bloque2', 'texto_recurso_preventivo', 'texto_acuerdos_generales', 'texto_cae_punto6', 'texto_cae_punto7', 'texto_cae_punto8', 'texto_cae_punto9');
       }
       if (fieldsToLoad.length > 0) {
         supabase.from('configuracion_empresa').select(fieldsToLoad.join(',')).limit(1).single().then(({ data }) => {
@@ -125,6 +129,10 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
             if ((data as any).texto_cae_punto2_bloque2) setTextoPunto2Bloque2((data as any).texto_cae_punto2_bloque2);
             if ((data as any).texto_recurso_preventivo) setTextoRecursoPreventivo((data as any).texto_recurso_preventivo);
             if ((data as any).texto_acuerdos_generales) setTextoAcuerdosGenerales((data as any).texto_acuerdos_generales);
+            if ((data as any).texto_cae_punto6) setTextoPunto6((data as any).texto_cae_punto6);
+            if ((data as any).texto_cae_punto7) setTextoPunto7((data as any).texto_cae_punto7);
+            if ((data as any).texto_cae_punto8) setTextoPunto8((data as any).texto_cae_punto8);
+            if ((data as any).texto_cae_punto9) setTextoPunto9((data as any).texto_cae_punto9);
           }
         });
       }
@@ -161,6 +169,10 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       setTextoTrabajosRealizar(extra.texto_trabajos_realizar || '');
       setTextoRecursoPreventivo(extra.texto_recurso_preventivo || '');
       setTextoAcuerdosGenerales(extra.texto_acuerdos_generales || '');
+      setTextoPunto6(extra.texto_punto6 || '');
+      setTextoPunto7(extra.texto_punto7 || '');
+      setTextoPunto8(extra.texto_punto8 || '');
+      setTextoPunto9(extra.texto_punto9 || '');
       setInterferenciasEmpresasAplica(extra.interferencias_empresas_aplica || false);
       setInterferenciasEmpresasTexto(extra.interferencias_empresas_texto || '');
       setInterferenciasTercerosAplica(extra.interferencias_terceros_aplica || false);
@@ -314,6 +326,10 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       datosExtra.texto_trabajos_realizar = textoTrabajosRealizar;
       datosExtra.texto_recurso_preventivo = textoRecursoPreventivo;
       datosExtra.texto_acuerdos_generales = textoAcuerdosGenerales;
+      datosExtra.texto_punto6 = textoPunto6;
+      datosExtra.texto_punto7 = textoPunto7;
+      datosExtra.texto_punto8 = textoPunto8;
+      datosExtra.texto_punto9 = textoPunto9;
       datosExtra.interferencias_empresas_aplica = interferenciasEmpresasAplica;
       datosExtra.interferencias_empresas_texto = interferenciasEmpresasTexto;
       datosExtra.interferencias_terceros_aplica = interferenciasTercerosAplica;
@@ -619,6 +635,42 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
               value={textoAcuerdosGenerales}
               onChange={setTextoAcuerdosGenerales}
               placeholder="Texto sobre acuerdos generales adoptados..."
+            />
+          </SectionCollapsible>
+
+          {/* 6. Formación e Información */}
+          <SectionCollapsible title="6 — Formación e Información">
+            <RichTextEditor
+              value={textoPunto6}
+              onChange={setTextoPunto6}
+              placeholder="Texto sobre formación e información..."
+            />
+          </SectionCollapsible>
+
+          {/* 7. Control de maquinaria */}
+          <SectionCollapsible title="7 — Control de maquinaria">
+            <RichTextEditor
+              value={textoPunto7}
+              onChange={setTextoPunto7}
+              placeholder="Texto sobre control de maquinaria..."
+            />
+          </SectionCollapsible>
+
+          {/* 8. Protecciones Colectivas y Medios Auxiliares */}
+          <SectionCollapsible title="8 — Protecciones Colectivas y Medios Auxiliares">
+            <RichTextEditor
+              value={textoPunto8}
+              onChange={setTextoPunto8}
+              placeholder="Texto sobre protecciones colectivas y medios auxiliares..."
+            />
+          </SectionCollapsible>
+
+          {/* 9. Protecciones Individuales */}
+          <SectionCollapsible title="9 — Protecciones Individuales">
+            <RichTextEditor
+              value={textoPunto9}
+              onChange={setTextoPunto9}
+              placeholder="Texto sobre protecciones individuales..."
             />
           </SectionCollapsible>
 
