@@ -1,70 +1,38 @@
 
 
-# Plan: Fusionar anotaciones de foto y texto en una sola tarjeta
+# Plan: Formularios directos para Incidencias, Amonestaciones y Observaciones en AdminInformeDetalle
 
 ## Problema
 
-Los datos en la base de datos almacenan las fotos y el texto como registros separados en la tabla `anotaciones`:
-- Registro 1: solo `foto_url` (sin texto ni normativa)
-- Registro 2: solo `texto` y `normativa` (sin foto)
+Las secciones de Incidencias, Amonestaciones y Observaciones en la vista de detalle del informe (`/admin/informe/:id`) solo muestran "Sin observaciones" / "Sin amonestaciones" cuando estan vacias. No hay forma de crear contenido nuevo desde esta pantalla de admin.
 
-El código actual renderiza cada registro como una tarjeta independiente con sus propios campos de Descripción y Normativa. Esto crea la "doble pantalla": una tarjeta vacía con foto y otra con texto.
+## Solucion
 
-## Solución
+Anadir un formulario inline en cada seccion que permita crear registros nuevos directamente, sin necesidad de navegar a la vista del tecnico.
 
-Antes de renderizar, agrupar las anotaciones de cada bloque en pares lógicos:
+### Cambios en `src/pages/AdminInformeDetalle.tsx`
 
-1. Recorrer las anotaciones de cada bloque del checklist
-2. Si una anotación tiene `foto_url` pero no tiene `texto` ni `normativa`, y la siguiente anotación tiene `texto`/`normativa` pero no `foto_url`, fusionarlas en un solo objeto
-3. Si una anotación tiene todo (foto + texto), dejarla tal cual
-4. Si una anotación es solo foto sin par de texto, mostrarla sola con campos editables vacíos
+1. **Anadir estado para formularios nuevos**: tres bloques de estado local para los campos de cada formulario nuevo (incidencia, amonestacion, observacion).
 
-Cada tarjeta resultante mostrará:
-- La foto (si existe)
-- Un Textarea de Descripción (con texto si lo hay, vacío si no)
-- Un Textarea de Normativa (con texto si lo hay, vacío si no)
+2. **Anadir funciones de creacion**: tres funciones `addIncidencia`, `addAmonestacion`, `addObservacion` que insertan el registro en la base de datos y recargan los datos.
 
-Para guardar, se usará el ID del registro de texto (si existe) o el de la foto para las actualizaciones.
+3. **Seccion Incidencias** (lineas 385-425): despues de la lista de incidencias existentes, anadir un bloque con:
+   - Input para titulo
+   - Textarea para descripcion
+   - Boton "Anadir incidencia"
 
-## Cambios técnicos
+4. **Seccion Amonestaciones** (lineas 434-469): reemplazar el "Sin amonestaciones" por el formulario (y tambien mostrarlo despues de items existentes):
+   - Input para nombre del trabajador
+   - Textarea para descripcion
+   - Boton "Anadir amonestacion"
 
-### `src/pages/AdminInformeDetalle.tsx`
+5. **Seccion Observaciones** (lineas 478-501): misma logica:
+   - Textarea para texto
+   - Boton "Anadir observacion"
 
-1. **Añadir función de fusión** antes del return:
-
-```typescript
-const mergeAnotaciones = (anotaciones: any[]) => {
-  const merged: any[] = [];
-  let i = 0;
-  while (i < anotaciones.length) {
-    const current = anotaciones[i];
-    const next = anotaciones[i + 1];
-    
-    // Foto sin texto + siguiente con texto sin foto → fusionar
-    if (current.foto_url && !current.texto && !current.normativa 
-        && next && !next.foto_url && (next.texto || next.normativa)) {
-      merged.push({
-        id: next.id,           // ID del texto para edición
-        foto_id: current.id,   // ID de la foto
-        foto_url: current.foto_url,
-        texto: next.texto,
-        normativa: next.normativa,
-      });
-      i += 2;
-    } else {
-      merged.push(current);
-      i += 1;
-    }
-  }
-  return merged;
-};
-```
-
-2. **Usar `mergeAnotaciones`** en el map del checklist, reemplazando `bloque.anotaciones.map(...)` por `mergeAnotaciones(bloque.anotaciones).map(...)`.
-
-3. **Mantener el renderizado actual** (foto + Textarea Descripción + Textarea Normativa) pero ahora cada tarjeta tendrá los datos combinados, eliminando las tarjetas duplicadas.
+Cada formulario se muestra siempre (tanto si hay registros como si no), al final de la lista de elementos existentes. Tras crear el registro, se limpia el formulario y se recarga la lista.
 
 ## Archivo afectado
 
-- **`src/pages/AdminInformeDetalle.tsx`** — Añadir función de fusión y usarla en el bucle del checklist.
+- **`src/pages/AdminInformeDetalle.tsx`** -- Anadir estado, handlers y formularios inline para las tres secciones.
 
