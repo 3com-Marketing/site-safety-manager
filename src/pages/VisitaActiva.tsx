@@ -3,14 +3,12 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Check, Home, Loader2, Clock } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ChevronLeft, Loader2, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { addDays, isAfter, format, differenceInSeconds } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import VisitaSecciones, { type SeccionId } from '@/components/visita/VisitaSecciones';
-import ChecklistSection from '@/components/visita/ChecklistSection';
-import type { BloqueCategoria } from '@/components/visita/ChecklistSection';
 import ChecklistBloque from '@/components/visita/ChecklistBloque';
 import SeccionIncidencias from '@/components/visita/SeccionIncidencias';
 import SeccionAmonestaciones from '@/components/visita/SeccionAmonestaciones';
@@ -27,16 +25,7 @@ const BLOQUE_LABELS: Record<string, string> = {
 
 const CATEGORIAS_ORDER = ['EPIs', 'orden_limpieza', 'altura', 'señalizacion', 'maquinaria'];
 
-type StepId =
-  | 'datos_generales'
-  | 'bloque_EPIs'
-  | 'bloque_orden_limpieza'
-  | 'bloque_altura'
-  | 'bloque_señalizacion'
-  | 'bloque_maquinaria'
-  | 'incidencias'
-  | 'amonestaciones'
-  | 'observaciones';
+type StepId = SeccionId;
 
 const STEPS: StepId[] = [
   'datos_generales',
@@ -234,7 +223,6 @@ export default function VisitaActiva() {
     setFinishing(true);
     setGettingGeo(true);
 
-    // Capture end location
     let lat_fin: number | null = null;
     let lng_fin: number | null = null;
 
@@ -249,7 +237,7 @@ export default function VisitaActiva() {
         lat_fin = pos.coords.latitude;
         lng_fin = pos.coords.longitude;
       } catch {
-        // GPS denied — continue without
+        // GPS denied
       }
     }
 
@@ -262,25 +250,31 @@ export default function VisitaActiva() {
   };
 
   const handleSelectSeccion = (seccionId: SeccionId) => {
-    const stepMap: Partial<Record<SeccionId, StepId>> = {
-      datos_generales: 'datos_generales',
-      incidencias: 'incidencias',
-      amonestaciones: 'amonestaciones',
-      observaciones: 'observaciones',
-    };
-    if (stepMap[seccionId]) {
-      setView({ type: 'step', stepId: stepMap[seccionId]! });
-    } else if (seccionId === 'checklist') {
-      setView({ type: 'step', stepId: 'bloque_EPIs' });
-    }
-  };
-
-  const handleSelectBloque = (cat: BloqueCategoria) => {
-    setView({ type: 'step', stepId: `bloque_${cat}` as StepId });
+    setView({ type: 'step', stepId: seccionId });
   };
 
   const handleBack = () => {
     setView({ type: 'secciones' });
+  };
+
+  // Build completion map for VisitaSecciones
+  const completadas: Record<string, boolean> = {
+    datos_generales: false, // datos generales doesn't have a "completed" state for now
+  };
+  bloques.forEach(b => {
+    completadas[`bloque_${b.categoria}`] = b.estado === 'completado';
+  });
+  completadas.incidencias = incidenciasCount > 0;
+  completadas.amonestaciones = amonestacionesCount > 0;
+  completadas.observaciones = observacionesCount > 0;
+
+  const handleMarcarCompletado = async (bloqueId: string) => {
+    const bloque = bloques.find(b => b.id === bloqueId);
+    if (!bloque) return;
+    const newEstado = bloque.estado === 'completado' ? 'pendiente' : 'completado';
+    await supabase.from('checklist_bloques').update({ estado: newEstado }).eq('id', bloqueId);
+    toast.success(newEstado === 'completado' ? 'Sección marcada como completada' : 'Sección desmarcada');
+    fetchData();
   };
 
   if (loading) {
@@ -295,28 +289,24 @@ export default function VisitaActiva() {
     ? bloques.find(b => b.categoria === view.stepId.replace('bloque_', ''))
     : null;
 
-  const checklistAnotacionesTotal = bloques.reduce((sum, b) => sum + b.anotaciones.length, 0);
+  const prevStepLabel = view.type === 'step' && currentStepIndex > 0
+    ? STEP_LABELS[STEPS[currentStepIndex - 1]]
+    : undefined;
 
-  const currentStepLabel = view.type === 'step' ? STEP_LABELS[view.stepId] : '';
-  const stepNumber = view.type === 'step' ? currentStepIndex + 1 : 0;
+  const nextStepLabel = view.type === 'step' && currentStepIndex < STEPS.length - 1
+    ? STEP_LABELS[STEPS[currentStepIndex + 1]]
+    : undefined;
 
   return (
     <div className="min-h-screen bg-background pb-32 sm:pb-36">
-      <header className="sticky top-0 z-10 flex items-center gap-2 sm:gap-3 border-b border-border bg-card px-3 sm:px-4 py-2 sm:py-3">
-        <Button variant="ghost" size="icon" onClick={view.type === 'secciones' ? () => navigate(isAdminMode ? '/admin' : '/') : handleBack}>
-          {view.type === 'secciones' ? (
-            <ArrowLeft className="h-5 w-5" />
-          ) : (
-            <Home className="h-5 w-5" />
-          )}
-        </Button>
-        <div className="min-w-0 flex-1">
-          <h1 className="font-heading text-base font-bold truncate">{obraNombre}</h1>
-          {view.type === 'step' ? (
-            <p className="text-xs text-muted-foreground">
-              Paso {stepNumber} de {STEPS.length} · {currentStepLabel}
-            </p>
-          ) : (
+      <header className="sticky top-0 z-10 border-b border-border bg-card px-3 sm:px-4 py-2 sm:py-3">
+        {view.type === 'secciones' ? (
+          <div>
+            <button onClick={() => navigate(isAdminMode ? '/admin' : '/')} className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline mb-0.5">
+              <ChevronLeft className="h-4 w-4" />
+              Visitas
+            </button>
+            <h1 className="font-heading text-lg font-bold">{obraNombre}</h1>
             <p className="text-xs text-muted-foreground">
               {isFinalized && editableUntil
                 ? `Finalizada · Editable hasta ${format(editableUntil, "dd MMM yyyy", { locale: es })}`
@@ -327,18 +317,25 @@ export default function VisitaActiva() {
                   </span>
                 )}
             </p>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div>
+            <button onClick={handleBack} className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline mb-0.5">
+              <ChevronLeft className="h-4 w-4" />
+              {obraNombre}
+            </button>
+            <h1 className="font-heading text-base font-bold">
+              {view.type === 'step' ? STEP_LABELS[view.stepId] : ''}
+            </h1>
+          </div>
+        )}
       </header>
 
       <div className="mx-auto max-w-2xl p-3 sm:p-4">
         {view.type === 'secciones' && (
           <VisitaSecciones
             onSelect={handleSelectSeccion}
-            checklistCount={checklistAnotacionesTotal}
-            incidenciasCount={incidenciasCount}
-            amonestacionesCount={amonestacionesCount}
-            observacionesCount={observacionesCount}
+            completadas={completadas}
           />
         )}
 
@@ -356,6 +353,10 @@ export default function VisitaActiva() {
             obraNombre={obraNombre}
             onBack={handleBack}
             onRefresh={fetchData}
+            bloqueEstado={currentBloque.estado}
+            onMarcarCompletado={() => handleMarcarCompletado(currentBloque.id)}
+            prevSeccionLabel={prevStepLabel}
+            onPrevSeccion={currentStepIndex > 0 ? goPrev : undefined}
           />
         )}
 
@@ -372,6 +373,7 @@ export default function VisitaActiva() {
         )}
       </div>
 
+      {/* Bottom bar */}
       <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-card p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-4">
         <div className="mx-auto max-w-2xl">
           {view.type === 'secciones' ? (
@@ -406,14 +408,14 @@ export default function VisitaActiva() {
                   className="h-12 flex-1 text-sm font-semibold gap-1"
                 >
                   <ArrowLeft className="h-4 w-4" />
-                  Anterior
+                  {prevStepLabel || 'Anterior'}
                 </Button>
                 {!isLastStep ? (
                   <Button
                     onClick={goNext}
                     className="h-12 flex-1 text-sm font-semibold gap-1"
                   >
-                    Siguiente
+                    {nextStepLabel || 'Siguiente'}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 ) : !isFinalized && !isAdminMode ? (
@@ -451,7 +453,6 @@ export default function VisitaActiva() {
         </div>
       </div>
 
-      {/* GPS dialog when finishing */}
       <Dialog open={gettingGeo}>
         <DialogContent className="max-w-xs text-center">
           <DialogHeader>
