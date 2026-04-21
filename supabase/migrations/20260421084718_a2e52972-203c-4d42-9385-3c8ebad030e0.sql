@@ -1,0 +1,1 @@
+ALTER TABLE configuracion_empresa ADD COLUMN texto_recurso_preventivo text NOT NULL DEFAULT '';

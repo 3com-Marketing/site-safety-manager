@@ -113,7 +113,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       const configField = TIPO_TO_CONFIG_FIELD[tipoActual];
       const fieldsToLoad = configField ? [configField] : [];
       if (tipoActual === 'acta_reunion_cae') {
-        fieldsToLoad.push('texto_cae_punto1', 'texto_cae_punto2', 'texto_cae_punto2_bloque2');
+        fieldsToLoad.push('texto_cae_punto1', 'texto_cae_punto2', 'texto_cae_punto2_bloque2', 'texto_recurso_preventivo');
       }
       if (fieldsToLoad.length > 0) {
         supabase.from('configuracion_empresa').select(fieldsToLoad.join(',')).limit(1).single().then(({ data }) => {
@@ -122,6 +122,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
             if ((data as any).texto_cae_punto1) setTextoPunto1((data as any).texto_cae_punto1);
             if ((data as any).texto_cae_punto2) setTextoPunto2((data as any).texto_cae_punto2);
             if ((data as any).texto_cae_punto2_bloque2) setTextoPunto2Bloque2((data as any).texto_cae_punto2_bloque2);
+            if ((data as any).texto_recurso_preventivo) setTextoRecursoPreventivo((data as any).texto_recurso_preventivo);
           }
         });
       }

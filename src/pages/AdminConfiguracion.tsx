@@ -41,6 +41,7 @@ interface ConfigEmpresa {
   texto_acta_nombramiento_proyecto: string;
   texto_cae_punto1: string;
   texto_cae_punto2: string;
+  texto_recurso_preventivo: string;
 }
 
 const EMPTY_CONFIG: ConfigEmpresa = {
@@ -54,6 +55,7 @@ const EMPTY_CONFIG: ConfigEmpresa = {
   texto_acta_nombramiento_cae: '', texto_acta_nombramiento_proyecto: '',
   texto_cae_punto1: '',
   texto_cae_punto2: '',
+  texto_recurso_preventivo: '',
 };
 
 export default function AdminConfiguracion() {
@@ -331,6 +333,10 @@ export default function AdminConfiguracion() {
                   <div>
                     <Label>Texto legal general</Label>
                     <RichTextEditor value={config.texto_acta_reunion_cae} onChange={v => update('texto_acta_reunion_cae', v)} placeholder="Texto legal para actas de reunión CAE..." />
+                  </div>
+                  <div>
+                    <Label>Punto 4 — Recurso preventivo</Label>
+                    <RichTextEditor value={config.texto_recurso_preventivo} onChange={v => update('texto_recurso_preventivo', v)} placeholder="Texto legal sobre designación de recurso preventivo..." />
                   </div>
                 </AccordionContent>
               </AccordionItem>

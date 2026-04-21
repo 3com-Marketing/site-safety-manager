@@ -270,6 +270,7 @@ export type Database = {
           texto_cae_punto2_bloque2: string
           texto_normativa: string
           texto_recomendaciones: string
+          texto_recurso_preventivo: string
           titulacion: string
           updated_at: string | null
           web: string
@@ -303,6 +304,7 @@ export type Database = {
           texto_cae_punto2_bloque2?: string
           texto_normativa?: string
           texto_recomendaciones?: string
+          texto_recurso_preventivo?: string
           titulacion?: string
           updated_at?: string | null
           web?: string
@@ -336,6 +338,7 @@ export type Database = {
           texto_cae_punto2_bloque2?: string
           texto_normativa?: string
           texto_recomendaciones?: string
+          texto_recurso_preventivo?: string
           titulacion?: string
           updated_at?: string | null
           web?: string
