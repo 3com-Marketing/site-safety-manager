@@ -130,7 +130,7 @@ export default function SelectObra() {
         <h1 className="font-heading text-lg font-bold">Seleccionar obra</h1>
       </header>
 
-      <div className="mx-auto max-w-2xl p-4 space-y-2">
+      <div className="mx-auto max-w-2xl p-3 sm:p-4 space-y-2">
         {loading ? (
           <p className="text-muted-foreground text-sm">Cargando obras...</p>
         ) : obras.length === 0 ? (
@@ -141,10 +141,10 @@ export default function SelectObra() {
               key={obra.id}
               disabled={isBusy}
               onClick={() => handleSelectObra(obra.id)}
-              className="flex w-full items-center gap-4 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/50 disabled:opacity-50"
+              className="flex w-full items-center gap-3 sm:gap-4 rounded-xl border border-border bg-card p-3 sm:p-4 text-left transition-colors hover:border-primary/50 disabled:opacity-50"
             >
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-secondary">
-                <Building2 className="h-6 w-6 text-secondary-foreground" />
+              <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-lg bg-secondary">
+                <Building2 className="h-5 w-5 sm:h-6 sm:w-6 text-secondary-foreground" />
               </div>
               <div className="min-w-0">
                 <p className="font-heading font-semibold truncate">{obra.nombre}</p>

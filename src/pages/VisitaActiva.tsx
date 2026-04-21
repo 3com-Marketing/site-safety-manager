@@ -301,8 +301,8 @@ export default function VisitaActiva() {
   const stepNumber = view.type === 'step' ? currentStepIndex + 1 : 0;
 
   return (
-    <div className="min-h-screen bg-background pb-36">
-      <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-card px-4 py-3">
+    <div className="min-h-screen bg-background pb-32 sm:pb-36">
+      <header className="sticky top-0 z-10 flex items-center gap-2 sm:gap-3 border-b border-border bg-card px-3 sm:px-4 py-2 sm:py-3">
         <Button variant="ghost" size="icon" onClick={view.type === 'secciones' ? () => navigate(isAdminMode ? '/admin' : '/') : handleBack}>
           {view.type === 'secciones' ? (
             <ArrowLeft className="h-5 w-5" />
@@ -331,7 +331,7 @@ export default function VisitaActiva() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-2xl p-4">
+      <div className="mx-auto max-w-2xl p-3 sm:p-4">
         {view.type === 'secciones' && (
           <VisitaSecciones
             onSelect={handleSelectSeccion}
@@ -372,7 +372,7 @@ export default function VisitaActiva() {
         )}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-card p-4">
+      <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-card p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-4">
         <div className="mx-auto max-w-2xl">
           {view.type === 'secciones' ? (
             <div className="flex gap-2">

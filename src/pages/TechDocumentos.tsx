@@ -38,7 +38,7 @@ export default function TechDocumentos() {
           <h1 className="font-heading text-lg font-bold">Documentos de obra</h1>
         </div>
       </header>
-      <div className="mx-auto max-w-4xl p-6 space-y-8">
+      <div className="mx-auto max-w-4xl p-4 sm:p-6 space-y-6 sm:space-y-8">
         {loading ? (
           <p className="text-muted-foreground">Cargando...</p>
         ) : obras.length === 0 ? (

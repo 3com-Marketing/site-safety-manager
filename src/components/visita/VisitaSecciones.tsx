@@ -44,14 +44,14 @@ export default function VisitaSecciones({
             <button
               key={sec.id}
               onClick={() => onSelect(sec.id)}
-              className="flex w-full items-center gap-4 rounded-2xl border-2 border-border bg-card p-5 text-left transition-all active:scale-[0.98] hover:border-primary/40 hover:shadow-md"
+              className="flex w-full items-center gap-3 sm:gap-4 rounded-2xl border-2 border-border bg-card p-4 sm:p-5 text-left transition-all active:scale-[0.98] hover:border-primary/40 hover:shadow-md"
             >
-              <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted ${sec.color}`}>
-                <Icon className="h-6 w-6" />
+              <div className={`flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl bg-muted ${sec.color}`}>
+                <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
               </div>
-              <span className="flex-1 font-heading text-base font-semibold">{sec.label}</span>
+              <span className="flex-1 font-heading text-sm sm:text-base font-semibold">{sec.label}</span>
               {badge != null && (
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                <span className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                   {badge}
                 </span>
               )}
