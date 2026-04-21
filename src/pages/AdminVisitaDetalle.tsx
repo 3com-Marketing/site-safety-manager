@@ -41,6 +41,7 @@ export default function AdminVisitaDetalle() {
   const [observaciones, setObservaciones] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [fotoUrl, setFotoUrl] = useState<string | null>(null);
+  const [fotoMeta, setFotoMeta] = useState<{ table: string; id: string; column: string } | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -102,7 +103,40 @@ export default function AdminVisitaDetalle() {
 
   return (
     <div className="min-h-screen bg-background">
-      <FotoViewer url={fotoUrl} onClose={() => setFotoUrl(null)} />
+      <FotoViewer
+        url={fotoUrl}
+        onClose={() => { setFotoUrl(null); setFotoMeta(null); }}
+        editable
+        visitaId={id}
+        onSave={async (newUrl) => {
+          if (fotoMeta) {
+            await supabase.from(fotoMeta.table as any).update({ [fotoMeta.column]: newUrl }).eq('id', fotoMeta.id);
+            setFotoUrl(null);
+            setFotoMeta(null);
+            // re-fetch
+            const fetchData = async () => {
+              if (!id) return;
+              const { data: vis } = await supabase.from('visitas').select('id, estado, fecha, fecha_fin, lat_inicio, lng_inicio, lat_fin, lng_fin, obras(nombre, latitud, longitud), profiles!visitas_usuario_id_profiles_fkey(nombre)').eq('id', id).single();
+              if (vis) setVisita(vis);
+              const { data: inf } = await supabase.from('informes').select('id, estado, fecha, num_trabajadores, condiciones_climaticas, empresas_presentes, notas_generales').eq('visita_id', id).single();
+              if (inf) {
+                setInforme(inf);
+                const [incsRes, checkRes, amonRes, obsRes] = await Promise.all([
+                  supabase.from('incidencias').select('id, titulo, descripcion, categoria, normativa, fotos(id, url, created_at)').eq('informe_id', inf.id).order('orden'),
+                  supabase.from('checklist_bloques').select('categoria, estado, anotaciones(id, texto, normativa, foto_url, created_at)').eq('informe_id', inf.id).order('created_at'),
+                  supabase.from('amonestaciones').select('*').eq('informe_id', inf.id).order('created_at'),
+                  supabase.from('observaciones').select('*').eq('informe_id', inf.id).order('created_at'),
+                ]);
+                setIncidencias((incsRes.data || []).map((i: any) => ({ ...i, fotos: i.fotos || [] })));
+                setChecklist(checkRes.data || []);
+                setAmonestaciones(amonRes.data || []);
+                setObservaciones(obsRes.data || []);
+              }
+            };
+            fetchData();
+          }
+        }}
+      />
       
       <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-card px-6 py-4">
         <Button variant="ghost" size="icon" onClick={() => navigate('/admin')}>
@@ -325,7 +359,7 @@ export default function AdminVisitaDetalle() {
                           src={f.url}
                           alt="Foto"
                           className="h-24 w-24 rounded-lg object-cover border border-border cursor-pointer hover:ring-2 hover:ring-primary transition-all"
-                          onClick={() => setFotoUrl(f.url)}
+                          onClick={() => { setFotoUrl(f.url); setFotoMeta({ table: 'fotos', id: f.id, column: 'url' }); }}
                         />
                         <p className="text-[10px] text-muted-foreground mt-1">📅 {format(new Date(f.created_at), "dd MMM yyyy, HH:mm", { locale: es })}</p>
                       </div>
@@ -362,7 +396,7 @@ export default function AdminVisitaDetalle() {
                       src={a.foto_url}
                       alt="Foto"
                       className="h-20 w-20 rounded-lg object-cover border border-border cursor-pointer hover:ring-2 hover:ring-primary"
-                      onClick={() => setFotoUrl(a.foto_url)}
+                      onClick={() => { setFotoUrl(a.foto_url); setFotoMeta({ table: 'amonestaciones', id: a.id, column: 'foto_url' }); }}
                     />
                     <p className="text-[10px] text-muted-foreground mt-1">📅 {format(new Date(a.created_at), "dd MMM yyyy, HH:mm", { locale: es })}</p>
                   </div>
@@ -396,7 +430,7 @@ export default function AdminVisitaDetalle() {
                       src={obs.foto_url}
                       alt="Foto"
                       className="h-20 w-20 rounded-lg object-cover border border-border cursor-pointer hover:ring-2 hover:ring-primary"
-                      onClick={() => setFotoUrl(obs.foto_url)}
+                      onClick={() => { setFotoUrl(obs.foto_url); setFotoMeta({ table: 'observaciones', id: obs.id, column: 'foto_url' }); }}
                     />
                     <p className="text-[10px] text-muted-foreground mt-1">📅 {format(new Date(obs.created_at), "dd MMM yyyy, HH:mm", { locale: es })}</p>
                   </div>
