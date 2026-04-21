@@ -124,7 +124,7 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
       c.selection = tool === 'select';
     }
 
-    const onMouseDown = (opt: fabric.TEvent<MouseEvent>) => {
+    const onMouseDown = (opt: any) => {
       if (tool === 'select' || tool === 'free') return;
       const pointer = c.getScenePoint(opt.e);
       isDrawingRef.current = true;
@@ -169,7 +169,7 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
       }
     };
 
-    const onMouseMove = (opt: fabric.TEvent<MouseEvent>) => {
+    const onMouseMove = (opt: any) => {
       if (!isDrawingRef.current || !startPosRef.current || !tempObjRef.current) return;
       const pointer = c.getScenePoint(opt.e);
       const sx = startPosRef.current.x;
