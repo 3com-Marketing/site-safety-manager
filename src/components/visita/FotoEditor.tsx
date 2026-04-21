@@ -271,23 +271,21 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
     };
   }, [tool, color, strokeWidth, saveHistory]);
 
-  const addSign = (signo: SignoObra) => {
+  const addSign = async (signo: SignoObra) => {
     const c = fabricRef.current;
     if (!c) return;
-    const svgBlob = new Blob([signo.svg], { type: 'image/svg+xml' });
-    const svgUrl = URL.createObjectURL(svgBlob);
-    const imgEl = new Image();
-    imgEl.onload = () => {
-      const fImg = new fabric.FabricImage(imgEl);
-      fImg.scaleToWidth(60);
-      fImg.set({ left: 400, top: 250 });
-      c.add(fImg);
-      c.setActiveObject(fImg);
+    try {
+      const result = await fabric.loadSVGFromString(signo.svg);
+      const group = fabric.util.groupSVGElements(result.objects.filter(Boolean) as fabric.FabricObject[], result.options);
+      group.scaleToWidth(60);
+      group.set({ left: c.getWidth() / 2 - 30, top: c.getHeight() / 2 - 30 });
+      c.add(group);
+      c.setActiveObject(group);
       c.renderAll();
       saveHistory(c);
-      URL.revokeObjectURL(svgUrl);
-    };
-    imgEl.src = svgUrl;
+    } catch (err) {
+      console.error('Error loading sign SVG:', err);
+    }
   };
 
   const handleSave = async () => {
@@ -297,18 +295,36 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
     try {
       c.discardActiveObject();
       c.renderAll();
-      const dataUrl = c.toDataURL({ format: 'png', multiplier: 2 });
+      const dataUrl = c.toDataURL({ format: 'png', multiplier: 2 } as any);
+      if (!dataUrl || dataUrl.length < 100) {
+        console.error('toDataURL returned empty or invalid data, length:', dataUrl?.length);
+        toast.error('Error: no se pudo exportar el canvas');
+        return;
+      }
       const resp = await fetch(dataUrl);
       const blob = await resp.blob();
+      if (!blob || blob.size === 0) {
+        console.error('Generated blob is empty');
+        toast.error('Error: imagen vacía');
+        return;
+      }
+      console.log('Uploading edited image, blob size:', blob.size);
       const path = `${visitaId}/${Date.now()}_edited.png`;
-      const { error: uploadError } = await supabase.storage.from('incidencia-fotos').upload(path, blob);
-      if (uploadError) throw uploadError;
+      const { error: uploadError } = await supabase.storage.from('incidencia-fotos').upload(path, blob, {
+        contentType: 'image/png',
+        upsert: false,
+      });
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
       const { data: urlData } = supabase.storage.from('incidencia-fotos').getPublicUrl(path);
+      console.log('Saved edited image URL:', urlData.publicUrl);
       await onSave(urlData.publicUrl);
       toast.success('Imagen editada guardada');
       onClose();
     } catch (err) {
-      console.error(err);
+      console.error('Save error:', err);
       toast.error('Error al guardar la imagen');
     } finally {
       setSaving(false);
