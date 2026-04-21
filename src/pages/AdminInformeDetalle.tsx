@@ -319,8 +319,7 @@ export default function AdminInformeDetalle() {
                 <h3 className="text-sm font-semibold">{CATEGORIAS[bloque.categoria] || bloque.categoria}</h3>
                 {(!bloque.anotaciones || bloque.anotaciones.length === 0) ? (
                   <p className="text-xs text-muted-foreground italic">Sin anotaciones</p>
-                ) : (
-                  bloque.anotaciones.map((a: any) => {
+                ) : bloque.anotaciones.map((a: any) => {
                     const editedAnot = editedAnotaciones[a.id];
                     return (
                       <div key={a.id} className="rounded-lg border border-border bg-card p-3 space-y-2">
@@ -347,8 +346,7 @@ export default function AdminInformeDetalle() {
                         </div>
                       </div>
                     );
-                  }))
-                )}
+                  })}
               </div>
             ))}
           </CollapsibleContent>
