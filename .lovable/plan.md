@@ -1,48 +1,68 @@
 
 
-# Plan: Botones de voz mucho mas grandes en Datos Generales
+# Plan: Corregir duplicación de texto en dictado por voz y mantener botón visible
 
-## Problema
+## Problemas
 
-Los botones de voz siguen apareciendo pequenos (posible cache). Ademas, el usuario quiere que sean significativamente mas grandes, ocupando todo el ancho disponible junto al label, no solo un chip pequeno alineado a la derecha.
+1. **Texto duplicado**: El `SpeechRecognition` con `continuous: true` e `interimResults: true` acumula `finalTranscript` en una variable local del closure. Cada vez que el motor reenvía resultados finales previos, se vuelven a concatenar, causando frases repetidas.
 
-## Solucion
+2. **Botón "Mejorar con IA" fuera de pantalla**: La transcripción crece sin límite y empuja el botón fuera del viewport del diálogo.
 
-Convertir los botones de voz en botones grandes de ancho completo (`w-full`), con altura generosa (`h-14`), icono grande y texto claro. Colocarlos debajo del label y encima del textarea, como un boton de accion principal para cada campo.
+## Solución
 
-## Cambios
+### 1. Corregir duplicación en `src/hooks/useVoiceNote.ts`
 
-### `src/components/visita/SeccionDatosGenerales.tsx`
+Cambiar la lógica de `onresult` para reconstruir todo el transcript desde `event.results` en cada evento, en vez de acumular en una variable local:
 
-Para cada uno de los 3 campos con voz (condiciones, empresas, notas), cambiar el layout de:
-- Label + boton pequeno en la misma linea
-- Textarea debajo
-
-A:
-- Label arriba
-- Boton de voz grande (`w-full h-14 rounded-xl bg-primary/10 text-primary`) con icono `Mic` de 24px y texto "Dictar por voz"
-- Textarea debajo
-
-```tsx
-<div className="space-y-2">
-  <Label className="font-heading text-sm font-semibold">Condiciones climaticas</Label>
-  <button
-    onClick={() => openVoiceForField('condiciones')}
-    className="flex items-center justify-center gap-2 w-full h-14 rounded-xl bg-primary/10 text-primary text-base font-semibold active:bg-primary/20 transition-colors"
-  >
-    <Mic className="h-6 w-6" />
-    Dictar por voz
-  </button>
-  <Textarea ... />
-</div>
+```typescript
+recognition.onresult = (event: any) => {
+  let final = '';
+  let interim = '';
+  for (let i = 0; i < event.results.length; i++) {
+    const transcript = event.results[i][0].transcript;
+    if (event.results[i].isFinal) {
+      final += transcript + ' ';
+    } else {
+      interim = transcript;
+    }
+  }
+  setRawTranscript(final + interim);
+};
 ```
 
-Esto da:
-- Boton de 56px de alto y ancho completo: imposible de fallar con el dedo
-- Icono de 24px bien visible
-- Texto "Dictar por voz" mas descriptivo
-- El textarea sigue disponible debajo para editar manualmente
+Esto elimina la variable `finalTranscript` del closure y recorre **todos** los resultados desde el índice 0 en cada evento, evitando duplicación.
+
+### 2. Limitar altura de transcripción y fijar botón en `src/components/visita/VoiceNoteDialog.tsx`
+
+- Envolver el contenido del paso `recording` en un layout flex con `max-h-[70vh]` y `overflow-hidden`.
+- La zona de transcripción tendrá `max-h-[30vh] overflow-y-auto` para que sea scrollable.
+- El botón "Mejorar con IA" quedará fijo en la parte inferior del diálogo, siempre visible.
+
+```tsx
+{dialogStep === 'recording' && (
+  <div className="flex flex-col max-h-[70vh]">
+    {/* Micrófono - fijo arriba */}
+    <div className="flex flex-col items-center gap-4 py-4 shrink-0">
+      ...botón mic...
+    </div>
+
+    {/* Transcripción - scrollable */}
+    {rawTranscript && (
+      <div className="rounded-lg bg-muted p-3 max-h-[30vh] overflow-y-auto shrink">
+        <p className="text-xs text-muted-foreground mb-1">Transcripción:</p>
+        <p className="text-sm">{rawTranscript}</p>
+      </div>
+    )}
+
+    {/* Botón - fijo abajo */}
+    <Button className="h-12 w-full mt-4 shrink-0" ...>
+      Mejorar con IA
+    </Button>
+  </div>
+)}
+```
 
 ## Archivos afectados
-- **`src/components/visita/SeccionDatosGenerales.tsx`** -- 3 botones de voz a formato grande full-width
+- **`src/hooks/useVoiceNote.ts`** — corregir lógica de acumulación de transcript
+- **`src/components/visita/VoiceNoteDialog.tsx`** — layout scrollable con botón siempre visible
 
