@@ -203,7 +203,12 @@ export default function ChecklistBloque({
         onRepeat={voice.openDialog}
       />
 
-      <FotoViewer url={viewingFoto} onClose={() => setViewingFoto(null)} />
+      <FotoViewer url={viewingFoto} onClose={() => setViewingFoto(null)} editable onSave={async (newUrl) => {
+        const a = anotaciones.find(an => an.foto_url === viewingFoto);
+        if (a) await supabase.from('anotaciones').update({ foto_url: newUrl }).eq('id', a.id);
+        setViewingFoto(null);
+        onRefresh();
+      }} visitaId={visitaId} />
 
       {uploading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50">

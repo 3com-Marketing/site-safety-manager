@@ -211,7 +211,13 @@ export default function SeccionObservaciones({ informeId, visitaId, obraNombre, 
         onRepeat={voice.openDialog}
       />
 
-      <FotoViewer url={viewingFoto} onClose={() => setViewingFoto(null)} />
+      <FotoViewer url={viewingFoto} onClose={() => setViewingFoto(null)} editable onSave={async (newUrl) => {
+        const item = items.find(i => i.foto_url === viewingFoto);
+        if (item) await supabase.from('observaciones').update({ foto_url: newUrl }).eq('id', item.id);
+        setViewingFoto(null);
+        await fetchItems();
+        onRefresh();
+      }} visitaId={visitaId} />
 
       {uploading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50">
