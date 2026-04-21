@@ -1,40 +1,48 @@
 
 
-# Plan: Agrandar botones de voz en Datos Generales
+# Plan: Botones de voz mucho mas grandes en Datos Generales
 
 ## Problema
 
-Los botones de "Voz" en la sección Datos Generales son enlaces de texto tiny (`text-xs`) que son difíciles de pulsar con el dedo en móvil/tablet. Las otras secciones (Incidencias, Observaciones, etc.) ya usan botones más grandes con la clase `field-action-btn`.
+Los botones de voz siguen apareciendo pequenos (posible cache). Ademas, el usuario quiere que sean significativamente mas grandes, ocupando todo el ancho disponible junto al label, no solo un chip pequeno alineado a la derecha.
 
-## Solución
+## Solucion
 
-Reemplazar los 3 botones de voz inline en `SeccionDatosGenerales.tsx` por botones tipo pill/chip con un tamaño mínimo de toque de 44x44px (estándar de accesibilidad táctil), con icono de micrófono de Lucide y texto "Voz" visible.
+Convertir los botones de voz en botones grandes de ancho completo (`w-full`), con altura generosa (`h-14`), icono grande y texto claro. Colocarlos debajo del label y encima del textarea, como un boton de accion principal para cada campo.
 
 ## Cambios
 
 ### `src/components/visita/SeccionDatosGenerales.tsx`
 
-Cambiar los 3 botones de voz de:
-```tsx
-<button className="flex items-center gap-1 text-xs text-primary font-medium">
-  🎤 Voz
-</button>
-```
+Para cada uno de los 3 campos con voz (condiciones, empresas, notas), cambiar el layout de:
+- Label + boton pequeno en la misma linea
+- Textarea debajo
 
-A un botón tipo pill touch-friendly:
+A:
+- Label arriba
+- Boton de voz grande (`w-full h-14 rounded-xl bg-primary/10 text-primary`) con icono `Mic` de 24px y texto "Dictar por voz"
+- Textarea debajo
+
 ```tsx
-<button className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold min-h-[44px] min-w-[44px] active:bg-primary/20 transition-colors">
-  <Mic className="h-4 w-4" />
-  Voz
-</button>
+<div className="space-y-2">
+  <Label className="font-heading text-sm font-semibold">Condiciones climaticas</Label>
+  <button
+    onClick={() => openVoiceForField('condiciones')}
+    className="flex items-center justify-center gap-2 w-full h-14 rounded-xl bg-primary/10 text-primary text-base font-semibold active:bg-primary/20 transition-colors"
+  >
+    <Mic className="h-6 w-6" />
+    Dictar por voz
+  </button>
+  <Textarea ... />
+</div>
 ```
 
 Esto da:
-- Area de toque minima de 44px (recomendacion Apple/Google)
-- Fondo con color para que sea visible como boton
-- Icono de Lucide `Mic` en vez del emoji (mas consistente con el resto de la app)
-- Feedback tactil con `active:bg-primary/20`
+- Boton de 56px de alto y ancho completo: imposible de fallar con el dedo
+- Icono de 24px bien visible
+- Texto "Dictar por voz" mas descriptivo
+- El textarea sigue disponible debajo para editar manualmente
 
 ## Archivos afectados
-- **`src/components/visita/SeccionDatosGenerales.tsx`** -- 3 botones de voz mas grandes
+- **`src/components/visita/SeccionDatosGenerales.tsx`** -- 3 botones de voz a formato grande full-width
 
