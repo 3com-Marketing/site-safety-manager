@@ -41,6 +41,7 @@ interface ConfigEmpresa {
   texto_acta_nombramiento_proyecto: string;
   texto_cae_punto1: string;
   texto_cae_punto2: string;
+  texto_recurso_preventivo: string;
 }
 
 const EMPTY_CONFIG: ConfigEmpresa = {
@@ -54,6 +55,7 @@ const EMPTY_CONFIG: ConfigEmpresa = {
   texto_acta_nombramiento_cae: '', texto_acta_nombramiento_proyecto: '',
   texto_cae_punto1: '',
   texto_cae_punto2: '',
+  texto_recurso_preventivo: '',
 };
 
 export default function AdminConfiguracion() {
