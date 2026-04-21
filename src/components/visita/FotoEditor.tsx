@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -34,6 +33,8 @@ interface Props {
   visitaId: string;
 }
 
+const TOOLBAR_HEIGHT = 52;
+
 export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricRef = useRef<fabric.Canvas | null>(null);
@@ -42,69 +43,108 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
   const [strokeWidth, setStrokeWidth] = useState(4);
   const [showSigns, setShowSigns] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [history, setHistory] = useState<string[]>([]);
-  const [historyIdx, setHistoryIdx] = useState(-1);
+  const [loading, setLoading] = useState(true);
+
+  // History via refs to avoid stale closures
+  const historyRef = useRef<string[]>([]);
+  const historyIdxRef = useRef(-1);
+  const [, forceRender] = useState(0);
+
   const isDrawingRef = useRef(false);
   const startPosRef = useRef<{ x: number; y: number } | null>(null);
   const tempObjRef = useRef<fabric.FabricObject | null>(null);
 
-  // Init canvas
+  const getCanvasSize = useCallback(() => {
+    const signsW = showSigns ? 192 : 0;
+    const w = window.innerWidth - signsW - 16;
+    const h = window.innerHeight - TOOLBAR_HEIGHT - 16;
+    return { w: Math.max(w, 400), h: Math.max(h, 300) };
+  }, [showSigns]);
+
+  const saveHistory = useCallback((c: fabric.Canvas) => {
+    const json = JSON.stringify(c.toJSON());
+    const arr = historyRef.current.slice(0, historyIdxRef.current + 1);
+    arr.push(json);
+    historyRef.current = arr;
+    historyIdxRef.current = arr.length - 1;
+    forceRender(n => n + 1);
+  }, []);
+
+  // Init canvas & load image
   useEffect(() => {
     if (!canvasRef.current) return;
+    const { w, h } = getCanvasSize();
     const c = new fabric.Canvas(canvasRef.current, {
-      width: 900,
-      height: 600,
+      width: w,
+      height: h,
       backgroundColor: '#1a1a1a',
     });
     fabricRef.current = c;
 
-    // Load background image
-    const imgEl = new Image();
-    imgEl.crossOrigin = 'anonymous';
-    imgEl.onload = () => {
-      const fImg = new fabric.FabricImage(imgEl);
-      const scale = Math.min(900 / imgEl.width, 600 / imgEl.height);
-      fImg.scale(scale);
-      fImg.set({
-        left: (900 - imgEl.width * scale) / 2,
-        top: (600 - imgEl.height * scale) / 2,
-        selectable: false,
-        evented: false,
-      });
-      c.backgroundImage = fImg;
-      c.renderAll();
-      saveHistory(c);
-    };
-    imgEl.src = url;
+    // Load image via fetch to avoid CORS
+    (async () => {
+      try {
+        const resp = await fetch(url);
+        const blob = await resp.blob();
+        const blobUrl = URL.createObjectURL(blob);
+
+        const imgEl = new Image();
+        imgEl.onload = () => {
+          const fImg = new fabric.FabricImage(imgEl);
+          const scale = Math.min(w / imgEl.width, h / imgEl.height);
+          fImg.scale(scale);
+          fImg.set({
+            left: (w - imgEl.width * scale) / 2,
+            top: (h - imgEl.height * scale) / 2,
+            selectable: false,
+            evented: false,
+          });
+          c.backgroundImage = fImg;
+          c.renderAll();
+          saveHistory(c);
+          setLoading(false);
+          URL.revokeObjectURL(blobUrl);
+        };
+        imgEl.onerror = () => {
+          console.error('Failed to load image from blob');
+          setLoading(false);
+          URL.revokeObjectURL(blobUrl);
+        };
+        imgEl.src = blobUrl;
+      } catch (err) {
+        console.error('Failed to fetch image:', err);
+        setLoading(false);
+      }
+    })();
 
     return () => { c.dispose(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url]);
 
-  const saveHistory = useCallback((c: fabric.Canvas) => {
-    const json = JSON.stringify(c.toJSON());
-    setHistory(prev => {
-      const newH = prev.slice(0, historyIdx + 1);
-      newH.push(json);
-      setHistoryIdx(newH.length - 1);
-      return newH;
-    });
-  }, [historyIdx]);
+  // Resize canvas when signs panel toggles
+  useEffect(() => {
+    const c = fabricRef.current;
+    if (!c) return;
+    const { w, h } = getCanvasSize();
+    c.setDimensions({ width: w, height: h });
+    c.renderAll();
+  }, [showSigns, getCanvasSize]);
 
   const undo = () => {
-    if (historyIdx <= 0 || !fabricRef.current) return;
-    const newIdx = historyIdx - 1;
-    fabricRef.current.loadFromJSON(JSON.parse(history[newIdx])).then(() => {
+    if (historyIdxRef.current <= 0 || !fabricRef.current) return;
+    historyIdxRef.current -= 1;
+    fabricRef.current.loadFromJSON(JSON.parse(historyRef.current[historyIdxRef.current])).then(() => {
       fabricRef.current?.renderAll();
-      setHistoryIdx(newIdx);
+      forceRender(n => n + 1);
     });
   };
 
   const redo = () => {
-    if (historyIdx >= history.length - 1 || !fabricRef.current) return;
-    const newIdx = historyIdx + 1;
-    fabricRef.current.loadFromJSON(JSON.parse(history[newIdx])).then(() => {
+    if (historyIdxRef.current >= historyRef.current.length - 1 || !fabricRef.current) return;
+    historyIdxRef.current += 1;
+    fabricRef.current.loadFromJSON(JSON.parse(historyRef.current[historyIdxRef.current])).then(() => {
       fabricRef.current?.renderAll();
-      setHistoryIdx(newIdx);
+      forceRender(n => n + 1);
     });
   };
 
@@ -124,9 +164,14 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
       c.selection = tool === 'select';
     }
 
+    const getPointer = (opt: any) => {
+      if (typeof c.getScenePoint === 'function') return c.getScenePoint(opt.e);
+      return c.getPointer(opt.e);
+    };
+
     const onMouseDown = (opt: any) => {
       if (tool === 'select' || tool === 'free') return;
-      const pointer = c.getScenePoint(opt.e);
+      const pointer = getPointer(opt);
       isDrawingRef.current = true;
       startPosRef.current = { x: pointer.x, y: pointer.y };
 
@@ -171,7 +216,7 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
 
     const onMouseMove = (opt: any) => {
       if (!isDrawingRef.current || !startPosRef.current || !tempObjRef.current) return;
-      const pointer = c.getScenePoint(opt.e);
+      const pointer = getPointer(opt);
       const sx = startPosRef.current.x;
       const sy = startPosRef.current.y;
       const obj = tempObjRef.current;
@@ -192,7 +237,6 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
 
     const onMouseUp = () => {
       if (isDrawingRef.current) {
-        // Add arrowhead for arrow tool
         if (tool === 'arrow' && tempObjRef.current instanceof fabric.Line) {
           const line = tempObjRef.current;
           const x1 = line.x1!, y1 = line.y1!, x2 = line.x2!, y2 = line.y2!;
@@ -281,107 +325,107 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
   ];
 
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-[98vw] max-h-[98vh] w-auto p-0 overflow-hidden bg-background">
-        {/* Toolbar */}
-        <div className="flex flex-wrap items-center gap-1 p-2 border-b border-border bg-muted/50">
-          {/* Tool buttons */}
-          {TOOLS.map(t => (
-            <Button
-              key={t.id}
-              variant={tool === t.id ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setTool(t.id)}
-              title={t.label}
-              className="h-8 w-8 p-0"
-            >
-              {t.icon}
-            </Button>
-          ))}
-
-          <div className="w-px h-6 bg-border mx-1" />
-
-          {/* Colors */}
-          {COLORS.map(c => (
-            <button
-              key={c.value}
-              className={`h-6 w-6 rounded-full border-2 transition-all ${color === c.value ? 'border-primary scale-110' : 'border-border'}`}
-              style={{ backgroundColor: c.value }}
-              onClick={() => setColor(c.value)}
-              title={c.name}
-            />
-          ))}
-
-          <div className="w-px h-6 bg-border mx-1" />
-
-          {/* Stroke width */}
-          {STROKE_WIDTHS.map(s => (
-            <Button
-              key={s.value}
-              variant={strokeWidth === s.value ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setStrokeWidth(s.value)}
-              className="h-8 px-2 text-xs"
-            >
-              <Minus className="h-3 w-3" style={{ strokeWidth: s.value }} />
-              <span className="ml-1">{s.label}</span>
-            </Button>
-          ))}
-
-          <div className="w-px h-6 bg-border mx-1" />
-
-          <Button variant="ghost" size="sm" onClick={undo} disabled={historyIdx <= 0} className="h-8 w-8 p-0">
-            <Undo2 className="h-4 w-4" />
+    <div className="fixed inset-0 z-50 bg-black/90 flex flex-col">
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-1 p-2 border-b border-border bg-muted/80" style={{ minHeight: TOOLBAR_HEIGHT }}>
+        {TOOLS.map(t => (
+          <Button
+            key={t.id}
+            variant={tool === t.id ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setTool(t.id)}
+            title={t.label}
+            className="h-8 w-8 p-0"
+          >
+            {t.icon}
           </Button>
-          <Button variant="ghost" size="sm" onClick={redo} disabled={historyIdx >= history.length - 1} className="h-8 w-8 p-0">
-            <Redo2 className="h-4 w-4" />
+        ))}
+
+        <div className="w-px h-6 bg-border mx-1" />
+
+        {COLORS.map(c => (
+          <button
+            key={c.value}
+            className={`h-6 w-6 rounded-full border-2 transition-all ${color === c.value ? 'border-primary scale-110' : 'border-border'}`}
+            style={{ backgroundColor: c.value }}
+            onClick={() => setColor(c.value)}
+            title={c.name}
+          />
+        ))}
+
+        <div className="w-px h-6 bg-border mx-1" />
+
+        {STROKE_WIDTHS.map(s => (
+          <Button
+            key={s.value}
+            variant={strokeWidth === s.value ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setStrokeWidth(s.value)}
+            className="h-8 px-2 text-xs"
+          >
+            <Minus className="h-3 w-3" style={{ strokeWidth: s.value }} />
+            <span className="ml-1">{s.label}</span>
           </Button>
+        ))}
 
-          <div className="flex-1" />
+        <div className="w-px h-6 bg-border mx-1" />
 
-          <Button variant="ghost" size="sm" onClick={() => setShowSigns(!showSigns)} className="h-8 text-xs gap-1">
-            🚧 Señales
-            {showSigns ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
-          </Button>
+        <Button variant="ghost" size="sm" onClick={undo} disabled={historyIdxRef.current <= 0} className="h-8 w-8 p-0">
+          <Undo2 className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="sm" onClick={redo} disabled={historyIdxRef.current >= historyRef.current.length - 1} className="h-8 w-8 p-0">
+          <Redo2 className="h-4 w-4" />
+        </Button>
 
-          <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
-            <X className="h-4 w-4" />
-          </Button>
-          <Button size="sm" onClick={handleSave} disabled={saving} className="h-8 gap-1">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Guardar
-          </Button>
-        </div>
+        <div className="flex-1" />
 
-        {/* Canvas + Signs panel */}
-        <div className="flex overflow-hidden">
-          <div className="flex-1 overflow-auto flex items-center justify-center p-2 bg-muted/30" style={{ minHeight: 400 }}>
-            <canvas ref={canvasRef} />
-          </div>
+        <Button variant="ghost" size="sm" onClick={() => setShowSigns(!showSigns)} className="h-8 text-xs gap-1">
+          🚧 Señales
+          {showSigns ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+        </Button>
 
-          {showSigns && (
-            <div className="w-48 border-l border-border p-2 overflow-y-auto bg-card" style={{ maxHeight: '80vh' }}>
-              <p className="text-xs font-semibold mb-2">Señales de obra</p>
-              <div className="grid grid-cols-3 gap-2">
-                {SIGNOS_OBRA.map(s => (
-                  <button
-                    key={s.id}
-                    onClick={() => addSign(s)}
-                    className="flex flex-col items-center gap-1 p-1 rounded-lg hover:bg-muted transition-colors"
-                    title={s.nombre}
-                  >
-                    <div
-                      className="w-10 h-10"
-                      dangerouslySetInnerHTML={{ __html: s.svg }}
-                    />
-                    <span className="text-[9px] text-muted-foreground text-center leading-tight">{s.nombre}</span>
-                  </button>
-                ))}
-              </div>
+        <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0 text-white hover:text-white">
+          <X className="h-4 w-4" />
+        </Button>
+        <Button size="sm" onClick={handleSave} disabled={saving} className="h-8 gap-1">
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          Guardar
+        </Button>
+      </div>
+
+      {/* Canvas + Signs panel */}
+      <div className="flex flex-1 overflow-hidden">
+        <div className="flex-1 flex items-center justify-center relative">
+          {loading && (
+            <div className="absolute inset-0 flex items-center justify-center z-10">
+              <Loader2 className="h-8 w-8 animate-spin text-white" />
             </div>
           )}
+          <canvas ref={canvasRef} />
         </div>
-      </DialogContent>
-    </Dialog>
+
+        {showSigns && (
+          <div className="w-48 border-l border-border p-2 overflow-y-auto bg-card">
+            <p className="text-xs font-semibold mb-2">Señales de obra</p>
+            <div className="grid grid-cols-3 gap-2">
+              {SIGNOS_OBRA.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => addSign(s)}
+                  className="flex flex-col items-center gap-1 p-1 rounded-lg hover:bg-muted transition-colors"
+                  title={s.nombre}
+                >
+                  <div
+                    className="w-10 h-10"
+                    dangerouslySetInnerHTML={{ __html: s.svg }}
+                  />
+                  <span className="text-[9px] text-muted-foreground text-center leading-tight">{s.nombre}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
