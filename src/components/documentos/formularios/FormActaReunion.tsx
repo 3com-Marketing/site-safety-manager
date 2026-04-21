@@ -84,6 +84,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   // NEW CAE fields (sections 3.1, 3.2, 3.3, 4, 10-13)
   const [empresasIntervienen, setEmpresasIntervienen] = useState<Array<{ razon_social: string; acronimo: string; responsable: string }>>([]);
   const [duracionTrabajos, setDuracionTrabajos] = useState<Array<{ titulo: string; inicio: string; fin: string; observaciones: string }>>([]);
+  const [textoPunto3, setTextoPunto3] = useState('');
   const [textoTrabajosRealizar, setTextoTrabajosRealizar] = useState('');
   const [textoRecursoPreventivo, setTextoRecursoPreventivo] = useState('');
   const [textoAcuerdosGenerales, setTextoAcuerdosGenerales] = useState('');
@@ -120,12 +121,13 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       const configField = TIPO_TO_CONFIG_FIELD[tipoActual];
       const fieldsToLoad = configField ? [configField] : [];
       if (tipoActual === 'acta_reunion_cae') {
-        fieldsToLoad.push('texto_cae_punto1', 'texto_cae_punto2', 'texto_cae_punto2_bloque2', 'texto_recurso_preventivo', 'texto_acuerdos_generales', 'texto_cae_punto6', 'texto_cae_punto7', 'texto_cae_punto8', 'texto_cae_punto9', 'texto_cae_punto10', 'texto_cae_punto10_procede', 'texto_cae_punto13', 'texto_cae_punto13_procede');
+        fieldsToLoad.push('texto_cae_punto3', 'texto_cae_punto1', 'texto_cae_punto2', 'texto_cae_punto2_bloque2', 'texto_recurso_preventivo', 'texto_acuerdos_generales', 'texto_cae_punto6', 'texto_cae_punto7', 'texto_cae_punto8', 'texto_cae_punto9', 'texto_cae_punto10', 'texto_cae_punto10_procede', 'texto_cae_punto13', 'texto_cae_punto13_procede');
       }
       if (fieldsToLoad.length > 0) {
         supabase.from('configuracion_empresa').select(fieldsToLoad.join(',')).limit(1).single().then(({ data }) => {
           if (data) {
             if (configField && (data as any)[configField]) setTextoLegal((data as any)[configField]);
+            if ((data as any).texto_cae_punto3) setTextoPunto3((data as any).texto_cae_punto3);
             if ((data as any).texto_cae_punto1) setTextoPunto1((data as any).texto_cae_punto1);
             if ((data as any).texto_cae_punto2) setTextoPunto2((data as any).texto_cae_punto2);
             if ((data as any).texto_cae_punto2_bloque2) setTextoPunto2Bloque2((data as any).texto_cae_punto2_bloque2);
@@ -170,6 +172,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       setPlataformaCAE(extra.plataforma_cae || 'metacontratas');
       setNumeroActa(extra.numero_acta || '');
       // New CAE fields
+      setTextoPunto3(extra.texto_punto3 || '');
       setEmpresasIntervienen(extra.empresas_intervienen || []);
       setDuracionTrabajos(extra.duracion_trabajos || []);
       setTextoTrabajosRealizar(extra.texto_trabajos_realizar || '');
@@ -329,6 +332,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       datosExtra.otros_riesgos = otrosRiesgos;
       datosExtra.plataforma_cae = plataformaCAE;
       // New CAE fields
+      datosExtra.texto_punto3 = textoPunto3;
       datosExtra.empresas_intervienen = empresasIntervienen;
       datosExtra.duracion_trabajos = duracionTrabajos;
       datosExtra.texto_trabajos_realizar = textoTrabajosRealizar;
@@ -446,29 +450,6 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       </div>
 
 
-      {/* CAE: Riesgos */}
-      {isCAE && (
-        <div className="space-y-3 pt-2">
-          <p className="text-sm font-semibold">Riesgos previstos</p>
-          <div className="grid grid-cols-3 gap-3">
-            {RIESGOS_OPTIONS.map(r => (
-              <label key={r} className="flex items-center gap-2 text-sm">
-                <Checkbox checked={riesgos.includes(r)} onCheckedChange={() => toggleRiesgo(r)} />
-                {r}
-              </label>
-            ))}
-          </div>
-          <div className="space-y-2">
-            <Label>Otros riesgos</Label>
-            <Input value={otrosRiesgos} onChange={e => setOtrosRiesgos(e.target.value)} placeholder="Especificar..." />
-          </div>
-          <div className="space-y-2">
-            <Label>Plataforma CAE</Label>
-            <Input value={plataformaCAE} onChange={e => setPlataformaCAE(e.target.value)} />
-          </div>
-        </div>
-      )}
-
       {/* ===== NEW CAE SECTIONS ===== */}
       {isCAE && (
         <div className="space-y-4 pt-4">
@@ -576,58 +557,92 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
             </div>
           </SectionCollapsible>
 
-          {/* 3.1 Empresas que intervienen */}
-          <SectionCollapsible title="3.1 — Empresas que intervienen en la obra">
-            {empresasIntervienen.map((e, i) => (
-              <div key={i} className="flex items-center justify-between rounded-lg border border-border p-3">
-                <div className="text-sm">
-                  <span className="font-medium">{e.razon_social}</span>
-                  {e.acronimo && <span className="text-muted-foreground"> ({e.acronimo})</span>}
-                  {e.responsable && <span className="text-muted-foreground"> · {e.responsable}</span>}
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => setEmpresasIntervienen(prev => prev.filter((_, idx) => idx !== i))}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
+          {/* 3. Trabajos Realizados y Previstos */}
+          <SectionCollapsible title="3 — Trabajos Realizados y Previstos">
+            <div className="space-y-4">
+              <div>
+                <Label>Texto introductorio del punto 3</Label>
+                <RichTextEditor value={textoPunto3} onChange={setTextoPunto3} placeholder="Los trabajos planificados a continuación son tratados desde el punto de vista del RD 171/04..." />
               </div>
-            ))}
-            <div className="grid grid-cols-4 gap-2">
-              <Input placeholder="Razón social" value={nuevaEmpresaInterviene.razon_social} onChange={e => setNuevaEmpresaInterviene(p => ({ ...p, razon_social: e.target.value }))} />
-              <Input placeholder="Acrónimo" value={nuevaEmpresaInterviene.acronimo} onChange={e => setNuevaEmpresaInterviene(p => ({ ...p, acronimo: e.target.value }))} />
-              <Input placeholder="Persona responsable" value={nuevaEmpresaInterviene.responsable} onChange={e => setNuevaEmpresaInterviene(p => ({ ...p, responsable: e.target.value }))} />
-              <Button size="sm" onClick={handleAddEmpresaInterviene} disabled={!nuevaEmpresaInterviene.razon_social.trim()} className="gap-1"><Plus className="h-4 w-4" /> Añadir</Button>
-            </div>
-          </SectionCollapsible>
 
-          {/* 3.2 Duración y ubicación de trabajos */}
-          <SectionCollapsible title="3.2 — Duración y ubicación de los trabajos">
-            {duracionTrabajos.map((d, i) => (
-              <div key={i} className="flex items-center justify-between rounded-lg border border-border p-3">
-                <div className="text-sm">
-                  <span className="font-medium">{d.titulo}</span>
-                  <span className="text-muted-foreground"> · {d.inicio} — {d.fin}</span>
-                  {d.observaciones && <span className="text-muted-foreground"> · {d.observaciones}</span>}
+              {/* Riesgos previstos */}
+              <div className="space-y-3">
+                <p className="text-sm font-semibold">Riesgos previstos</p>
+                <div className="grid grid-cols-3 gap-3">
+                  {RIESGOS_OPTIONS.map(r => (
+                    <label key={r} className="flex items-center gap-2 text-sm">
+                      <Checkbox checked={riesgos.includes(r)} onCheckedChange={() => toggleRiesgo(r)} />
+                      {r}
+                    </label>
+                  ))}
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => setDuracionTrabajos(prev => prev.filter((_, idx) => idx !== i))}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
+                <div className="space-y-2">
+                  <Label>Otros riesgos</Label>
+                  <Input value={otrosRiesgos} onChange={e => setOtrosRiesgos(e.target.value)} placeholder="Especificar..." />
+                </div>
+                <div className="space-y-2">
+                  <Label>Plataforma CAE</Label>
+                  <Input value={plataformaCAE} onChange={e => setPlataformaCAE(e.target.value)} />
+                </div>
               </div>
-            ))}
-            <div className="grid grid-cols-5 gap-2">
-              <Input placeholder="Título trabajo" value={nuevaDuracion.titulo} onChange={e => setNuevaDuracion(p => ({ ...p, titulo: e.target.value }))} />
-              <Input placeholder="Inicio" value={nuevaDuracion.inicio} onChange={e => setNuevaDuracion(p => ({ ...p, inicio: e.target.value }))} />
-              <Input placeholder="Fin" value={nuevaDuracion.fin} onChange={e => setNuevaDuracion(p => ({ ...p, fin: e.target.value }))} />
-              <Input placeholder="Observaciones" value={nuevaDuracion.observaciones} onChange={e => setNuevaDuracion(p => ({ ...p, observaciones: e.target.value }))} />
-              <Button size="sm" onClick={handleAddDuracion} disabled={!nuevaDuracion.titulo.trim()} className="gap-1"><Plus className="h-4 w-4" /> Añadir</Button>
-            </div>
-          </SectionCollapsible>
 
-          {/* 3.3 Trabajos a realizar */}
-          <SectionCollapsible title="3.3 — Trabajos a realizar (descripción)">
-            <RichTextEditor
-              value={textoTrabajosRealizar}
-              onChange={setTextoTrabajosRealizar}
-              placeholder="Descripción de los trabajos a realizar..."
-            />
+              {/* 3.1 Empresas que intervienen */}
+              <div className="space-y-3 border-t border-border pt-4">
+                <p className="text-sm font-semibold">3.1 — Empresas que intervienen en la obra</p>
+                {empresasIntervienen.map((e, i) => (
+                  <div key={i} className="flex items-center justify-between rounded-lg border border-border p-3">
+                    <div className="text-sm">
+                      <span className="font-medium">{e.razon_social}</span>
+                      {e.acronimo && <span className="text-muted-foreground"> ({e.acronimo})</span>}
+                      {e.responsable && <span className="text-muted-foreground"> · {e.responsable}</span>}
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => setEmpresasIntervienen(prev => prev.filter((_, idx) => idx !== i))}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+                <div className="grid grid-cols-4 gap-2">
+                  <Input placeholder="Razón social" value={nuevaEmpresaInterviene.razon_social} onChange={e => setNuevaEmpresaInterviene(p => ({ ...p, razon_social: e.target.value }))} />
+                  <Input placeholder="Acrónimo" value={nuevaEmpresaInterviene.acronimo} onChange={e => setNuevaEmpresaInterviene(p => ({ ...p, acronimo: e.target.value }))} />
+                  <Input placeholder="Persona responsable" value={nuevaEmpresaInterviene.responsable} onChange={e => setNuevaEmpresaInterviene(p => ({ ...p, responsable: e.target.value }))} />
+                  <Button size="sm" onClick={handleAddEmpresaInterviene} disabled={!nuevaEmpresaInterviene.razon_social.trim()} className="gap-1"><Plus className="h-4 w-4" /> Añadir</Button>
+                </div>
+              </div>
+
+              {/* 3.2 Duración y ubicación de trabajos */}
+              <div className="space-y-3 border-t border-border pt-4">
+                <p className="text-sm font-semibold">3.2 — Duración y ubicación de los trabajos</p>
+                {duracionTrabajos.map((d, i) => (
+                  <div key={i} className="flex items-center justify-between rounded-lg border border-border p-3">
+                    <div className="text-sm">
+                      <span className="font-medium">{d.titulo}</span>
+                      <span className="text-muted-foreground"> · {d.inicio} — {d.fin}</span>
+                      {d.observaciones && <span className="text-muted-foreground"> · {d.observaciones}</span>}
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => setDuracionTrabajos(prev => prev.filter((_, idx) => idx !== i))}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+                <div className="grid grid-cols-5 gap-2">
+                  <Input placeholder="Título trabajo" value={nuevaDuracion.titulo} onChange={e => setNuevaDuracion(p => ({ ...p, titulo: e.target.value }))} />
+                  <Input placeholder="Inicio" value={nuevaDuracion.inicio} onChange={e => setNuevaDuracion(p => ({ ...p, inicio: e.target.value }))} />
+                  <Input placeholder="Fin" value={nuevaDuracion.fin} onChange={e => setNuevaDuracion(p => ({ ...p, fin: e.target.value }))} />
+                  <Input placeholder="Observaciones" value={nuevaDuracion.observaciones} onChange={e => setNuevaDuracion(p => ({ ...p, observaciones: e.target.value }))} />
+                  <Button size="sm" onClick={handleAddDuracion} disabled={!nuevaDuracion.titulo.trim()} className="gap-1"><Plus className="h-4 w-4" /> Añadir</Button>
+                </div>
+              </div>
+
+              {/* 3.3 Trabajos a realizar */}
+              <div className="space-y-3 border-t border-border pt-4">
+                <p className="text-sm font-semibold">3.3 — Trabajos a realizar (descripción)</p>
+                <RichTextEditor
+                  value={textoTrabajosRealizar}
+                  onChange={setTextoTrabajosRealizar}
+                  placeholder="Descripción de los trabajos a realizar..."
+                />
+              </div>
+            </div>
           </SectionCollapsible>
 
           {/* 4. Recurso preventivo */}

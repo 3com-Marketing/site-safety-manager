@@ -40,6 +40,7 @@ interface ConfigEmpresa {
   texto_acta_nombramiento_cae: string;
   texto_acta_nombramiento_proyecto: string;
   texto_cae_punto1: string;
+  texto_cae_punto3: string;
   texto_cae_punto2: string;
   texto_recurso_preventivo: string;
   texto_acuerdos_generales: string;
@@ -63,6 +64,7 @@ const EMPTY_CONFIG: ConfigEmpresa = {
   texto_acta_reunion_inicial: '', texto_acta_reunion_cae: '', texto_acta_reunion_sys: '',
   texto_acta_nombramiento_cae: '', texto_acta_nombramiento_proyecto: '',
   texto_cae_punto1: '',
+  texto_cae_punto3: '',
   texto_cae_punto2: '',
   texto_recurso_preventivo: '',
   texto_acuerdos_generales: '',
@@ -336,6 +338,10 @@ export default function AdminConfiguracion() {
                   <span className="flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> Acta Reunión CAE</span>
                 </AccordionTrigger>
                 <AccordionContent className="space-y-4 pt-2">
+                  <div>
+                    <Label>Punto 3 — Trabajos Realizados y Previstos (texto introductorio)</Label>
+                    <RichTextEditor value={config.texto_cae_punto3} onChange={v => update('texto_cae_punto3', v)} placeholder="Los trabajos planificados a continuación son tratados desde el punto de vista del RD 171/04..." />
+                  </div>
                   <div>
                     <Label>Punto 1 — Objetivo, alcance y ámbito de actuación</Label>
                     <RichTextEditor value={config.texto_cae_punto1} onChange={v => update('texto_cae_punto1', v)} placeholder="En cumplimiento del RD 171/2004..." />

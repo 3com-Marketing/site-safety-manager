@@ -273,6 +273,7 @@ export type Database = {
           texto_cae_punto13_procede: string
           texto_cae_punto2: string
           texto_cae_punto2_bloque2: string
+          texto_cae_punto3: string
           texto_cae_punto6: string
           texto_cae_punto7: string
           texto_cae_punto8: string
@@ -316,6 +317,7 @@ export type Database = {
           texto_cae_punto13_procede?: string
           texto_cae_punto2?: string
           texto_cae_punto2_bloque2?: string
+          texto_cae_punto3?: string
           texto_cae_punto6?: string
           texto_cae_punto7?: string
           texto_cae_punto8?: string
@@ -359,6 +361,7 @@ export type Database = {
           texto_cae_punto13_procede?: string
           texto_cae_punto2?: string
           texto_cae_punto2_bloque2?: string
+          texto_cae_punto3?: string
           texto_cae_punto6?: string
           texto_cae_punto7?: string
           texto_cae_punto8?: string
