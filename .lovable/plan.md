@@ -1,27 +1,36 @@
 
 
-# Plan: Arreglar senales no visibles y guardado de imagen editada
+# Plan: Arreglar el guardado de fotos editadas
 
-## Problemas
+## Problema
 
-1. **Senales no se ven en el canvas**: La funcion `addSign` carga los SVGs como `Image` via blob URL y luego crea `fabric.FabricImage`. Esto falla porque:
-   - Los SVGs con emojis en elementos `<text>` (🧤, 🧯, 👥) no se renderizan al rasterizar a canvas
-   - `fabric.FabricImage` desde SVG blob no es fiable en todos los navegadores
-   - Solucion: usar `fabric.loadSVGFromString()` que parsea el SVG nativamente en objetos fabric, y reemplazar los emojis por formas SVG reales
+Los logs muestran que la imagen editada se sube correctamente al storage (blob de ~3MB, URL generada). Sin embargo, la URL nueva no se persiste en la base de datos porque:
 
-2. **No guarda la imagen editada**: El metodo `canvas.toDataURL()` en fabric v6 puede devolver un string vacio o fallar si la imagen de fondo esta "tainted". Ademas falta capturar errores especificos. Solucion: verificar que el blob generado tiene contenido antes de subir, y anadir logs de depuracion.
+1. El `supabase.from(fotoMeta.table).update(...)` en `AdminVisitaDetalle.tsx` no comprueba si hay error en la respuesta. Si falla por RLS o por cualquier otro motivo, se ignora silenciosamente.
+2. En `AdminInformeDetalle.tsx` puede haber el mismo problema.
+3. No hay feedback al usuario si el UPDATE falla.
 
-## Cambios
+## Solucion
 
-### 1. `src/components/visita/editorSignos.ts`
-- Reemplazar los emojis (🧤, 🧯, 👥, ⚡, ⚙, ✋) por formas SVG dibujadas (paths, circles, rects) para que se rendericen correctamente en canvas
-- Los emojis no se renderizan cuando un SVG se carga como imagen en canvas
+### 1. `src/pages/AdminVisitaDetalle.tsx` (lineas 111-137)
 
-### 2. `src/components/visita/FotoEditor.tsx`
-- **`addSign`**: Reemplazar la carga via `Image` + `FabricImage` por `fabric.loadSVGFromString()`. Esta funcion parsea el SVG y devuelve objetos fabric nativos (paths, circles, etc.) que se renderizan correctamente en el canvas. Agruparlos con `fabric.util.groupSVGElements()` para que se muevan como una sola pieza.
-- **`handleSave`**: Anadir validacion del blob (comprobar `blob.size > 0`) antes de subir. Anadir `console.error` detallado si la subida falla. Verificar que `toDataURL` genera datos validos.
+- Capturar el resultado del `update` y comprobar `error`.
+- Si hay error, mostrarlo con `toast.error` y hacer `console.error`.
+- Si no hay error, proceder con el re-fetch.
+
+### 2. `src/pages/AdminInformeDetalle.tsx`
+
+- Mismo cambio: verificar error en el `handleSaveFoto` o la funcion equivalente que hace el UPDATE.
+- Anadir `toast.error` si falla.
+
+### 3. `src/components/visita/FotoEditor.tsx` (linea 323)
+
+- Envolver `await onSave(...)` en try/catch para que si el callback falla, el editor no se cierre y el usuario vea el error.
+- Solo llamar `onClose()` si `onSave` resolvio sin error.
 
 ## Archivos afectados
-- **`src/components/visita/editorSignos.ts`** -- Reemplazar emojis por formas SVG puras
-- **`src/components/visita/FotoEditor.tsx`** -- Cambiar `addSign` a usar `loadSVGFromString`, mejorar `handleSave` con validacion
+
+- **`src/pages/AdminVisitaDetalle.tsx`** -- Anadir comprobacion de error en el UPDATE de la foto.
+- **`src/pages/AdminInformeDetalle.tsx`** -- Anadir comprobacion de error en el UPDATE de la foto.
+- **`src/components/visita/FotoEditor.tsx`** -- Proteger `onClose()` para que solo se ejecute si `onSave` no lanza error.
 
