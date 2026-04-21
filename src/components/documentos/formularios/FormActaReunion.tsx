@@ -66,9 +66,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   const [mesReunion, setMesReunion] = useState('');
   const [textoPunto1, setTextoPunto1] = useState('');
   const [textoPunto2, setTextoPunto2] = useState('');
-  const [docChecks, setDocChecks] = useState({ preventiva: false, trabajadores: false, maquinaria: false, trabajos: false });
-  const [punto2NoProcede, setPunto2NoProcede] = useState(false);
-  const [punto2Otros, setPunto2Otros] = useState('');
+  
   const [riesgos, setRiesgos] = useState<string[]>([]);
   const [otrosRiesgos, setOtrosRiesgos] = useState('');
   const [plataformaCAE, setPlataformaCAE] = useState('metacontratas');
@@ -135,14 +133,6 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       setMesReunion(extra.mes_reunion || '');
       setTextoPunto1(extra.texto_punto1 || '');
       setTextoPunto2(extra.texto_punto2 || '');
-      setDocChecks({
-        preventiva: extra.punto2_doc_preventiva || false,
-        trabajadores: extra.punto2_doc_trabajadores || false,
-        maquinaria: extra.punto2_doc_maquinaria || false,
-        trabajos: extra.punto2_doc_trabajos || false,
-      });
-      setPunto2NoProcede(extra.punto2_no_procede || false);
-      setPunto2Otros(extra.punto2_otros || '');
       setRiesgos(extra.riesgos || []);
       setOtrosRiesgos(extra.otros_riesgos || '');
       setPlataformaCAE(extra.plataforma_cae || 'metacontratas');
@@ -289,12 +279,6 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       datosExtra.mes_reunion = mesReunion;
       datosExtra.texto_punto1 = textoPunto1;
       datosExtra.texto_punto2 = textoPunto2;
-      datosExtra.punto2_doc_preventiva = docChecks.preventiva;
-      datosExtra.punto2_doc_trabajadores = docChecks.trabajadores;
-      datosExtra.punto2_doc_maquinaria = docChecks.maquinaria;
-      datosExtra.punto2_doc_trabajos = docChecks.trabajos;
-      datosExtra.punto2_no_procede = punto2NoProcede;
-      datosExtra.punto2_otros = punto2Otros;
       datosExtra.riesgos = riesgos;
       datosExtra.otros_riesgos = otrosRiesgos;
       datosExtra.plataforma_cae = plataformaCAE;
@@ -497,36 +481,6 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
                 </div>
               </div>
 
-              {/* Documentación requerida */}
-              <div className="space-y-3">
-                <p className="text-sm font-semibold">Documentación a intercambiar</p>
-                <label className="flex items-start gap-2 text-sm">
-                  <Checkbox checked={docChecks.preventiva} onCheckedChange={(v) => setDocChecks(p => ({ ...p, preventiva: !!v }))} className="mt-0.5" />
-                  La documentación completa en materia preventiva y administrativa de Empresa y Trabajadores
-                </label>
-                <label className="flex items-start gap-2 text-sm">
-                  <Checkbox checked={docChecks.trabajadores} onCheckedChange={(v) => setDocChecks(p => ({ ...p, trabajadores: !!v }))} className="mt-0.5" />
-                  La relación nominal completa de trabajadores (Nombre, Apellidos, N.I.F. ó Pasaporte o N.I.E.)
-                </label>
-                <label className="flex items-start gap-2 text-sm">
-                  <Checkbox checked={docChecks.maquinaria} onCheckedChange={(v) => setDocChecks(p => ({ ...p, maquinaria: !!v }))} className="mt-0.5" />
-                  La relación completa de maquinaria, medios auxiliares y/o productos químicos, si procede
-                </label>
-                <label className="flex items-start gap-2 text-sm">
-                  <Checkbox checked={docChecks.trabajos} onCheckedChange={(v) => setDocChecks(p => ({ ...p, trabajos: !!v }))} className="mt-0.5" />
-                  La relación de los trabajos a realizar (tipología o zona de afectación)
-                </label>
-                <div className="flex items-center gap-4 pt-1">
-                  <label className="flex items-center gap-2 text-sm">
-                    <Checkbox checked={punto2NoProcede} onCheckedChange={(v) => setPunto2NoProcede(!!v)} />
-                    No procede
-                  </label>
-                </div>
-                <div className="space-y-1">
-                  <Label>Otros</Label>
-                  <Input value={punto2Otros} onChange={e => setPunto2Otros(e.target.value)} placeholder="Especificar..." />
-                </div>
-              </div>
             </div>
           </SectionCollapsible>
 
