@@ -31,7 +31,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .eq('user_id', userId);
     const userRoles = (data?.map(r => r.role) as AppRole[]) ?? [];
     setRoles(userRoles);
-    setRole(prev => (prev && userRoles.includes(prev)) ? prev : userRoles[0] ?? null);
+
+    // Check localStorage for a preferred role (set by RoleSwitcher before hard reload)
+    const preferred = localStorage.getItem('preferred_role') as AppRole | null;
+    localStorage.removeItem('preferred_role');
+
+    if (preferred && userRoles.includes(preferred)) {
+      setRole(preferred);
+    } else {
+      setRole(prev => (prev && userRoles.includes(prev)) ? prev : userRoles[0] ?? null);
+    }
   };
 
   const switchRole = (newRole: AppRole) => {
