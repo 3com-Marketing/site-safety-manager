@@ -1,10 +1,10 @@
 
 
-# Plan: Añadir Puntos 6, 7, 8 y 9 — Texto configurable (igual que 4 y 5)
+# Plan: Rediseñar Punto 10 — Interferencias entre empresas
 
 ## Resumen
 
-Crear las secciones 6 (Formación e Información), 7 (Control de maquinaria), 8 (Protecciones Colectivas y Medios Auxiliares) y 9 (Protecciones Individuales) en el Acta Reunión CAE, con texto legal editable desde Configuración.
+Cambiar el Punto 10 para que tenga: un texto legal configurable desde Configuración, dos opciones "No Procede" / "Sí Procede", y si procede, mostrar un campo de texto editable con las medidas a aplicar.
 
 ## Cambios
 
@@ -12,31 +12,36 @@ Crear las secciones 6 (Formación e Información), 7 (Control de maquinaria), 8 
 
 ```sql
 ALTER TABLE configuracion_empresa
-ADD COLUMN texto_cae_punto6 text NOT NULL DEFAULT '',
-ADD COLUMN texto_cae_punto7 text NOT NULL DEFAULT '',
-ADD COLUMN texto_cae_punto8 text NOT NULL DEFAULT '',
-ADD COLUMN texto_cae_punto9 text NOT NULL DEFAULT '';
+ADD COLUMN texto_cae_punto10 text NOT NULL DEFAULT '',
+ADD COLUMN texto_cae_punto10_procede text NOT NULL DEFAULT '';
 ```
+
+- `texto_cae_punto10`: texto legal introductorio (el párrafo sobre el RD 171/2004).
+- `texto_cae_punto10_procede`: texto por defecto que aparece en el recuadro cuando "Sí Procede" (las medidas: "PARA EVITAR EN MAYOR MEDIDA LOS RIESGOS...").
 
 ### 2. `AdminConfiguracion.tsx`
 
-- Añadir `texto_cae_punto6`, `texto_cae_punto7`, `texto_cae_punto8`, `texto_cae_punto9` a la interfaz `ConfigEmpresa` y a `EMPTY_CONFIG`.
-- En el acordeón "Acta Reunión CAE", añadir 4 RichTextEditors:
-  - **"Punto 6 — Formación e Información"**
-  - **"Punto 7 — Control de maquinaria"**
-  - **"Punto 8 — Protecciones Colectivas y Medios Auxiliares"**
-  - **"Punto 9 — Protecciones Individuales"**
+- Añadir `texto_cae_punto10` y `texto_cae_punto10_procede` a la interfaz y a `EMPTY_CONFIG`.
+- En el acordeón "Acta Reunión CAE", añadir 2 RichTextEditors:
+  - **"Punto 10 — Interferencias entre empresas (texto legal)"**
+  - **"Punto 10 — Texto cuando SI procede"**
 
 ### 3. `FormActaReunion.tsx`
 
-- Añadir 4 estados: `textoPunto6`, `textoPunto7`, `textoPunto8`, `textoPunto9`.
-- En el `useEffect` de configuración, cargar los 4 campos desde `configuracion_empresa` para documentos nuevos.
-- En el `useEffect` de carga de documento existente, leer de `datos_extra`.
-- Añadir 4 `SectionCollapsible` después del Punto 5 y antes del Punto 10, cada una con un RichTextEditor.
-- Guardar en `datos_extra` como `texto_punto6`, `texto_punto7`, `texto_punto8`, `texto_punto9`.
+- Reemplazar los estados actuales `interferenciasEmpresasAplica` (boolean) e `interferenciasEmpresasTexto` por:
+  - `textoPunto10`: texto legal (precargado desde configuración).
+  - `punto10Procede`: `'no_procede' | 'si_procede'` (por defecto `'no_procede'`).
+  - `punto10TextoProcede`: texto editable del recuadro (precargado desde configuración si procede).
+- En el `useEffect` de configuración, cargar `texto_cae_punto10` y `texto_cae_punto10_procede`.
+- En el `useEffect` de documento existente, leer de `datos_extra`.
+- Rediseñar la sección 10:
+  1. RichTextEditor con el texto legal introductorio.
+  2. Dos botones/radio: "NO PROCEDE" / "SÍ PROCEDE".
+  3. Si "Sí Procede", mostrar un RichTextEditor con fondo verde claro para las medidas.
+- Guardar en `datos_extra` como `texto_punto10`, `punto10_procede`, `punto10_texto_procede`.
 
 ## Archivos afectados
-- **Migración SQL**: 4 nuevas columnas
-- **`src/pages/AdminConfiguracion.tsx`** — 4 nuevos editores en el acordeón CAE
-- **`src/components/documentos/formularios/FormActaReunion.tsx`** — 4 nuevas secciones colapsables
+- **Migración SQL**: 2 nuevas columnas
+- **`src/pages/AdminConfiguracion.tsx`** — 2 nuevos editores en el acordeón CAE
+- **`src/components/documentos/formularios/FormActaReunion.tsx`** — rediseño de la sección 10
 
