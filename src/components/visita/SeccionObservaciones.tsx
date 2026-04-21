@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Trash2, Pencil, Scale } from 'lucide-react';
+import { Trash2, Pencil, Scale, ChevronLeft, Camera, Mic, StickyNote, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -35,6 +35,8 @@ export default function SeccionObservaciones({ informeId, visitaId, obraNombre, 
   const [editText, setEditText] = useState('');
   const [loading, setLoading] = useState(true);
   const [viewingFoto, setViewingFoto] = useState<string | null>(null);
+  const [showManualNote, setShowManualNote] = useState(false);
+  const [manualNoteText, setManualNoteText] = useState('');
 
   const voice = useVoiceNote('Observaciones generales de obra');
 
@@ -100,6 +102,22 @@ export default function SeccionObservaciones({ informeId, visitaId, obraNombre, 
     onRefresh();
   };
 
+  const saveManualNote = async () => {
+    if (!manualNoteText.trim()) return;
+
+    const { error } = await supabase.from('observaciones').insert({
+      informe_id: informeId,
+      texto: manualNoteText.trim(),
+    });
+
+    if (error) { toast.error('Error al guardar'); return; }
+    toast.success('Observación guardada');
+    setManualNoteText('');
+    setShowManualNote(false);
+    await fetchItems();
+    onRefresh();
+  };
+
   const startEdit = (item: Observacion) => { setEditingId(item.id); setEditText(item.texto); };
 
   const saveEdit = async () => {
@@ -121,21 +139,44 @@ export default function SeccionObservaciones({ informeId, visitaId, obraNombre, 
     <div className="space-y-5">
       <input ref={fileInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileUpload} />
 
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0"><ArrowLeft className="h-5 w-5" /></Button>
-        <h2 className="font-heading text-base font-semibold">Observaciones</h2>
+      <div className="space-y-1">
+        <button onClick={onBack} className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+          <ChevronLeft className="h-4 w-4" />
+          {obraNombre}
+        </button>
+        <h2 className="font-heading text-xl font-bold">Observaciones</h2>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-2">
         <button onClick={handlePhotoCapture} className="field-action-btn">
-          <span className="icon">📷</span>
+          <Camera className="h-7 w-7 text-primary" />
           <span className="label">Foto</span>
         </button>
         <button onClick={voice.openDialog} className="field-action-btn">
-          <span className="icon">🎤</span>
+          <Mic className="h-7 w-7 text-primary" />
           <span className="label">Nota por voz</span>
         </button>
+        <button onClick={() => setShowManualNote(true)} className="field-action-btn">
+          <StickyNote className="h-7 w-7 text-primary" />
+          <span className="label">Nota</span>
+        </button>
       </div>
+
+      {showManualNote && (
+        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+          <Textarea
+            value={manualNoteText}
+            onChange={(e) => setManualNoteText(e.target.value)}
+            placeholder="Escribe la observación..."
+            className="min-h-[80px] text-sm"
+            autoFocus
+          />
+          <div className="flex gap-2">
+            <Button size="sm" onClick={saveManualNote} className="flex-1">Guardar</Button>
+            <Button size="sm" variant="outline" onClick={() => { setShowManualNote(false); setManualNoteText(''); }} className="flex-1">Cancelar</Button>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-3">
         <h3 className="font-heading text-sm font-semibold">Observaciones ({items.length})</h3>
@@ -143,7 +184,12 @@ export default function SeccionObservaciones({ informeId, visitaId, obraNombre, 
         {loading ? (
           <p className="text-sm text-muted-foreground">Cargando...</p>
         ) : items.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Sin observaciones. Usa los botones de arriba.</p>
+          <div className="flex flex-col items-center gap-3 py-10 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+              <FileText className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <p className="text-sm text-muted-foreground">Sin observaciones aún.<br />Usa los botones de arriba para añadir.</p>
+          </div>
         ) : (
           <div className="space-y-2">
             {items.map((item) => (
@@ -166,7 +212,7 @@ export default function SeccionObservaciones({ informeId, visitaId, obraNombre, 
                 {item.foto_url && (
                   <>
                     <img src={item.foto_url} alt="Foto" className="w-full max-h-[400px] rounded-lg object-contain bg-muted/50 border border-border cursor-pointer" onClick={() => setViewingFoto(item.foto_url)} />
-                    <p className="text-[11px] text-muted-foreground text-center mt-1">📅 {format(new Date(item.created_at), "dd MMM yyyy, HH:mm", { locale: es })}</p>
+                    <p className="text-[11px] text-muted-foreground text-center mt-1">{format(new Date(item.created_at), "dd MMM yyyy, HH:mm", { locale: es })}</p>
                   </>
                 )}
                 {editingId === item.id ? (

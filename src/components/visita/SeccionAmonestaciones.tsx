@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Trash2, Pencil, UserRound } from 'lucide-react';
+import { Trash2, Pencil, UserRound, ChevronLeft, Camera, Mic, StickyNote, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -38,7 +38,9 @@ export default function SeccionAmonestaciones({ informeId, visitaId, obraNombre,
   const [viewingFoto, setViewingFoto] = useState<string | null>(null);
   const [trabajadorInput, setTrabajadorInput] = useState('');
   const [showTrabajadorInput, setShowTrabajadorInput] = useState(false);
-  const [pendingAction, setPendingAction] = useState<'photo' | 'voice' | null>(null);
+  const [pendingAction, setPendingAction] = useState<'photo' | 'voice' | 'note' | null>(null);
+  const [showManualNote, setShowManualNote] = useState(false);
+  const [manualNoteText, setManualNoteText] = useState('');
 
   const voice = useVoiceNote('Amonestaciones de seguridad laboral');
 
@@ -54,7 +56,7 @@ export default function SeccionAmonestaciones({ informeId, visitaId, obraNombre,
 
   useEffect(() => { fetchItems(); }, [informeId]);
 
-  const startAction = (action: 'photo' | 'voice') => {
+  const startAction = (action: 'photo' | 'voice' | 'note') => {
     setTrabajadorInput('');
     setPendingAction(action);
     setShowTrabajadorInput(true);
@@ -68,8 +70,10 @@ export default function SeccionAmonestaciones({ informeId, visitaId, obraNombre,
     setShowTrabajadorInput(false);
     if (pendingAction === 'photo') {
       fileInputRef.current?.click();
-    } else {
+    } else if (pendingAction === 'voice') {
       voice.openDialog();
+    } else if (pendingAction === 'note') {
+      setShowManualNote(true);
     }
   };
 
@@ -122,6 +126,23 @@ export default function SeccionAmonestaciones({ informeId, visitaId, obraNombre,
     onRefresh();
   };
 
+  const saveManualNote = async () => {
+    if (!manualNoteText.trim()) return;
+
+    const { error } = await supabase.from('amonestaciones').insert({
+      informe_id: informeId,
+      trabajador: trabajadorInput.trim(),
+      descripcion: manualNoteText.trim(),
+    });
+
+    if (error) { toast.error('Error al guardar'); return; }
+    toast.success('Amonestación guardada');
+    setManualNoteText('');
+    setShowManualNote(false);
+    await fetchItems();
+    onRefresh();
+  };
+
   const startEdit = (item: Amonestacion) => { setEditingId(item.id); setEditText(item.descripcion); };
 
   const saveEdit = async () => {
@@ -143,9 +164,12 @@ export default function SeccionAmonestaciones({ informeId, visitaId, obraNombre,
     <div className="space-y-5">
       <input ref={fileInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileUpload} />
 
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0"><ArrowLeft className="h-5 w-5" /></Button>
-        <h2 className="font-heading text-base font-semibold">Amonestaciones</h2>
+      <div className="space-y-1">
+        <button onClick={onBack} className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+          <ChevronLeft className="h-4 w-4" />
+          {obraNombre}
+        </button>
+        <h2 className="font-heading text-xl font-bold">Amonestaciones</h2>
       </div>
 
       {/* Trabajador input modal */}
@@ -169,16 +193,40 @@ export default function SeccionAmonestaciones({ informeId, visitaId, obraNombre,
         </div>
       )}
 
-      {!showTrabajadorInput && (
-        <div className="grid grid-cols-2 gap-3">
+      {!showTrabajadorInput && !showManualNote && (
+        <div className="grid grid-cols-3 gap-2">
           <button onClick={() => startAction('photo')} className="field-action-btn">
-            <span className="icon">📷</span>
+            <Camera className="h-7 w-7 text-primary" />
             <span className="label">Foto</span>
           </button>
           <button onClick={() => startAction('voice')} className="field-action-btn">
-            <span className="icon">🎤</span>
+            <Mic className="h-7 w-7 text-primary" />
             <span className="label">Nota por voz</span>
           </button>
+          <button onClick={() => startAction('note')} className="field-action-btn">
+            <StickyNote className="h-7 w-7 text-primary" />
+            <span className="label">Nota</span>
+          </button>
+        </div>
+      )}
+
+      {showManualNote && (
+        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <UserRound className="h-4 w-4 text-muted-foreground" />
+            <p className="text-sm font-semibold">{trabajadorInput}</p>
+          </div>
+          <Textarea
+            value={manualNoteText}
+            onChange={(e) => setManualNoteText(e.target.value)}
+            placeholder="Escribe la amonestación..."
+            className="min-h-[80px] text-sm"
+            autoFocus
+          />
+          <div className="flex gap-2">
+            <Button size="sm" onClick={saveManualNote} className="flex-1">Guardar</Button>
+            <Button size="sm" variant="outline" onClick={() => { setShowManualNote(false); setManualNoteText(''); }} className="flex-1">Cancelar</Button>
+          </div>
         </div>
       )}
 
@@ -188,7 +236,12 @@ export default function SeccionAmonestaciones({ informeId, visitaId, obraNombre,
         {loading ? (
           <p className="text-sm text-muted-foreground">Cargando...</p>
         ) : items.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Sin amonestaciones. Usa los botones de arriba.</p>
+          <div className="flex flex-col items-center gap-3 py-10 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+              <FileText className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <p className="text-sm text-muted-foreground">Sin amonestaciones aún.<br />Usa los botones de arriba para añadir.</p>
+          </div>
         ) : (
           <div className="space-y-2">
             {items.map((item) => (
@@ -217,7 +270,7 @@ export default function SeccionAmonestaciones({ informeId, visitaId, obraNombre,
                 {item.foto_url && (
                   <>
                     <img src={item.foto_url} alt="Foto" className="w-full max-h-[400px] rounded-lg object-contain bg-muted/50 border border-border cursor-pointer" onClick={() => setViewingFoto(item.foto_url)} />
-                    <p className="text-[11px] text-muted-foreground text-center mt-1">📅 {format(new Date(item.created_at), "dd MMM yyyy, HH:mm", { locale: es })}</p>
+                    <p className="text-[11px] text-muted-foreground text-center mt-1">{format(new Date(item.created_at), "dd MMM yyyy, HH:mm", { locale: es })}</p>
                   </>
                 )}
                 {editingId === item.id ? (
