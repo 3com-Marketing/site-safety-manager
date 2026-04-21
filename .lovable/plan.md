@@ -1,68 +1,33 @@
 
 
-# Plan: Corregir duplicación de texto en dictado por voz y mantener botón visible
+# Plan: Permitir editar documentos (informes) tanto para técnicos como administradores
 
-## Problemas
+## Problema
 
-1. **Texto duplicado**: El `SpeechRecognition` con `continuous: true` e `interimResults: true` acumula `finalTranscript` en una variable local del closure. Cada vez que el motor reenvía resultados finales previos, se vuelven a concatenar, causando frases repetidas.
-
-2. **Botón "Mejorar con IA" fuera de pantalla**: La transcripción crece sin límite y empuja el botón fuera del viewport del diálogo.
+Los documentos de obra (informes CSS, AT, actas, etc.) no tienen botón de edición en la lista. El administrador tiene la ruta `/admin/documento/:id` para editar, pero no hay enlace visible en la lista del técnico (`DocumentosList`). Los técnicos no pueden acceder a la edición de ninguna forma.
 
 ## Solución
 
-### 1. Corregir duplicación en `src/hooks/useVoiceNote.ts`
+### 1. Añadir botón "Editar" en `DocumentosList`
 
-Cambiar la lógica de `onresult` para reconstruir todo el transcript desde `event.results` en cada evento, en vez de acumular en una variable local:
+Añadir un botón de edición (icono lápiz) en cada fila de documento que navegue a la página de detalle/edición. El componente detectará si el usuario es admin o técnico para usar la ruta correcta:
+- Admin: `/admin/documento/:id`
+- Técnico: `/documento/:id` (nueva ruta)
 
-```typescript
-recognition.onresult = (event: any) => {
-  let final = '';
-  let interim = '';
-  for (let i = 0; i < event.results.length; i++) {
-    const transcript = event.results[i][0].transcript;
-    if (event.results[i].isFinal) {
-      final += transcript + ' ';
-    } else {
-      interim = transcript;
-    }
-  }
-  setRawTranscript(final + interim);
-};
+### 2. Crear página `TechDocumentoDetalle`
+
+Nueva página en `src/pages/TechDocumentoDetalle.tsx` que reutiliza la misma lógica de `AdminDocumentoDetalle` pero con navegación adaptada al técnico (botón atrás va a `/documentos`), sin el layout de admin. Incluirá el formulario de edición correspondiente al tipo de documento y el botón de generar PDF.
+
+### 3. Añadir ruta para técnicos
+
+En `App.tsx`, añadir:
 ```
-
-Esto elimina la variable `finalTranscript` del closure y recorre **todos** los resultados desde el índice 0 en cada evento, evitando duplicación.
-
-### 2. Limitar altura de transcripción y fijar botón en `src/components/visita/VoiceNoteDialog.tsx`
-
-- Envolver el contenido del paso `recording` en un layout flex con `max-h-[70vh]` y `overflow-hidden`.
-- La zona de transcripción tendrá `max-h-[30vh] overflow-y-auto` para que sea scrollable.
-- El botón "Mejorar con IA" quedará fijo en la parte inferior del diálogo, siempre visible.
-
-```tsx
-{dialogStep === 'recording' && (
-  <div className="flex flex-col max-h-[70vh]">
-    {/* Micrófono - fijo arriba */}
-    <div className="flex flex-col items-center gap-4 py-4 shrink-0">
-      ...botón mic...
-    </div>
-
-    {/* Transcripción - scrollable */}
-    {rawTranscript && (
-      <div className="rounded-lg bg-muted p-3 max-h-[30vh] overflow-y-auto shrink">
-        <p className="text-xs text-muted-foreground mb-1">Transcripción:</p>
-        <p className="text-sm">{rawTranscript}</p>
-      </div>
-    )}
-
-    {/* Botón - fijo abajo */}
-    <Button className="h-12 w-full mt-4 shrink-0" ...>
-      Mejorar con IA
-    </Button>
-  </div>
-)}
+/documento/:id → TechDocumentoDetalle
 ```
 
 ## Archivos afectados
-- **`src/hooks/useVoiceNote.ts`** — corregir lógica de acumulación de transcript
-- **`src/components/visita/VoiceNoteDialog.tsx`** — layout scrollable con botón siempre visible
+
+- **`src/components/documentos/DocumentosList.tsx`** — Añadir botón "Editar" con icono `Pencil` que navega a la ruta de detalle (admin o tech según prop)
+- **`src/pages/TechDocumentoDetalle.tsx`** — Nueva página de edición para técnicos, basada en `AdminDocumentoDetalle` pero con header/navegación de técnico
+- **`src/App.tsx`** — Añadir ruta `/documento/:id`
 
