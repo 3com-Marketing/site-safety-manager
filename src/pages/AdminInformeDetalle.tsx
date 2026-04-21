@@ -464,6 +464,25 @@ export default function AdminInformeDetalle() {
                 </div>
               );
             })}
+            {/* Formulario nueva incidencia */}
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 p-5 space-y-3">
+              <p className="text-xs font-medium text-muted-foreground">Nueva incidencia</p>
+              <Input
+                value={newIncidencia.titulo}
+                onChange={e => setNewIncidencia(prev => ({ ...prev, titulo: e.target.value }))}
+                className="font-heading font-semibold text-sm"
+                placeholder="Título..."
+              />
+              <Textarea
+                value={newIncidencia.descripcion}
+                onChange={e => setNewIncidencia(prev => ({ ...prev, descripcion: e.target.value }))}
+                className="text-sm min-h-[60px]"
+                placeholder="Descripción..."
+              />
+              <Button onClick={addIncidencia} size="sm" disabled={!newIncidencia.titulo.trim()}>
+                Añadir incidencia
+              </Button>
+            </div>
           </CollapsibleContent>
         </Collapsible>
 
