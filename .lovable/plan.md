@@ -1,53 +1,66 @@
 
 
-# Plan: Mejorar UX de la vista de tecnico
+# Plan: Alinear estilo visual de Incidencias, Amonestaciones y Observaciones
 
-Basado en los mockups, hay varios cambios visuales y de usabilidad. No se cambia logica de negocio ni base de datos.
+Aplicar el mismo patron visual usado en `ChecklistBloque.tsx` a los tres componentes, sin tocar logica de negocio.
 
-## Cambios principales
+## Cambios por componente
 
-### 1. `src/components/visita/VisitaSecciones.tsx` -- Lista plana de 9 secciones
+### 1. `SeccionIncidencias.tsx`
 
-Actualmente hay 5 secciones (con "Checklist" agrupado). Los mockups muestran las 9 secciones individuales (Datos generales, EPIs, Orden y limpieza, Trabajo en altura, Senalizacion, Maquinaria, Incidencias, Amonestaciones, Observaciones) como filas independientes.
+- **Header**: Reemplazar `ArrowLeft` + titulo por breadcrumb naranja con `ChevronLeft` + `obraNombre` encima, y titulo grande debajo (igual que ChecklistBloque).
+- **Botones de accion**: Cambiar de `grid-cols-2` con emojis a `grid-cols-3` con iconos Lucide (`Camera`, `Mic`, `StickyNote`), con clase `text-primary` en los iconos.
+- **Anadir boton "Nota" manual**: Tercer boton que despliega un textarea inline para escribir texto manual (crea incidencia con descripcion directa).
+- **Estado vacio mejorado**: Reemplazar el `<p>` simple por un bloque centrado con icono `FileText` en fondo `bg-muted` y texto descriptivo (mismo patron que ChecklistBloque).
+- **Fechas en fotos**: Reemplazar emoji 📅 por icono `Calendar` de Lucide o simplemente quitar el emoji y dejar solo el texto.
 
-- Cada fila muestra un icono especifico (lucide), el nombre, y el estado: "Completado" con fondo verde suave + checkmark, o "Sin completar" en gris.
-- Anadir barra de progreso en la parte superior: "Progreso de la visita — X de 9 completadas".
-- El componente recibira un array de estados de completado por seccion (no solo counts).
-- Iconos: Info (datos generales), ShieldCheck (EPIs), Trash2 (Orden), Mountain (Altura), AlertTriangle (Senalizacion), Cog (Maquinaria), AlertTriangle (Incidencias), FileText (Amonestaciones), Eye (Observaciones).
+### 2. `SeccionAmonestaciones.tsx`
 
-### 2. `src/pages/VisitaActiva.tsx` -- Adaptar header y navegacion
+- **Header**: Mismo cambio de breadcrumb naranja con `ChevronLeft`.
+- **Botones de accion**: Mismo cambio a `grid-cols-3` con `Camera`, `Mic`, `StickyNote` (los tres piden nombre de trabajador primero, manteniendo la logica existente de `startAction`).
+- **Nota manual**: Anadir accion `'note'` al pendingAction que tras pedir nombre de trabajador abra un textarea inline.
+- **Estado vacio mejorado**: Mismo bloque centrado con icono.
+- **Fechas en fotos**: Quitar emoji 📅.
 
-- **Header**: Mostrar "← Visitas" como breadcrumb textual (naranja) encima del nombre de obra, en lugar del boton ghost con icono.
-- **Pasar estados de completado** a VisitaSecciones: un bloque se considera "completado" si tiene `estado === 'completado'`; incidencias/amonestaciones/observaciones se consideran completadas si tienen al menos 1 item.
-- **Eliminar la logica de "paso X de N"** del header cuando se esta dentro de una seccion. En su lugar mostrar "← NombreObra" como breadcrumb.
-- **onSelect** mapea directamente cada seccion a su step (ya no pasa por ChecklistSection intermedio).
+### 3. `SeccionObservaciones.tsx`
 
-### 3. `src/components/visita/ChecklistBloque.tsx` -- Mejorar UX interior
+- **Header**: Mismo cambio de breadcrumb naranja.
+- **Botones de accion**: Mismo cambio a `grid-cols-3` con Lucide icons.
+- **Nota manual**: Tercer boton que abre textarea inline para guardar observacion de texto.
+- **Estado vacio mejorado**: Mismo bloque centrado con icono.
+- **Fechas en fotos**: Quitar emoji 📅.
 
-- **Header**: Cambiar el boton ArrowLeft + titulo por breadcrumb naranja "← NombreObra" + titulo grande de la categoria debajo.
-- **Botones Foto/Nota por voz**: Reemplazar emojis (📷, 🎤) por iconos de lucide (Camera, Mic) en un estilo mas limpio, con fondo claro y borde.
-- **Anadir boton "Anadir nota" manual**: Un tercer boton o una seccion debajo que abra un input de texto simple (textarea + "Guardar nota" / "Cancelar") para anadir anotaciones escritas sin usar voz.
-- **Estado vacio**: Mostrar un icono ilustrativo centrado con texto "Sin anotaciones aun. Usa los botones de arriba." en lugar de solo texto.
-- **Barra inferior**: En lugar de "Anterior/Siguiente" genericos, mostrar:
-  - Boton izquierdo: "← Senalizacion" (nombre de la seccion anterior)
-  - Boton derecho: "✓ Marcar completado" (que actualiza `checklist_bloques.estado` a 'completado' y va a la siguiente seccion)
-  - Si ya esta completado, el boton cambia a "✓ Completado" con estilo verde.
+## Patron visual de referencia (de ChecklistBloque)
 
-### 4. `src/pages/VisitaActiva.tsx` -- Barra inferior contextual
+```tsx
+// Breadcrumb
+<button onClick={onBack} className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+  <ChevronLeft className="h-4 w-4" />
+  {obraNombre}
+</button>
+<h2 className="font-heading text-xl font-bold">{titulo}</h2>
 
-- En vista de secciones: mantener "Guardar y salir" + "FINALIZAR VISITA" como esta.
-- En vista de step (bloque checklist): mostrar los botones contextuales del bloque (nombre seccion anterior + marcar completado) en lugar de los genericos Anterior/Siguiente. Los botones se mueven al propio ChecklistBloque o se parametrizan desde VisitaActiva.
-- En vista de step (incidencias, amonestaciones, observaciones): mantener navegacion pero con nombre de seccion anterior/siguiente.
+// Botones de accion
+<div className="grid grid-cols-3 gap-2">
+  <button className="field-action-btn">
+    <Camera className="h-7 w-7 text-primary" />
+    <span className="label">Foto</span>
+  </button>
+  ...
+</div>
 
-### 5. `src/index.css` -- Ajustar field-action-btn
-
-- Reducir `min-height` de 140px a ~100px para que los botones de accion sean mas compactos.
-- Usar iconos lucide en vez de emojis, asi que el `.icon` class con `text-4xl` se ajustara.
+// Estado vacio
+<div className="flex flex-col items-center gap-3 py-10 text-center">
+  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+    <FileText className="h-8 w-8 text-muted-foreground" />
+  </div>
+  <p className="text-sm text-muted-foreground">Sin registros aún.<br />Usa los botones de arriba para añadir.</p>
+</div>
+```
 
 ## Archivos afectados
 
-- **`src/components/visita/VisitaSecciones.tsx`** -- Reescribir con 9 secciones planas, estado de completado, barra de progreso
-- **`src/pages/VisitaActiva.tsx`** -- Adaptar header, calcular estados de completado, pasar props, ajustar barra inferior
-- **`src/components/visita/ChecklistBloque.tsx`** -- Breadcrumb, iconos lucide, boton nota manual, barra inferior contextual, estado vacio mejorado
-- **`src/index.css`** -- Ajustar field-action-btn
+- **`src/components/visita/SeccionIncidencias.tsx`**
+- **`src/components/visita/SeccionAmonestaciones.tsx`**
+- **`src/components/visita/SeccionObservaciones.tsx`**
 
