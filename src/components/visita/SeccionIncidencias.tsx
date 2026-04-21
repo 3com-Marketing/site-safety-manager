@@ -221,7 +221,16 @@ export default function SeccionIncidencias({ informeId, visitaId, obraNombre, on
         onRepeat={voice.openDialog}
       />
 
-      <FotoViewer url={viewingFoto} onClose={() => setViewingFoto(null)} />
+      <FotoViewer url={viewingFoto} onClose={() => setViewingFoto(null)} editable onSave={async (newUrl) => {
+        // Find the foto record and update it
+        for (const inc of incidencias) {
+          const foto = inc.fotos.find(f => f.url === viewingFoto);
+          if (foto) { await supabase.from('fotos').update({ url: newUrl }).eq('id', foto.id); break; }
+        }
+        setViewingFoto(null);
+        await fetchIncidencias();
+        onRefresh();
+      }} visitaId={visitaId} />
 
       {uploading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50">
