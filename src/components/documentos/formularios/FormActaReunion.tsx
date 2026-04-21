@@ -66,6 +66,13 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   const [mesReunion, setMesReunion] = useState('');
   const [textoPunto1, setTextoPunto1] = useState('');
   const [textoPunto2, setTextoPunto2] = useState('');
+  const [textoPunto2Bloque2, setTextoPunto2Bloque2] = useState('');
+  const [punto2DocPreventiva, setPunto2DocPreventiva] = useState(false);
+  const [punto2DocTrabajadores, setPunto2DocTrabajadores] = useState(false);
+  const [punto2DocMaquinaria, setPunto2DocMaquinaria] = useState(false);
+  const [punto2DocTrabajos, setPunto2DocTrabajos] = useState(false);
+  const [punto2NoProcede, setPunto2NoProcede] = useState(false);
+  const [punto2Otros, setPunto2Otros] = useState('');
   
   const [riesgos, setRiesgos] = useState<string[]>([]);
   const [otrosRiesgos, setOtrosRiesgos] = useState('');
@@ -106,7 +113,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       const configField = TIPO_TO_CONFIG_FIELD[tipoActual];
       const fieldsToLoad = configField ? [configField] : [];
       if (tipoActual === 'acta_reunion_cae') {
-        fieldsToLoad.push('texto_cae_punto1', 'texto_cae_punto2');
+        fieldsToLoad.push('texto_cae_punto1', 'texto_cae_punto2', 'texto_cae_punto2_bloque2');
       }
       if (fieldsToLoad.length > 0) {
         supabase.from('configuracion_empresa').select(fieldsToLoad.join(',')).limit(1).single().then(({ data }) => {
@@ -114,6 +121,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
             if (configField && (data as any)[configField]) setTextoLegal((data as any)[configField]);
             if ((data as any).texto_cae_punto1) setTextoPunto1((data as any).texto_cae_punto1);
             if ((data as any).texto_cae_punto2) setTextoPunto2((data as any).texto_cae_punto2);
+            if ((data as any).texto_cae_punto2_bloque2) setTextoPunto2Bloque2((data as any).texto_cae_punto2_bloque2);
           }
         });
       }
@@ -133,6 +141,13 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       setMesReunion(extra.mes_reunion || '');
       setTextoPunto1(extra.texto_punto1 || '');
       setTextoPunto2(extra.texto_punto2 || '');
+      setTextoPunto2Bloque2(extra.texto_punto2_bloque2 || '');
+      setPunto2DocPreventiva(extra.punto2_doc_preventiva || false);
+      setPunto2DocTrabajadores(extra.punto2_doc_trabajadores || false);
+      setPunto2DocMaquinaria(extra.punto2_doc_maquinaria || false);
+      setPunto2DocTrabajos(extra.punto2_doc_trabajos || false);
+      setPunto2NoProcede(extra.punto2_no_procede || false);
+      setPunto2Otros(extra.punto2_otros || '');
       setRiesgos(extra.riesgos || []);
       setOtrosRiesgos(extra.otros_riesgos || '');
       setPlataformaCAE(extra.plataforma_cae || 'metacontratas');
@@ -279,6 +294,13 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       datosExtra.mes_reunion = mesReunion;
       datosExtra.texto_punto1 = textoPunto1;
       datosExtra.texto_punto2 = textoPunto2;
+      datosExtra.texto_punto2_bloque2 = textoPunto2Bloque2;
+      datosExtra.punto2_doc_preventiva = punto2DocPreventiva;
+      datosExtra.punto2_doc_trabajadores = punto2DocTrabajadores;
+      datosExtra.punto2_doc_maquinaria = punto2DocMaquinaria;
+      datosExtra.punto2_doc_trabajos = punto2DocTrabajos;
+      datosExtra.punto2_no_procede = punto2NoProcede;
+      datosExtra.punto2_otros = punto2Otros;
       datosExtra.riesgos = riesgos;
       datosExtra.otros_riesgos = otrosRiesgos;
       datosExtra.plataforma_cae = plataformaCAE;
@@ -478,6 +500,45 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
                   <Input placeholder="Contacto" value={nuevaEmpresa.persona_contacto} onChange={e => setNuevaEmpresa(p => ({ ...p, persona_contacto: e.target.value }))} />
                   <Input placeholder="Email" value={nuevaEmpresa.email_referencia} onChange={e => setNuevaEmpresa(p => ({ ...p, email_referencia: e.target.value }))} />
                   <Button size="sm" onClick={handleAddEmpresa} disabled={!nuevaEmpresa.empresa.trim()} className="gap-1"><Plus className="h-4 w-4" /> Añadir</Button>
+                </div>
+              </div>
+
+              {/* Checkboxes de documentación requerida */}
+              <div className="space-y-3">
+                <p className="text-sm font-semibold">Documentación requerida</p>
+                <label className="flex items-start gap-2 text-sm">
+                  <Checkbox checked={punto2DocPreventiva} onCheckedChange={(v) => setPunto2DocPreventiva(!!v)} className="mt-0.5" />
+                  La documentación completa en materia preventiva y administrativa de Empresa y Trabajadores
+                </label>
+                <label className="flex items-start gap-2 text-sm">
+                  <Checkbox checked={punto2DocTrabajadores} onCheckedChange={(v) => setPunto2DocTrabajadores(!!v)} className="mt-0.5" />
+                  La relación nominal completa de trabajadores (Nombre, Apellidos, N.I.F. ó Pasaporte o N.I.E.)
+                </label>
+                <label className="flex items-start gap-2 text-sm">
+                  <Checkbox checked={punto2DocMaquinaria} onCheckedChange={(v) => setPunto2DocMaquinaria(!!v)} className="mt-0.5" />
+                  La relación completa de maquinaria, medios auxiliares y/o productos químicos, si procede
+                </label>
+                <label className="flex items-start gap-2 text-sm">
+                  <Checkbox checked={punto2DocTrabajos} onCheckedChange={(v) => setPunto2DocTrabajos(!!v)} className="mt-0.5" />
+                  La relación de los trabajos a realizar (tipología o zona de afectación)
+                </label>
+              </div>
+
+              {/* Segundo bloque de texto legal */}
+              <div>
+                <Label>Compromisos documentales (bloque 2)</Label>
+                <RichTextEditor value={textoPunto2Bloque2} onChange={setTextoPunto2Bloque2} placeholder="Plazos de entrega, planificación semanal, comunicación entre empresas..." />
+              </div>
+
+              {/* No procede / Otros */}
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox checked={punto2NoProcede} onCheckedChange={(v) => setPunto2NoProcede(!!v)} />
+                  No procede
+                </label>
+                <div className="space-y-1">
+                  <Label>Otros</Label>
+                  <Input value={punto2Otros} onChange={e => setPunto2Otros(e.target.value)} placeholder="Especificar..." />
                 </div>
               </div>
 

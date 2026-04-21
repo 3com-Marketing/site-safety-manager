@@ -32,6 +32,7 @@ interface ConfigEmpresa {
   texto_recomendaciones: string;
   texto_normativa: string;
   texto_acta_aprobacion_sys: string;
+  texto_cae_punto2_bloque2: string;
   texto_acta_aprobacion_dgpo: string;
   texto_acta_reunion_inicial: string;
   texto_acta_reunion_cae: string;
@@ -47,7 +48,7 @@ const EMPTY_CONFIG: ConfigEmpresa = {
   email: '', web: '', logo_url: '', nombre_responsable: '',
   cargo_responsable: '', titulacion: '', num_colegiado: '',
   registro_mercantil: '', iban: '', banco: '', swift_bic: '',
-  texto_recomendaciones: '', texto_normativa: '',
+  texto_recomendaciones: '', texto_normativa: '', texto_cae_punto2_bloque2: '',
   texto_acta_aprobacion_sys: '', texto_acta_aprobacion_dgpo: '',
   texto_acta_reunion_inicial: '', texto_acta_reunion_cae: '', texto_acta_reunion_sys: '',
   texto_acta_nombramiento_cae: '', texto_acta_nombramiento_proyecto: '',
@@ -320,8 +321,12 @@ export default function AdminConfiguracion() {
                     <RichTextEditor value={config.texto_cae_punto1} onChange={v => update('texto_cae_punto1', v)} placeholder="En cumplimiento del RD 171/2004..." />
                   </div>
                   <div>
-                    <Label>Punto 2 — Intercambio de documentación</Label>
+                    <Label>Punto 2 — Intercambio de documentación (bloque 1)</Label>
                     <RichTextEditor value={config.texto_cae_punto2} onChange={v => update('texto_cae_punto2', v)} placeholder="Texto legal para el intercambio de documentación..." />
+                  </div>
+                  <div>
+                    <Label>Punto 2 — Compromisos documentales (bloque 2)</Label>
+                    <RichTextEditor value={config.texto_cae_punto2_bloque2} onChange={v => update('texto_cae_punto2_bloque2', v)} placeholder="Plazos de entrega de documentación, planificación semanal, comunicación entre empresas..." />
                   </div>
                   <div>
                     <Label>Texto legal general</Label>
