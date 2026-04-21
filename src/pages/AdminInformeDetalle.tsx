@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, CheckCircle, FileDown, Save, Loader2, Scale, ChevronDown, ChevronRight } from 'lucide-react';
+import { ArrowLeft, CheckCircle, FileDown, Save, Loader2, Scale, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -39,6 +39,14 @@ export default function AdminInformeDetalle() {
   const [observaciones, setObservaciones] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editedFields, setEditedFields] = useState<Record<string, { titulo: string; descripcion: string }>>({});
+  const [editedInforme, setEditedInforme] = useState<Partial<{
+    num_trabajadores: number | null;
+    condiciones_climaticas: string;
+    empresas_presentes: string;
+    notas_generales: string;
+  }>>({});
+  const [editedAmonestaciones, setEditedAmonestaciones] = useState<Record<string, { trabajador: string; descripcion: string }>>({});
+  const [editedObservaciones, setEditedObservaciones] = useState<Record<string, { texto: string }>>({});
   const [saving, setSaving] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
 
@@ -80,12 +88,61 @@ export default function AdminInformeDetalle() {
     }));
   };
 
+  const handleInformeChange = (field: string, value: any) => {
+    setEditedInforme(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleAmonestacionChange = (amonId: string, field: 'trabajador' | 'descripcion', value: string) => {
+    const amon = amonestaciones.find(a => a.id === amonId)!;
+    setEditedAmonestaciones(prev => ({
+      ...prev,
+      [amonId]: {
+        trabajador: prev[amonId]?.trabajador ?? amon.trabajador,
+        descripcion: prev[amonId]?.descripcion ?? amon.descripcion,
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleObservacionChange = (obsId: string, value: string) => {
+    setEditedObservaciones(prev => ({
+      ...prev,
+      [obsId]: { texto: value },
+    }));
+  };
+
+  const hasEdits = Object.keys(editedFields).length > 0
+    || Object.keys(editedInforme).length > 0
+    || Object.keys(editedAmonestaciones).length > 0
+    || Object.keys(editedObservaciones).length > 0;
+
   const saveChanges = async () => {
     setSaving(true);
+
+    // Save incidencias
     for (const [incId, fields] of Object.entries(editedFields)) {
       await supabase.from('incidencias').update({ titulo: fields.titulo, descripcion: fields.descripcion }).eq('id', incId);
     }
+
+    // Save informe general data
+    if (Object.keys(editedInforme).length > 0 && id) {
+      await supabase.from('informes').update(editedInforme).eq('id', id);
+    }
+
+    // Save amonestaciones
+    for (const [amonId, fields] of Object.entries(editedAmonestaciones)) {
+      await supabase.from('amonestaciones').update({ trabajador: fields.trabajador, descripcion: fields.descripcion }).eq('id', amonId);
+    }
+
+    // Save observaciones
+    for (const [obsId, fields] of Object.entries(editedObservaciones)) {
+      await supabase.from('observaciones').update({ texto: fields.texto }).eq('id', obsId);
+    }
+
     setEditedFields({});
+    setEditedInforme({});
+    setEditedAmonestaciones({});
+    setEditedObservaciones({});
     toast.success('Cambios guardados');
     await fetchData();
     setSaving(false);
@@ -114,7 +171,6 @@ export default function AdminInformeDetalle() {
         return;
       }
 
-      // Open HTML in new window for print/PDF
       const printWindow = window.open('', '_blank');
       if (printWindow) {
         printWindow.document.write(data.html);
@@ -141,7 +197,9 @@ export default function AdminInformeDetalle() {
 
   const obraNombre = informe.visitas?.obras?.nombre || 'Obra';
   const tecnicoNombre = informe.visitas?.profiles?.nombre || 'Técnico';
-  const hasEdits = Object.keys(editedFields).length > 0;
+
+  // Helper to get current value (edited or original)
+  const informeVal = (field: string) => editedInforme[field] ?? informe[field] ?? '';
 
   return (
     <div className="min-h-screen bg-background">
@@ -185,7 +243,7 @@ export default function AdminInformeDetalle() {
           </Button>
         </div>
 
-        {/* Datos Generales */}
+        {/* Datos Generales - EDITABLE */}
         <Collapsible defaultOpen>
           <CollapsibleTrigger className="flex items-center gap-2 w-full text-left">
             <ChevronDown className="h-4 w-4 transition-transform data-[state=closed]:rotate-[-90deg]" />
@@ -193,24 +251,43 @@ export default function AdminInformeDetalle() {
           </CollapsibleTrigger>
           <CollapsibleContent>
             <div className="grid grid-cols-2 gap-3 mt-3">
-              <div className="rounded-lg bg-muted p-3">
+              <div className="rounded-lg bg-muted p-3 space-y-1">
                 <p className="text-xs text-muted-foreground">Nº Trabajadores</p>
-                <p className="text-sm font-medium">{informe.num_trabajadores ?? '—'}</p>
+                <Input
+                  type="number"
+                  value={informeVal('num_trabajadores')}
+                  onChange={e => handleInformeChange('num_trabajadores', e.target.value ? parseInt(e.target.value) : null)}
+                  className="h-8 text-sm"
+                  placeholder="0"
+                />
               </div>
-              <div className="rounded-lg bg-muted p-3">
+              <div className="rounded-lg bg-muted p-3 space-y-1">
                 <p className="text-xs text-muted-foreground">Condiciones climáticas</p>
-                <p className="text-sm font-medium">{informe.condiciones_climaticas || '—'}</p>
+                <Input
+                  value={informeVal('condiciones_climaticas')}
+                  onChange={e => handleInformeChange('condiciones_climaticas', e.target.value)}
+                  className="h-8 text-sm"
+                  placeholder="Soleado, lluvioso..."
+                />
               </div>
-              <div className="rounded-lg bg-muted p-3 col-span-2">
+              <div className="rounded-lg bg-muted p-3 col-span-2 space-y-1">
                 <p className="text-xs text-muted-foreground">Empresas presentes</p>
-                <p className="text-sm font-medium">{informe.empresas_presentes || '—'}</p>
+                <Input
+                  value={informeVal('empresas_presentes')}
+                  onChange={e => handleInformeChange('empresas_presentes', e.target.value)}
+                  className="h-8 text-sm"
+                  placeholder="Empresas..."
+                />
               </div>
-              {informe.notas_generales && (
-                <div className="rounded-lg bg-muted p-3 col-span-2">
-                  <p className="text-xs text-muted-foreground">Notas generales</p>
-                  <p className="text-sm font-medium">{informe.notas_generales}</p>
-                </div>
-              )}
+              <div className="rounded-lg bg-muted p-3 col-span-2 space-y-1">
+                <p className="text-xs text-muted-foreground">Notas generales</p>
+                <Textarea
+                  value={informeVal('notas_generales')}
+                  onChange={e => handleInformeChange('notas_generales', e.target.value)}
+                  className="text-sm min-h-[60px]"
+                  placeholder="Notas..."
+                />
+              </div>
             </div>
           </CollapsibleContent>
         </Collapsible>
@@ -246,7 +323,7 @@ export default function AdminInformeDetalle() {
           </CollapsibleContent>
         </Collapsible>
 
-        {/* Incidencias */}
+        {/* Incidencias - EDITABLE */}
         <Collapsible defaultOpen>
           <CollapsibleTrigger className="flex items-center gap-2 w-full text-left">
             <ChevronDown className="h-4 w-4 transition-transform data-[state=closed]:rotate-[-90deg]" />
@@ -295,7 +372,7 @@ export default function AdminInformeDetalle() {
           </CollapsibleContent>
         </Collapsible>
 
-        {/* Amonestaciones */}
+        {/* Amonestaciones - EDITABLE */}
         <Collapsible defaultOpen>
           <CollapsibleTrigger className="flex items-center gap-2 w-full text-left">
             <ChevronDown className="h-4 w-4 transition-transform data-[state=closed]:rotate-[-90deg]" />
@@ -304,23 +381,42 @@ export default function AdminInformeDetalle() {
           <CollapsibleContent className="space-y-3 mt-3">
             {amonestaciones.length === 0 ? (
               <p className="text-sm text-muted-foreground italic">Sin amonestaciones</p>
-            ) : amonestaciones.map((a: any) => (
-              <div key={a.id} className="rounded-xl border border-border bg-card p-4 space-y-2">
-                {a.trabajador && <p className="text-sm font-semibold">{a.trabajador}</p>}
-                {a.descripcion && <p className="text-sm">{a.descripcion}</p>}
-                {a.foto_url && <img src={a.foto_url} alt="Foto" className="h-20 w-20 rounded-lg object-cover border border-border" />}
-                {a.normativa && (
-                  <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
-                    <Scale className="h-3 w-3 text-primary mt-0.5 shrink-0" />
-                    <span className="whitespace-pre-line">{a.normativa}</span>
+            ) : amonestaciones.map((a: any) => {
+              const edited = editedAmonestaciones[a.id];
+              return (
+                <div key={a.id} className="rounded-xl border border-border bg-card p-4 space-y-2">
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Trabajador</p>
+                    <Input
+                      value={edited?.trabajador ?? a.trabajador}
+                      onChange={e => handleAmonestacionChange(a.id, 'trabajador', e.target.value)}
+                      className="h-8 text-sm font-semibold"
+                      placeholder="Nombre del trabajador"
+                    />
                   </div>
-                )}
-              </div>
-            ))}
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Descripción</p>
+                    <Textarea
+                      value={edited?.descripcion ?? a.descripcion}
+                      onChange={e => handleAmonestacionChange(a.id, 'descripcion', e.target.value)}
+                      className="text-sm min-h-[60px]"
+                      placeholder="Descripción..."
+                    />
+                  </div>
+                  {a.foto_url && <img src={a.foto_url} alt="Foto" className="h-20 w-20 rounded-lg object-cover border border-border" />}
+                  {a.normativa && (
+                    <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
+                      <Scale className="h-3 w-3 text-primary mt-0.5 shrink-0" />
+                      <span className="whitespace-pre-line">{a.normativa}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </CollapsibleContent>
         </Collapsible>
 
-        {/* Observaciones */}
+        {/* Observaciones - EDITABLE */}
         <Collapsible defaultOpen>
           <CollapsibleTrigger className="flex items-center gap-2 w-full text-left">
             <ChevronDown className="h-4 w-4 transition-transform data-[state=closed]:rotate-[-90deg]" />
@@ -329,18 +425,26 @@ export default function AdminInformeDetalle() {
           <CollapsibleContent className="space-y-3 mt-3">
             {observaciones.length === 0 ? (
               <p className="text-sm text-muted-foreground italic">Sin observaciones</p>
-            ) : observaciones.map((obs: any) => (
-              <div key={obs.id} className="rounded-xl border border-border bg-card p-4 space-y-2">
-                {obs.texto && <p className="text-sm">{obs.texto}</p>}
-                {obs.foto_url && <img src={obs.foto_url} alt="Foto" className="h-20 w-20 rounded-lg object-cover border border-border" />}
-                {obs.normativa && (
-                  <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
-                    <Scale className="h-3 w-3 text-primary mt-0.5 shrink-0" />
-                    <span className="whitespace-pre-line">{obs.normativa}</span>
-                  </div>
-                )}
-              </div>
-            ))}
+            ) : observaciones.map((obs: any) => {
+              const edited = editedObservaciones[obs.id];
+              return (
+                <div key={obs.id} className="rounded-xl border border-border bg-card p-4 space-y-2">
+                  <Textarea
+                    value={edited?.texto ?? obs.texto}
+                    onChange={e => handleObservacionChange(obs.id, e.target.value)}
+                    className="text-sm min-h-[60px]"
+                    placeholder="Texto de la observación..."
+                  />
+                  {obs.foto_url && <img src={obs.foto_url} alt="Foto" className="h-20 w-20 rounded-lg object-cover border border-border" />}
+                  {obs.normativa && (
+                    <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
+                      <Scale className="h-3 w-3 text-primary mt-0.5 shrink-0" />
+                      <span className="whitespace-pre-line">{obs.normativa}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </CollapsibleContent>
         </Collapsible>
       </div>
