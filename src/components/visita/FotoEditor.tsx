@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
   MousePointer2, MoveHorizontal, Circle, Square, Type, Pencil,
-  Undo2, Redo2, Save, X, Minus, ChevronRight, ChevronLeft, Loader2,
+  Undo2, Redo2, Save, X, Minus, ChevronRight, ChevronLeft, Loader2, Trash2,
 } from 'lucide-react';
 import { SIGNOS_OBRA, type SignoObra } from './editorSignos';
 import * as fabric from 'fabric';
@@ -62,7 +62,9 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
   }, [showSigns]);
 
   const saveHistory = useCallback((c: fabric.Canvas) => {
-    const json = JSON.stringify(c.toJSON());
+    // Only serialize objects, not backgroundImage (avoids revoked blob URL issue)
+    const objectsJson = c.getObjects().map(o => o.toObject());
+    const json = JSON.stringify(objectsJson);
     const arr = historyRef.current.slice(0, historyIdxRef.current + 1);
     arr.push(json);
     historyRef.current = arr;
@@ -130,23 +132,59 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
     c.renderAll();
   }, [showSigns, getCanvasSize]);
 
+  const restoreHistory = useCallback((idx: number) => {
+    const c = fabricRef.current;
+    if (!c) return;
+    const objectsJson = JSON.parse(historyRef.current[idx]);
+    // Remove all objects but keep backgroundImage
+    c.remove(...c.getObjects());
+    if (objectsJson.length > 0) {
+      fabric.util.enlivenObjects(objectsJson).then((objs: fabric.FabricObject[]) => {
+        objs.forEach(o => c.add(o));
+        c.renderAll();
+      });
+    } else {
+      c.renderAll();
+    }
+    forceRender(n => n + 1);
+  }, []);
+
   const undo = () => {
-    if (historyIdxRef.current <= 0 || !fabricRef.current) return;
+    if (historyIdxRef.current <= 0) return;
     historyIdxRef.current -= 1;
-    fabricRef.current.loadFromJSON(JSON.parse(historyRef.current[historyIdxRef.current])).then(() => {
-      fabricRef.current?.renderAll();
-      forceRender(n => n + 1);
-    });
+    restoreHistory(historyIdxRef.current);
   };
 
   const redo = () => {
-    if (historyIdxRef.current >= historyRef.current.length - 1 || !fabricRef.current) return;
+    if (historyIdxRef.current >= historyRef.current.length - 1) return;
     historyIdxRef.current += 1;
-    fabricRef.current.loadFromJSON(JSON.parse(historyRef.current[historyIdxRef.current])).then(() => {
-      fabricRef.current?.renderAll();
-      forceRender(n => n + 1);
-    });
+    restoreHistory(historyIdxRef.current);
   };
+
+  const deleteSelected = useCallback(() => {
+    const c = fabricRef.current;
+    if (!c) return;
+    const active = c.getActiveObject();
+    if (!active) return;
+    c.remove(active);
+    c.discardActiveObject();
+    c.renderAll();
+    saveHistory(c);
+  }, [saveHistory]);
+
+  // Keyboard Delete/Backspace listener
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        // Don't delete if user is editing text
+        const active = fabricRef.current?.getActiveObject();
+        if (active && active instanceof fabric.IText && (active as fabric.IText).isEditing) return;
+        deleteSelected();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [deleteSelected]);
 
   // Tool handling
   useEffect(() => {
@@ -391,6 +429,9 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
         </Button>
         <Button variant="ghost" size="sm" onClick={redo} disabled={historyIdxRef.current >= historyRef.current.length - 1} className="h-8 w-8 p-0">
           <Redo2 className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="sm" onClick={deleteSelected} title="Borrar seleccionado" className="h-8 w-8 p-0 text-destructive hover:text-destructive">
+          <Trash2 className="h-4 w-4" />
         </Button>
 
         <div className="flex-1" />
