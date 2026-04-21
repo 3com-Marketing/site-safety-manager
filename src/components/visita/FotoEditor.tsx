@@ -430,6 +430,9 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
         <Button variant="ghost" size="sm" onClick={redo} disabled={historyIdxRef.current >= historyRef.current.length - 1} className="h-8 w-8 p-0">
           <Redo2 className="h-4 w-4" />
         </Button>
+        <Button variant="ghost" size="sm" onClick={deleteSelected} title="Borrar seleccionado" className="h-8 w-8 p-0 text-destructive hover:text-destructive">
+          <Trash2 className="h-4 w-4" />
+        </Button>
 
         <div className="flex-1" />
 
