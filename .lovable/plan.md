@@ -1,45 +1,42 @@
 
 
-# Plan: Reestructurar Punto 3 — Trabajos Realizados y Previstos
+# Plan: Sincronizar edge function PDF con datos del formulario CAE
 
 ## Resumen
 
-Mover la sección de "Riesgos previstos" (checkboxes + otros riesgos) dentro del Punto 3, añadir un texto legal configurable desde Configuración, y agrupar todo (texto introductorio, riesgos, 3.1, 3.2, 3.3) dentro de una única sección colapsable "3 — Trabajos Realizados y Previstos".
+La edge function `generar-documento-pdf` usa campos y textos hardcodeados que ya no coinciden con lo que guarda el formulario. Hay que actualizar la función para que lea los nuevos campos de `datos_extra`.
 
 ## Cambios
 
-### 1. Migración SQL
+### `supabase/functions/generar-documento-pdf/index.ts` — función `templateActaReunion`
 
-```sql
-ALTER TABLE configuracion_empresa
-ADD COLUMN texto_cae_punto3 text NOT NULL DEFAULT '';
-```
+Actualizar las secciones 1-13 del template CAE (líneas ~405-572) para leer los campos correctos de `extra`:
 
-- `texto_cae_punto3`: texto introductorio del punto 3 ("Los trabajos planificados a continuación son tratados desde el punto de vista del RD 171/04...").
+| Sección | Actualmente lee | Debe leer |
+|---------|----------------|-----------|
+| 1. Objetivo y alcance | Texto hardcodeado | `extra.texto_punto1` (con fallback al texto actual) |
+| 2. Intercambio documentación | Texto hardcodeado | `extra.texto_punto2` + `extra.texto_punto2_bloque2` + checkboxes `punto2_doc_*` + `punto2_no_procede` + `punto2_otros` |
+| 3. Trabajos (intro) | No existe | `extra.texto_punto3` antes de riesgos |
+| 5. Acuerdos generales | `extra.texto_legal` | `extra.texto_acuerdos_generales` (con fallback a `texto_legal` por retrocompatibilidad) |
+| 6. Formación | Hardcodeado o `texto_legal` | `extra.texto_punto6` |
+| 7. Control maquinaria | Hardcodeado o `texto_legal` | `extra.texto_punto7` |
+| 8. Protecciones colectivas | Hardcodeado o `texto_legal` | `extra.texto_punto8` |
+| 9. Protecciones individuales | Hardcodeado o `texto_legal` | `extra.texto_punto9` |
+| 10. Interferencias empresas | `interferencias_empresas_aplica` (boolean) | `extra.texto_punto10` + `extra.punto10_procede` (`'si_procede'`/`'no_procede'`) + `extra.punto10_texto_procede` |
+| 11. Interferencias terceros | OK (sin cambios) | Sin cambios |
+| 12. Medio ambiente | OK (sin cambios) | Sin cambios |
+| 13. Ruegos y sugerencias | `ruegos_aplica` (boolean) | `extra.texto_punto13` + `extra.punto13_procede` + `extra.punto13_texto_procede` |
 
-### 2. `AdminConfiguracion.tsx`
+### Lógica de cada sección actualizada
 
-- Añadir `texto_cae_punto3` a la interfaz `ConfigEmpresa` y a `EMPTY_CONFIG`.
-- En el acordeón "Acta Reunión CAE", añadir un RichTextEditor:
-  - **"Punto 3 — Trabajos Realizados y Previstos (texto introductorio)"**
+- **Puntos 1, 3, 5, 6, 7, 8, 9**: Si `extra.texto_puntoN` tiene contenido, renderizar con `renderRichText()`. Si está vacío, usar el fallback hardcodeado actual.
+- **Punto 2**: Renderizar `texto_punto2`, luego la tabla de empresas, luego los checkboxes dinámicos (`punto2_doc_preventiva`, etc.), luego `texto_punto2_bloque2`, plataforma CAE.
+- **Puntos 10 y 13**: Renderizar texto introductorio, luego mostrar "NO PROCEDE" o "SÍ PROCEDE" con el texto del recuadro si procede. Formato visual: recuadro con borde verde si procede.
 
-### 3. `FormActaReunion.tsx`
+### Retrocompatibilidad
 
-- Añadir estado `textoPunto3` (string).
-- En el `useEffect` de configuración, cargar `texto_cae_punto3`.
-- En el `useEffect` de documento existente, leer `texto_punto3` de `datos_extra`.
-- Guardar en `datos_extra` como `texto_punto3`.
-- **Eliminar** la sección standalone de "Riesgos previstos" (líneas ~449-470) que está fuera de las secciones numeradas.
-- **Crear** una nueva `SectionCollapsible` "3 — Trabajos Realizados y Previstos" que contenga (en orden):
-  1. RichTextEditor con el texto introductorio.
-  2. Los checkboxes de riesgos previstos (Atrapamiento, Arrollamiento, etc.) + campo "Otros riesgos".
-  3. Subsección 3.1 — Empresas que intervienen (el contenido actual de la sección 3.1).
-  4. Subsección 3.2 — Duración y ubicación de los trabajos (contenido actual).
-  5. Subsección 3.3 — Trabajos a realizar (contenido actual).
-- Las subsecciones 3.1, 3.2, 3.3 pueden ser `SectionCollapsible` anidadas o simplemente separadores con título dentro del punto 3.
+Mantener fallbacks para documentos antiguos que aún usen los campos viejos (`texto_legal`, `interferencias_empresas_aplica`, `ruegos_aplica`).
 
-## Archivos afectados
-- **Migración SQL**: 1 nueva columna `texto_cae_punto3`
-- **`src/pages/AdminConfiguracion.tsx`** — 1 nuevo editor en el acordeón CAE
-- **`src/components/documentos/formularios/FormActaReunion.tsx`** — reestructuración del punto 3
+## Archivo afectado
+- **`supabase/functions/generar-documento-pdf/index.ts`** — función `templateActaReunion` (líneas ~298-583)
 
