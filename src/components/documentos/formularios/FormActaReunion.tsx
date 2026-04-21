@@ -65,6 +65,10 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   // CAE specific
   const [mesReunion, setMesReunion] = useState('');
   const [textoPunto1, setTextoPunto1] = useState('');
+  const [textoPunto2, setTextoPunto2] = useState('');
+  const [docChecks, setDocChecks] = useState({ preventiva: false, trabajadores: false, maquinaria: false, trabajos: false });
+  const [punto2NoProcede, setPunto2NoProcede] = useState(false);
+  const [punto2Otros, setPunto2Otros] = useState('');
   const [riesgos, setRiesgos] = useState<string[]>([]);
   const [otrosRiesgos, setOtrosRiesgos] = useState('');
   const [plataformaCAE, setPlataformaCAE] = useState('metacontratas');
