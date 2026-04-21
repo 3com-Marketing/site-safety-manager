@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import FotoViewer from '@/components/visita/FotoViewer';
 
 const CATEGORIAS: Record<string, string> = {
   EPIs: 'EPIs',
@@ -50,6 +51,9 @@ export default function AdminInformeDetalle() {
   const [editedAnotaciones, setEditedAnotaciones] = useState<Record<string, { texto?: string; normativa?: string }>>({});
   const [saving, setSaving] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [viewingFoto, setViewingFoto] = useState<string | null>(null);
+  const [fotoMeta, setFotoMeta] = useState<{ table: string; id: string; column: string } | null>(null);
+  const [visitaId, setVisitaId] = useState<string | null>(null);
 
   // New item forms
   const [newIncidencia, setNewIncidencia] = useState({ titulo: '', descripcion: '' });
@@ -61,11 +65,12 @@ export default function AdminInformeDetalle() {
 
     const { data: inf } = await supabase
       .from('informes')
-      .select('id, estado, fecha, num_trabajadores, condiciones_climaticas, empresas_presentes, notas_generales, visitas(obras(nombre), profiles!visitas_usuario_id_profiles_fkey(nombre))')
+      .select('id, estado, fecha, num_trabajadores, condiciones_climaticas, empresas_presentes, notas_generales, visitas(id, obras(nombre), profiles!visitas_usuario_id_profiles_fkey(nombre))')
       .eq('id', id)
       .single();
 
     setInforme(inf);
+    if (inf?.visitas) setVisitaId((inf.visitas as any).id || null);
 
     const [incsRes, checkRes, amonRes, obsRes] = await Promise.all([
       supabase.from('incidencias').select('id, titulo, descripcion, categoria, normativa, fotos(id, url)').eq('informe_id', id).order('orden'),
