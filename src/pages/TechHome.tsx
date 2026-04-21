@@ -77,13 +77,13 @@ export default function TechHome() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-border bg-card px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-            <HardHat className="h-5 w-5 text-primary-foreground" />
+      <header className="flex items-center justify-between border-b border-border bg-card px-3 sm:px-4 py-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-primary">
+            <HardHat className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="font-heading text-lg font-bold">SafeWork</h1>
+            <h1 className="font-heading text-base sm:text-lg font-bold">SafeWork</h1>
             <p className="text-xs text-muted-foreground">Técnico</p>
           </div>
         </div>
@@ -92,34 +92,34 @@ export default function TechHome() {
         </Button>
       </header>
 
-      <div className="mx-auto max-w-2xl p-4 space-y-6">
+      <div className="mx-auto max-w-2xl p-3 sm:p-4 space-y-5 sm:space-y-6">
         {/* Main action */}
         <Button
           onClick={() => navigate('/seleccionar-obra')}
-          className="h-20 w-full text-xl font-bold gap-3"
+          className="h-16 sm:h-20 w-full text-lg sm:text-xl font-bold gap-2 sm:gap-3"
           size="lg"
         >
-          <Plus className="h-7 w-7" />
+          <Plus className="h-6 w-6 sm:h-7 sm:w-7" />
           INICIAR VISITA
         </Button>
 
         {/* Pending docs */}
         {docsPendientes.length > 0 && (
-          <div className="space-y-3">
-            <h2 className="font-heading text-lg font-semibold">Documentos pendientes</h2>
+          <div className="space-y-2 sm:space-y-3">
+            <h2 className="font-heading text-base sm:text-lg font-semibold">Documentos pendientes</h2>
             <div className="space-y-2">
               {docsPendientes.map(d => (
                 <button
                   key={d.id}
                   onClick={() => navigate(`/documentos/${d.obra_id}`)}
-                  className="flex w-full items-center gap-3 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/50"
+                  className="flex w-full items-center gap-2 sm:gap-3 rounded-xl border border-border bg-card p-3 sm:p-4 text-left transition-colors hover:border-primary/50"
                 >
-                  <FileText className="h-5 w-5 text-destructive shrink-0" />
+                  <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-destructive shrink-0" />
                   <div className="min-w-0 flex-1">
                     <p className="font-heading font-semibold text-sm truncate">{d.obra_nombre}</p>
-                    <p className="text-xs text-muted-foreground">{TIPO_DOCUMENTO_LABELS[d.tipo as TipoDocumento] || d.tipo}</p>
+                    <p className="text-xs text-muted-foreground truncate">{TIPO_DOCUMENTO_LABELS[d.tipo as TipoDocumento] || d.tipo}</p>
                   </div>
-                  <span className="text-xs font-medium px-2 py-1 rounded-full bg-destructive/10 text-destructive">Pendiente</span>
+                  <span className="text-xs font-medium px-2 py-1 rounded-full bg-destructive/10 text-destructive hidden sm:inline">Pendiente</span>
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </button>
               ))}
@@ -128,8 +128,8 @@ export default function TechHome() {
         )}
 
         {/* Recent visits */}
-        <div className="space-y-3">
-          <h2 className="font-heading text-lg font-semibold">Visitas recientes</h2>
+        <div className="space-y-2 sm:space-y-3">
+          <h2 className="font-heading text-base sm:text-lg font-semibold">Visitas recientes</h2>
           {loading ? (
             <p className="text-muted-foreground text-sm">Cargando...</p>
           ) : visitas.length === 0 ? (
@@ -147,15 +147,15 @@ export default function TechHome() {
                   key={v.id}
                   onClick={() => editable ? navigate(`/visita/${v.id}`) : undefined}
                   disabled={!editable}
-                  className={`flex w-full items-center justify-between rounded-xl border border-border bg-card p-4 text-left transition-colors ${editable ? 'hover:border-primary/50' : 'opacity-60 cursor-default'}`}
+                  className={`flex w-full items-center justify-between rounded-xl border border-border bg-card p-3 sm:p-4 text-left transition-colors ${editable ? 'hover:border-primary/50' : 'opacity-60 cursor-default'}`}
                 >
-                  <div>
-                    <p className="font-heading font-semibold text-sm">{v.obra_nombre}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-heading font-semibold text-sm truncate">{v.obra_nombre}</p>
                     <p className="text-xs text-muted-foreground">
                       {format(new Date(v.fecha), "dd MMM yyyy, HH:mm", { locale: es })}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 sm:gap-2 shrink-0 ml-2">
                     <span className={`text-xs font-medium px-2 py-1 rounded-full ${
                       v.estado === 'en_progreso'
                         ? 'bg-warning/10 text-warning'
@@ -163,7 +163,8 @@ export default function TechHome() {
                           ? 'bg-warning/10 text-warning'
                           : 'bg-success/10 text-success'
                     }`}>
-                      {v.estado === 'en_progreso' ? 'En progreso' : editable ? `Editable hasta ${editableUntil}` : 'Finalizada'}
+                      {v.estado === 'en_progreso' ? 'En progreso' : editable ? <span className="hidden sm:inline">Editable hasta {editableUntil}</span> : 'Finalizada'}
+                      {v.estado !== 'en_progreso' && editable && <span className="sm:hidden">Editable</span>}
                     </span>
                     {editable && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                   </div>
