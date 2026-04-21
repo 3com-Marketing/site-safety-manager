@@ -39,6 +39,7 @@ interface ConfigEmpresa {
   texto_acta_nombramiento_cae: string;
   texto_acta_nombramiento_proyecto: string;
   texto_cae_punto1: string;
+  texto_cae_punto2: string;
 }
 
 const EMPTY_CONFIG: ConfigEmpresa = {
@@ -51,6 +52,7 @@ const EMPTY_CONFIG: ConfigEmpresa = {
   texto_acta_reunion_inicial: '', texto_acta_reunion_cae: '', texto_acta_reunion_sys: '',
   texto_acta_nombramiento_cae: '', texto_acta_nombramiento_proyecto: '',
   texto_cae_punto1: '',
+  texto_cae_punto2: '',
 };
 
 export default function AdminConfiguracion() {
@@ -316,6 +318,10 @@ export default function AdminConfiguracion() {
                   <div>
                     <Label>Punto 1 — Objetivo, alcance y ámbito de actuación</Label>
                     <RichTextEditor value={config.texto_cae_punto1} onChange={v => update('texto_cae_punto1', v)} placeholder="En cumplimiento del RD 171/2004..." />
+                  </div>
+                  <div>
+                    <Label>Punto 2 — Intercambio de documentación</Label>
+                    <RichTextEditor value={config.texto_cae_punto2} onChange={v => update('texto_cae_punto2', v)} placeholder="Texto legal para el intercambio de documentación..." />
                   </div>
                   <div>
                     <Label>Texto legal general</Label>
