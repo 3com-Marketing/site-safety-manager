@@ -1,66 +1,50 @@
 
 
-# Plan: Alinear estilo visual de Incidencias, Amonestaciones y Observaciones
+# Plan: Separar grabacion de voz de la mejora con IA
 
-Aplicar el mismo patron visual usado en `ChecklistBloque.tsx` a los tres componentes, sin tocar logica de negocio.
+## Problema actual
 
-## Cambios por componente
+Al grabar una nota de voz, el unico boton disponible es "Mejorar con IA", que obliga a tener conexion a internet para guardar. Si no hay cobertura, no se puede guardar nada.
 
-### 1. `SeccionIncidencias.tsx`
+## Nuevo flujo
 
-- **Header**: Reemplazar `ArrowLeft` + titulo por breadcrumb naranja con `ChevronLeft` + `obraNombre` encima, y titulo grande debajo (igual que ChecklistBloque).
-- **Botones de accion**: Cambiar de `grid-cols-2` con emojis a `grid-cols-3` con iconos Lucide (`Camera`, `Mic`, `StickyNote`), con clase `text-primary` en los iconos.
-- **Anadir boton "Nota" manual**: Tercer boton que despliega un textarea inline para escribir texto manual (crea incidencia con descripcion directa).
-- **Estado vacio mejorado**: Reemplazar el `<p>` simple por un bloque centrado con icono `FileText` en fondo `bg-muted` y texto descriptivo (mismo patron que ChecklistBloque).
-- **Fechas en fotos**: Reemplazar emoji 📅 por icono `Calendar` de Lucide o simplemente quitar el emoji y dejar solo el texto.
+1. **Grabar** -- Pulsar micro, hablar, pulsar para parar
+2. **Revisar y guardar** -- Ver la transcripcion en un textarea editable. Boton principal: "Guardar nota" (guarda el texto tal cual, sin IA). Boton secundario: "Mejorar con IA" (solo si hay conexion, mejora el texto y vuelve al paso de edicion con el texto mejorado)
+3. **Repetir** -- Boton para volver a grabar desde cero
 
-### 2. `SeccionAmonestaciones.tsx`
+## Cambios
 
-- **Header**: Mismo cambio de breadcrumb naranja con `ChevronLeft`.
-- **Botones de accion**: Mismo cambio a `grid-cols-3` con `Camera`, `Mic`, `StickyNote` (los tres piden nombre de trabajador primero, manteniendo la logica existente de `startAction`).
-- **Nota manual**: Anadir accion `'note'` al pendingAction que tras pedir nombre de trabajador abra un textarea inline.
-- **Estado vacio mejorado**: Mismo bloque centrado con icono.
-- **Fechas en fotos**: Quitar emoji 📅.
+### 1. `src/hooks/useVoiceNote.ts`
 
-### 3. `SeccionObservaciones.tsx`
+- Cambiar el tipo `VoiceDialogStep` de `'recording' | 'improving' | 'editing'` a `'recording' | 'improving' | 'reviewing'`.
+- `finishRecording`: ya no llama a `improveText`. Solo para la grabacion, valida que hay texto, y cambia el step a `'reviewing'`.
+- Exponer `improveText` en el return para que el dialog pueda llamarlo desde un boton.
+- En `'reviewing'`, el texto editable es `rawTranscript` (no `improvedText`). Cuando el usuario pulsa "Mejorar con IA", se llama a `improveText` que cambia a `'improving'` y luego vuelve a `'reviewing'` con el texto mejorado en `improvedText`.
 
-- **Header**: Mismo cambio de breadcrumb naranja.
-- **Botones de accion**: Mismo cambio a `grid-cols-3` con Lucide icons.
-- **Nota manual**: Tercer boton que abre textarea inline para guardar observacion de texto.
-- **Estado vacio mejorado**: Mismo bloque centrado con icono.
-- **Fechas en fotos**: Quitar emoji 📅.
+### 2. `src/components/visita/VoiceNoteDialog.tsx`
 
-## Patron visual de referencia (de ChecklistBloque)
+- Anadir prop `onImproveWithAI` y `isImproving`.
+- **Step `'recording'`**: El boton principal cambia de "Mejorar con IA" a "Parar y revisar" (icono `Square` o `StopCircle`). Solo para la grabacion y pasa al paso de revision.
+- **Step `'reviewing'`** (antes `'editing'`): 
+  - Textarea editable con el texto (raw o mejorado).
+  - Boton principal: "Guardar nota" (guarda lo que haya en el textarea).
+  - Boton secundario: "Mejorar con IA" con icono `Sparkles` (llama a la IA, muestra spinner en el boton mientras procesa, actualiza el textarea con el resultado).
+  - Boton "Repetir" para volver a grabar.
+  - Si hay normativa (tras mejora IA), se muestra debajo del textarea.
 
-```tsx
-// Breadcrumb
-<button onClick={onBack} className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
-  <ChevronLeft className="h-4 w-4" />
-  {obraNombre}
-</button>
-<h2 className="font-heading text-xl font-bold">{titulo}</h2>
+### 3. Consumidores (4 archivos)
 
-// Botones de accion
-<div className="grid grid-cols-3 gap-2">
-  <button className="field-action-btn">
-    <Camera className="h-7 w-7 text-primary" />
-    <span className="label">Foto</span>
-  </button>
-  ...
-</div>
+En `ChecklistBloque.tsx`, `SeccionIncidencias.tsx`, `SeccionAmonestaciones.tsx`, `SeccionObservaciones.tsx`:
 
-// Estado vacio
-<div className="flex flex-col items-center gap-3 py-10 text-center">
-  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
-    <FileText className="h-8 w-8 text-muted-foreground" />
-  </div>
-  <p className="text-sm text-muted-foreground">Sin registros aún.<br />Usa los botones de arriba para añadir.</p>
-</div>
-```
+- Actualizar `onSave` para que use `voice.improvedText || voice.rawTranscript` (el texto que haya en el textarea en ese momento, que ya se gestiona via `improvedText`/`setImprovedText`).
+- Pasar la nueva prop `onImproveWithAI` al `VoiceNoteDialog`.
 
 ## Archivos afectados
 
-- **`src/components/visita/SeccionIncidencias.tsx`**
-- **`src/components/visita/SeccionAmonestaciones.tsx`**
-- **`src/components/visita/SeccionObservaciones.tsx`**
+- **`src/hooks/useVoiceNote.ts`** -- Separar finishRecording de improveText, exponer improveText
+- **`src/components/visita/VoiceNoteDialog.tsx`** -- Nuevo flujo de 2 pasos (revisar primero, IA opcional)
+- **`src/components/visita/ChecklistBloque.tsx`** -- Pasar nueva prop
+- **`src/components/visita/SeccionIncidencias.tsx`** -- Pasar nueva prop
+- **`src/components/visita/SeccionAmonestaciones.tsx`** -- Pasar nueva prop
+- **`src/components/visita/SeccionObservaciones.tsx`** -- Pasar nueva prop
 
