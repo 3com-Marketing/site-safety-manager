@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 const SpeechRecognition =
   (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-export type VoiceDialogStep = 'recording' | 'improving' | 'editing';
+export type VoiceDialogStep = 'recording' | 'improving' | 'reviewing';
 
 export function useVoiceNote(categoriaLabel: string) {
   const recognitionRef = useRef<any>(null);
@@ -91,8 +91,6 @@ export function useVoiceNote(categoriaLabel: string) {
 
       if (error) {
         console.error('AI error:', error);
-        setImprovedText(texto);
-        setNormativa('');
         toast.error('No se pudo mejorar el texto. Se usará el original.');
       } else {
         setImprovedText(data.texto_mejorado || texto);
@@ -100,23 +98,23 @@ export function useVoiceNote(categoriaLabel: string) {
       }
     } catch (err) {
       console.error('AI error:', err);
-      setImprovedText(texto);
-      setNormativa('');
       toast.error('No se pudo mejorar el texto. Se usará el original.');
     }
 
     setIsImproving(false);
-    setDialogStep('editing');
+    setDialogStep('reviewing');
   }, [categoriaLabel]);
 
-  const finishRecording = useCallback(async () => {
+  const finishRecording = useCallback(() => {
     stopRecording();
     if (!rawTranscript.trim()) {
       toast.error('No se ha detectado ningún texto');
       return;
     }
-    await improveText(rawTranscript.trim());
-  }, [stopRecording, rawTranscript, improveText]);
+    // Move to reviewing step with raw text — no AI call
+    setImprovedText(rawTranscript.trim());
+    setDialogStep('reviewing');
+  }, [stopRecording, rawTranscript]);
 
   useEffect(() => {
     return () => {
@@ -141,5 +139,6 @@ export function useVoiceNote(categoriaLabel: string) {
     openDialog,
     closeDialog,
     finishRecording,
+    improveText,
   };
 }

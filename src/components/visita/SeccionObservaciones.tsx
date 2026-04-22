@@ -250,9 +250,11 @@ export default function SeccionObservaciones({ informeId, visitaId, obraNombre, 
         improvedText={voice.improvedText}
         onImprovedTextChange={voice.setImprovedText}
         normativa={voice.normativa}
+        isImproving={voice.isImproving}
         onStartRecording={voice.startRecording}
         onStopRecording={voice.stopRecording}
         onFinishRecording={voice.finishRecording}
+        onImproveWithAI={(texto) => voice.improveText(texto)}
         onSave={saveVoiceNote}
         onRepeat={voice.openDialog}
       />
