@@ -298,9 +298,11 @@ export default function SeccionAmonestaciones({ informeId, visitaId, obraNombre,
         rawTranscript={voice.rawTranscript}
         improvedText={voice.improvedText}
         onImprovedTextChange={voice.setImprovedText}
+        isImproving={voice.isImproving}
         onStartRecording={voice.startRecording}
         onStopRecording={voice.stopRecording}
         onFinishRecording={voice.finishRecording}
+        onImproveWithAI={(texto) => voice.improveText(texto)}
         onSave={saveVoiceNote}
         onRepeat={voice.openDialog}
       />
