@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Mic, MicOff, Sparkles, Loader2, Scale } from 'lucide-react';
+import { Mic, MicOff, Sparkles, Loader2, Scale, StopCircle } from 'lucide-react';
 import type { VoiceDialogStep } from '@/hooks/useVoiceNote';
 
 interface Props {
@@ -18,9 +18,11 @@ interface Props {
   improvedText: string;
   onImprovedTextChange: (text: string) => void;
   normativa?: string;
+  isImproving?: boolean;
   onStartRecording: () => void;
   onStopRecording: () => void;
   onFinishRecording: () => void;
+  onImproveWithAI?: (texto: string) => void;
   onSave: () => void;
   onRepeat: () => void;
 }
@@ -34,9 +36,11 @@ export default function VoiceNoteDialog({
   improvedText,
   onImprovedTextChange,
   normativa,
+  isImproving,
   onStartRecording,
   onStopRecording,
   onFinishRecording,
+  onImproveWithAI,
   onSave,
   onRepeat,
 }: Props) {
@@ -47,7 +51,7 @@ export default function VoiceNoteDialog({
           <DialogTitle className="font-heading">
             {dialogStep === 'recording' && 'Grabar nota de voz'}
             {dialogStep === 'improving' && 'Mejorando texto...'}
-            {dialogStep === 'editing' && 'Revisar nota'}
+            {dialogStep === 'reviewing' && 'Revisar nota'}
           </DialogTitle>
         </DialogHeader>
 
@@ -81,8 +85,8 @@ export default function VoiceNoteDialog({
               disabled={!rawTranscript.trim()}
               className="h-12 w-full mt-4 shrink-0 text-base font-semibold gap-2"
             >
-              <Sparkles className="h-5 w-5" />
-              Mejorar con IA
+              <StopCircle className="h-5 w-5" />
+              Parar y revisar
             </Button>
           </div>
         )}
@@ -94,17 +98,10 @@ export default function VoiceNoteDialog({
           </div>
         )}
 
-        {dialogStep === 'editing' && (
+        {dialogStep === 'reviewing' && (
           <div className="space-y-4">
-            {rawTranscript !== improvedText && (
-              <div className="rounded-lg bg-muted p-3">
-                <p className="text-xs text-muted-foreground mb-1">Texto original:</p>
-                <p className="text-xs text-muted-foreground italic">{rawTranscript}</p>
-              </div>
-            )}
-
             <div>
-              <p className="text-xs text-muted-foreground mb-2">Resultado (editable):</p>
+              <p className="text-xs text-muted-foreground mb-2">Texto (editable):</p>
               <Textarea
                 value={improvedText}
                 onChange={(e) => onImprovedTextChange(e.target.value)}
@@ -122,17 +119,34 @@ export default function VoiceNoteDialog({
               </div>
             )}
 
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2">
               <Button
                 onClick={onSave}
                 disabled={!improvedText.trim()}
-                className="h-12 flex-1 text-base font-semibold"
+                className="h-12 w-full text-base font-semibold"
               >
                 Guardar nota
               </Button>
-              <Button variant="outline" onClick={onRepeat} className="h-12">
-                Repetir
-              </Button>
+              <div className="flex gap-2">
+                {onImproveWithAI && (
+                  <Button
+                    variant="outline"
+                    onClick={() => onImproveWithAI(improvedText)}
+                    disabled={!improvedText.trim() || isImproving}
+                    className="h-12 flex-1 text-sm font-semibold gap-2"
+                  >
+                    {isImproving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                    {isImproving ? 'Mejorando...' : 'Mejorar con IA'}
+                  </Button>
+                )}
+                <Button variant="outline" onClick={onRepeat} className="h-12 flex-1 text-sm font-semibold">
+                  Repetir
+                </Button>
+              </div>
             </div>
           </div>
         )}
