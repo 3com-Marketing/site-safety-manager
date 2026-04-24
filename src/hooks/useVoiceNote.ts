@@ -7,21 +7,37 @@ const SpeechRecognition =
 
 export type VoiceDialogStep = 'recording' | 'improving' | 'reviewing';
 
+// ─── Detección de móvil ──────────────────────────────────────────────────────
+const isMobileDevice = (): boolean => {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+};
+
 // ─── Helpers de normalización ────────────────────────────────────────────────
 
-// Normaliza una palabra: minúsculas, sin signos de puntuación.
 const normWord = (w: string) =>
   w
     .toLowerCase()
     .replace(/[.,;:!?¡¿"'()\-–—]/g, '')
     .trim();
 
-// Convierte una cadena en array de palabras normalizadas (sin vacíos).
 const toWords = (s: string) => s.split(/\s+/).map(normWord).filter(Boolean);
 
-// Devuelve el mayor solape entre el final de `a` y el principio de `b`,
-// comparando palabras normalizadas. Se requiere un solape mínimo de 2 palabras
-// para evitar falsos positivos con palabras comunes ("y", "de"...).
+const normalizeText = (s: string) => toWords(s).join(' ');
+
+// ¿`b` empieza por `a` (comparando palabras normalizadas)?
+const startsWithWords = (a: string, b: string): boolean => {
+  const aw = toWords(a);
+  const bw = toWords(b);
+  if (!aw.length || aw.length > bw.length) return false;
+  for (let i = 0; i < aw.length; i++) {
+    if (aw[i] !== bw[i]) return false;
+  }
+  return true;
+};
+
+// Mayor solape entre el final de `a` y el principio de `b` (en palabras).
 const overlapWordCount = (a: string, b: string, minOverlap = 2): number => {
   const aw = toWords(a);
   const bw = toWords(b);
@@ -41,7 +57,6 @@ const overlapWordCount = (a: string, b: string, minOverlap = 2): number => {
 };
 
 // Recorta el principio de `incoming` que ya estaba al final de `committed`.
-// Trabaja sobre las palabras originales para preservar capitalización.
 const stripLeadingOverlap = (committed: string, incoming: string): string => {
   if (!committed.trim() || !incoming.trim()) return incoming;
   const overlap = overlapWordCount(committed, incoming);
@@ -50,7 +65,7 @@ const stripLeadingOverlap = (committed: string, incoming: string): string => {
   return incomingWords.slice(overlap).join(' ');
 };
 
-// Detecta si `b` está totalmente contenido al final de `a` (subcadena de palabras).
+// ¿`b` está totalmente contenido al final de `a`?
 const containsAtEnd = (a: string, b: string): boolean => {
   const aw = toWords(a);
   const bw = toWords(b);
@@ -71,12 +86,19 @@ const joinPieces = (pieces: string[]) =>
 
 export function useVoiceNote(categoriaLabel: string) {
   const recognitionRef = useRef<any>(null);
-  // Texto consolidado (deduplicado) que sí se mantiene entre reinicios.
+
+  // Texto consolidado entre reinicios.
   const committedTextRef = useRef<string>('');
-  // Finales de la sesión actual, indexados por posición del resultado.
+
+  // Resultado por slot dentro de la sesión actual. Cada slot guarda la mejor
+  // versión final conocida para ese índice. En móvil, un mismo slot puede
+  // refinarse muchas veces (prefijos acumulativos): se conserva la versión más
+  // larga/estable.
   const sessionFinalsRef = useRef<string[]>([]);
+
   const shouldKeepRecordingRef = useRef<boolean>(false);
   const restartTimerRef = useRef<number | null>(null);
+  const isMobileRef = useRef<boolean>(isMobileDevice());
 
   const [isRecording, setIsRecording] = useState(false);
   const [rawTranscript, setRawTranscript] = useState('');
@@ -93,29 +115,65 @@ export function useVoiceNote(categoriaLabel: string) {
     }
   };
 
-  // Calcula el texto "útil" de la sesión actual eliminando duplicados respecto
-  // al texto ya comprometido. Maneja los tres casos típicos del motor móvil:
-  //   1) la sesión repite literal el final del committed → todo solapa
-  //   2) la sesión empieza con texto viejo y añade nuevo → recortar el principio
-  //   3) la sesión es enteramente texto nuevo → no hacer nada
+  // Construye el texto canónico de la sesión actual eliminando "escaleras de
+  // prefijos" entre slots consecutivos. Caso típico de Android Chrome:
+  //   slot[0] = "la"
+  //   slot[1] = "la señalización"
+  //   slot[2] = "la señalización está mal"
+  // → debe quedar solo "la señalización está mal".
+  const buildSessionText = (): string => {
+    const slots = sessionFinalsRef.current.filter(Boolean).map((s) => s.trim());
+    if (!slots.length) return '';
+
+    const out: string[] = [];
+    for (const piece of slots) {
+      if (!piece) continue;
+      const last = out[out.length - 1];
+
+      // Duplicado exacto (normalizado) → ignorar.
+      if (last && normalizeText(last) === normalizeText(piece)) continue;
+
+      // El nuevo es ampliación del anterior (mismo prefijo) → reemplazar.
+      if (last && startsWithWords(last, piece)) {
+        out[out.length - 1] = piece;
+        continue;
+      }
+
+      // El anterior contiene al nuevo como prefijo o subcadena al final → ignorar.
+      if (last && (startsWithWords(piece, last) || containsAtEnd(last, piece))) {
+        continue;
+      }
+
+      // Solape parcial al principio del nuevo respecto al final del anterior.
+      if (last) {
+        const trimmed = stripLeadingOverlap(last, piece);
+        if (!trimmed.trim()) continue;
+        out.push(trimmed);
+      } else {
+        out.push(piece);
+      }
+    }
+
+    return joinPieces(out);
+  };
+
+  // Deduplica el texto de sesión contra el committed (entre reinicios).
   const dedupeAgainstCommitted = (sessionText: string): string => {
     if (!sessionText.trim()) return '';
     if (!committedTextRef.current.trim()) return sessionText;
-
-    // Caso 1: sessionText cabe entero al final del committed → ya está dicho.
     if (containsAtEnd(committedTextRef.current, sessionText)) return '';
-
-    // Caso 2: solape parcial de palabras al principio.
-    const cleaned = stripLeadingOverlap(committedTextRef.current, sessionText);
-    return cleaned;
+    if (startsWithWords(committedTextRef.current, sessionText)) {
+      // Toda la sesión coincide con el principio del committed → nada nuevo.
+      return '';
+    }
+    return stripLeadingOverlap(committedTextRef.current, sessionText);
   };
 
   const buildDisplay = (interim: string) => {
-    const sessionText = joinPieces(sessionFinalsRef.current);
+    const sessionText = buildSessionText();
     const usefulSession = dedupeAgainstCommitted(sessionText);
 
-    // El interim también puede repetir el final → recortarlo igual.
-    let usefulInterim = interim;
+    let usefulInterim = interim.trim();
     if (usefulInterim) {
       const base = joinPieces([committedTextRef.current, usefulSession]);
       if (containsAtEnd(base, usefulInterim)) {
@@ -130,7 +188,7 @@ export function useVoiceNote(categoriaLabel: string) {
 
   // Mueve la sesión actual al texto comprometido (deduplicado) y la vacía.
   const commitSession = () => {
-    const sessionText = joinPieces(sessionFinalsRef.current);
+    const sessionText = buildSessionText();
     sessionFinalsRef.current = [];
     if (!sessionText) return;
     const cleaned = dedupeAgainstCommitted(sessionText);
@@ -141,22 +199,41 @@ export function useVoiceNote(categoriaLabel: string) {
   const createRecognition = useCallback(() => {
     const recognition = new SpeechRecognition();
     recognition.lang = 'es-ES';
-    recognition.continuous = true;
+    // En móvil, `continuous = true` provoca el patrón de "escalera de
+    // prefijos". Forzamos ciclos cortos: el motor entrega y nosotros
+    // reiniciamos con `onend`, manteniendo la grabación viva para el usuario.
+    recognition.continuous = !isMobileRef.current;
     recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
 
     recognition.onresult = (event: any) => {
       let interim = '';
-      for (let i = 0; i < event.results.length; i++) {
+      const startIdx = typeof event.resultIndex === 'number' ? event.resultIndex : 0;
+
+      // Solo reconsideramos los slots que han cambiado.
+      for (let i = startIdx; i < event.results.length; i++) {
         const result = event.results[i];
-        const transcript: string = result[0].transcript || '';
+        const transcript: string = (result[0]?.transcript || '').trim();
+        if (!transcript) continue;
+
         if (result.isFinal) {
-          // Sobrescribir el slot por índice: si el motor refina o reenvía el
-          // mismo índice, no se acumula.
+          const prev = sessionFinalsRef.current[i] || '';
+          // Si el motor reenvía exactamente lo mismo, no tocar.
+          if (normalizeText(prev) === normalizeText(transcript)) {
+            sessionFinalsRef.current[i] = transcript;
+            continue;
+          }
+          // Quedarnos con la versión más larga (suele ser la más completa).
+          if (prev && startsWithWords(transcript, prev)) {
+            // El nuevo es subprefijo del anterior → conservar el anterior.
+            continue;
+          }
           sessionFinalsRef.current[i] = transcript;
         } else if (i === event.results.length - 1) {
           interim = transcript;
         }
       }
+
       setRawTranscript(buildDisplay(interim));
     };
 
@@ -179,12 +256,14 @@ export function useVoiceNote(categoriaLabel: string) {
     };
 
     recognition.onend = () => {
-      // Consolidar lo de la sesión actual con dedupe.
+      // Consolidar el ciclo actual y limpiar slots para el siguiente.
       commitSession();
       setRawTranscript(buildDisplay(''));
 
       if (shouldKeepRecordingRef.current) {
         clearRestartTimer();
+        // En móvil reiniciamos rápido para mantener la sensación de continuo.
+        const delay = isMobileRef.current ? 150 : 300;
         restartTimerRef.current = window.setTimeout(() => {
           if (!shouldKeepRecordingRef.current) return;
           try {
@@ -200,7 +279,7 @@ export function useVoiceNote(categoriaLabel: string) {
               setIsRecording(false);
             }
           }
-        }, 300);
+        }, delay);
       } else {
         setIsRecording(false);
       }
