@@ -46,6 +46,7 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
   const [showSigns, setShowSigns] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const isMobile = useIsMobile();
 
   // History via refs to avoid stale closures
   const historyRef = useRef<string[]>([]);
@@ -57,11 +58,12 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
   const tempObjRef = useRef<fabric.FabricObject | null>(null);
 
   const getCanvasSize = useCallback(() => {
-    const signsW = showSigns ? 192 : 0;
+    // On mobile, the signs panel is a bottom sheet overlay — don't shrink the canvas
+    const signsW = !isMobile && showSigns ? 192 : 0;
     const w = window.innerWidth - signsW - 16;
     const h = window.innerHeight - TOOLBAR_HEIGHT - 16;
     return { w: Math.max(w, 400), h: Math.max(h, 300) };
-  }, [showSigns]);
+  }, [showSigns, isMobile]);
 
   const saveHistory = useCallback((c: fabric.Canvas) => {
     // Only serialize objects, not backgroundImage (avoids revoked blob URL issue)
