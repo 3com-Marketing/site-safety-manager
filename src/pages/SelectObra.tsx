@@ -34,6 +34,7 @@ export default function SelectObra() {
   const [obras, setObras] = useState<Obra[]>([]);
   const [loading, setLoading] = useState(true);
   const [geo, setGeo] = useState<GeoState>({ status: 'idle' });
+  const cancelRef = useRef(false);
 
   useEffect(() => {
     supabase
