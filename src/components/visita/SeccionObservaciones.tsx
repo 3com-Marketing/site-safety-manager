@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Trash2, Pencil, Scale, ChevronLeft, Camera, Mic, StickyNote, FileText } from 'lucide-react';
+import EditableTextWithAI from './EditableTextWithAI';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';

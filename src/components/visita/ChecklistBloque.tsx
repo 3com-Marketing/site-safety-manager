@@ -9,6 +9,7 @@ import { es } from 'date-fns/locale';
 import { useVoiceNote } from '@/hooks/useVoiceNote';
 import VoiceNoteDialog from './VoiceNoteDialog';
 import FotoViewer from './FotoViewer';
+import EditableTextWithAI from './EditableTextWithAI';
 
 interface Anotacion {
   id: string;
@@ -224,7 +225,7 @@ export default function ChecklistBloque({
                     onChange={setEditText}
                     onSave={saveEditAnotacion}
                     onCancel={() => setEditingId(null)}
-                    categoria={`Anotación de checklist - ${bloque?.titulo ?? 'obra'}`}
+                    categoria={`Anotación de checklist - ${categoriaLabel}`}
                   />
                 ) : (
                   a.texto && <p className="text-sm text-foreground">{a.texto}</p>

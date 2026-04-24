@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Trash2, Pencil, UserRound, ChevronLeft, Camera, Mic, StickyNote, FileText } from 'lucide-react';
+import EditableTextWithAI from './EditableTextWithAI';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
