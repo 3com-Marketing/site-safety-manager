@@ -1,38 +1,63 @@
-# Plan: Arreglar geolocalización al iniciar visita
+# Plan: Mejorar con IA al editar notas existentes
 
-## Problema detectado
+## Problema
 
-En `src/pages/SelectObra.tsx` el diálogo "Obteniendo ubicación" se abre con `<Dialog open={geo.status === 'requesting'}>` **sin `onOpenChange`**. Eso provoca varios problemas:
+Hoy, al editar una anotación/incidencia/amonestación/observación ya guardada (técnico) o un texto en el detalle del informe (admin), solo aparece un `Textarea` con "Guardar / Cancelar". No hay forma de pedirle a la IA que mejore ese texto. La opción "Mejorar con IA" solo existe dentro del diálogo de voz justo después de dictar.
 
-1. **No se puede cancelar el diálogo**: cuando el usuario pulsa la X o Esc, Radix intenta cerrarlo pero no hay handler que actualice `geo`, así que el estado queda en `requesting` mientras el navegador sigue esperando la respuesta de GPS. En el session replay se ve al usuario pulsando la X tres veces sin éxito.
-2. **Si el usuario deniega o tarda en aceptar el permiso del navegador**, el diálogo se queda colgado hasta que salta el `timeout: 10000` ms, y como Radix bloquea la interacción por debajo, parece que la app no responde.
-3. **No hay feedback de error**: si `getCurrentPosition` falla (permiso denegado, sin señal), se llama directamente a `createVisita(obraId, null, null)` y la visita se crea sin coordenadas, sin avisar al usuario de que su ubicación no se ha registrado.
-4. **`maximumAge` no está definido**: cada intento pide GPS desde cero aunque haya una lectura reciente, lo que ralentiza el proceso.
-5. **El watcher de permisos**: en algunos navegadores móviles, si se rechazó el permiso una vez, `getCurrentPosition` ni siquiera dispara el callback de error rápido — se queda en limbo hasta el timeout.
+## Solución
 
-## Cambios
+Crear un componente reutilizable **`EditableTextWithAI`** que muestre:
+- Un `Textarea` editable (igual que ahora)
+- Tres botones: **Guardar**, **Mejorar con IA**, **Cancelar**
 
-### `src/pages/SelectObra.tsx`
+Al pulsar "Mejorar con IA":
+1. Llama a la edge function `mejorar-texto` (la que ya existe) con el texto actual y la categoría correspondiente
+2. Reemplaza el contenido del textarea con la versión mejorada
+3. Si la función devuelve normativa, la muestra debajo en un bloque informativo
+4. El usuario sigue pudiendo editar, volver a mejorar, guardar o cancelar
 
-1. **Diálogo cancelable**: añadir `onOpenChange` al diálogo `requesting` para que al cerrarlo vuelva a `idle` y permitir reintentar.
-2. **Botón "Cancelar"** dentro del diálogo de obtención de ubicación, además de la X.
-3. **Botón "Continuar sin ubicación"** en el mismo diálogo: tras unos segundos esperando, el técnico puede decidir crear la visita sin coordenadas (útil si está dentro de un edificio sin señal GPS).
-4. **Manejo de errores con toast**: si `getCurrentPosition` falla, mostrar un `toast.error` explicando el motivo (`PERMISSION_DENIED`, `POSITION_UNAVAILABLE`, `TIMEOUT`) y dejar al usuario decidir si reintenta o continúa sin ubicación, en vez de crear la visita silenciosamente sin coords.
-5. **Opciones de geolocalización mejoradas**: añadir `maximumAge: 30000` para aceptar una posición cacheada de hasta 30 s, y subir el `timeout` a 15000 ms para móviles con GPS lento.
-6. **Cancelación al desmontar**: usar un flag `cancelled` para ignorar la respuesta del GPS si el usuario cerró el diálogo antes de que llegara.
-7. **Pre-check del permiso**: si `navigator.permissions` está disponible, consultar el estado antes de pedir GPS. Si está `denied`, mostrar directamente el diálogo de error con instrucciones para habilitarlo en el navegador, sin esperar al timeout.
+Si no hay conexión o la IA falla, se muestra un toast y el texto original queda intacto.
 
-### Sin cambios en
+## Componente nuevo
 
-- `MapPicker.tsx`, `geo.ts` y la lógica de creación de la visita en sí (la `INSERT` en `visitas`/`informes` se mantiene igual).
+**`src/components/visita/EditableTextWithAI.tsx`**
 
-## Resultado esperado
+```tsx
+interface Props {
+  value: string;
+  onChange: (v: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  categoria: string;  // p.ej. 'Incidencia de seguridad', 'Observación general'
+  saving?: boolean;
+}
+```
 
-- El delegado puede cerrar/cancelar el diálogo de ubicación en cualquier momento.
-- Si deniega el permiso, ve un mensaje claro inmediatamente (no espera 10 s).
-- Puede elegir continuar sin ubicación de forma explícita en lugar de que ocurra "por accidente".
-- El GPS responde más rápido al permitir cache de 30 s.
+Internamente:
+- Estado local `isImproving` y `normativa`
+- Función `improve()` que invoca `supabase.functions.invoke('mejorar-texto', { body: { texto: value, categoria } })`
+- Maneja errores 429/402 con toasts claros
 
-## Archivos afectados
+## Archivos a modificar
 
-- **`src/pages/SelectObra.tsx`**
+### Lado técnico (todos pasan a usar `EditableTextWithAI`)
+
+- **`src/components/visita/ChecklistBloque.tsx`** — bloque de edición de anotaciones (líneas 221-228), categoria = `bloque.titulo`
+- **`src/components/visita/SeccionIncidencias.tsx`** — bloque edición (230-237), categoria = `'Incidencia de seguridad'`
+- **`src/components/visita/SeccionAmonestaciones.tsx`** — bloque edición (276-283), categoria = `'Amonestación a trabajador'`
+- **`src/components/visita/SeccionObservaciones.tsx`** — bloque edición (218-225), categoria = `'Observación general'`
+
+### Lado admin
+
+- **`src/pages/AdminInformeDetalle.tsx`** — añadir un botón pequeño "Mejorar con IA" junto a cada `Textarea` editable de incidencias/amonestaciones/observaciones (líneas 419, 438, 547, 604). Reusa el mismo componente o un wrapper más compacto.
+
+## Detalles técnicos
+
+- La edge function `mejorar-texto` ya acepta `{ texto, categoria }` y devuelve `{ texto_mejorado, normativa }` — no requiere cambios.
+- No se toca `useVoiceNote` ni `VoiceNoteDialog`: el flujo de voz sigue igual.
+- El componente es offline-friendly: si falla la red, el textarea conserva el texto original y el usuario puede guardar manualmente.
+- Categorías mejor afinadas que las genéricas para que la IA dé normativa más relevante.
+
+## Resultado
+
+En cualquier punto donde se edite un texto guardado (técnico en obra o admin en oficina), un solo clic basta para que la IA lo profesionalice y aporte normativa, sin perder lo que el usuario ya había escrito a mano.

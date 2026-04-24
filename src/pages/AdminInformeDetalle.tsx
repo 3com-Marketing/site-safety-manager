@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import FotoViewer from '@/components/visita/FotoViewer';
+import EditableTextWithAI from '@/components/visita/EditableTextWithAI';
 
 const CATEGORIAS: Record<string, string> = {
   EPIs: 'EPIs',
@@ -416,11 +417,14 @@ export default function AdminInformeDetalle() {
                       <div key={a.id} className="rounded-lg border border-border bg-card p-3 space-y-2">
                         <div className="space-y-1">
                           <p className="text-xs text-muted-foreground">Descripción</p>
-                          <Textarea
+                          <EditableTextWithAI
+                            compact
                             value={editedAnot?.texto ?? a.texto ?? ''}
-                            onChange={e => handleAnotacionChange(a.id, 'texto', e.target.value)}
-                            className="text-sm min-h-[60px]"
-                            placeholder="Texto de la anotación..."
+                            onChange={(v) => handleAnotacionChange(a.id, 'texto', v)}
+                            onSave={() => {}}
+                            onCancel={() => {}}
+                            categoria={`Anotación de checklist - ${CATEGORIAS[bloque.categoria] || bloque.categoria}`}
+                            onNormativaUpdate={(n) => handleAnotacionChange(a.id, 'normativa', n)}
                           />
                         </div>
                         {a.foto_url && (
@@ -472,11 +476,13 @@ export default function AdminInformeDetalle() {
                     onChange={e => handleFieldChange(inc.id, 'titulo', e.target.value)}
                     className="font-heading font-semibold text-sm"
                   />
-                  <Textarea
+                  <EditableTextWithAI
+                    compact
                     value={edited?.descripcion ?? inc.descripcion}
-                    onChange={e => handleFieldChange(inc.id, 'descripcion', e.target.value)}
-                    className="text-sm min-h-[60px]"
-                    placeholder="Descripción..."
+                    onChange={(v) => handleFieldChange(inc.id, 'descripcion', v)}
+                    onSave={() => {}}
+                    onCancel={() => {}}
+                    categoria={`Incidencia - ${CATEGORIAS[inc.categoria] || inc.categoria}`}
                   />
                   {inc.fotos.length > 0 && (
                     <div className="flex gap-3 flex-wrap">
@@ -544,11 +550,13 @@ export default function AdminInformeDetalle() {
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">Descripción</p>
-                    <Textarea
+                    <EditableTextWithAI
+                      compact
                       value={edited?.descripcion ?? a.descripcion}
-                      onChange={e => handleAmonestacionChange(a.id, 'descripcion', e.target.value)}
-                      className="text-sm min-h-[60px]"
-                      placeholder="Descripción..."
+                      onChange={(v) => handleAmonestacionChange(a.id, 'descripcion', v)}
+                      onSave={() => {}}
+                      onCancel={() => {}}
+                      categoria="Amonestación a trabajador en obra"
                     />
                   </div>
                   {a.foto_url && (
@@ -601,11 +609,13 @@ export default function AdminInformeDetalle() {
               const edited = editedObservaciones[obs.id];
               return (
                 <div key={obs.id} className="rounded-xl border border-border bg-card p-4 space-y-2">
-                  <Textarea
+                  <EditableTextWithAI
+                    compact
                     value={edited?.texto ?? obs.texto}
-                    onChange={e => handleObservacionChange(obs.id, e.target.value)}
-                    className="text-sm min-h-[60px]"
-                    placeholder="Texto de la observación..."
+                    onChange={(v) => handleObservacionChange(obs.id, v)}
+                    onSave={() => {}}
+                    onCancel={() => {}}
+                    categoria="Observación general en visita de obra"
                   />
                   {obs.foto_url && (
                     <img

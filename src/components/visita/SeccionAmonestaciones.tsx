@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Trash2, Pencil, UserRound, ChevronLeft, Camera, Mic, StickyNote, FileText } from 'lucide-react';
+import EditableTextWithAI from './EditableTextWithAI';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -274,13 +275,13 @@ export default function SeccionAmonestaciones({ informeId, visitaId, obraNombre,
                   </>
                 )}
                 {editingId === item.id ? (
-                  <div className="space-y-2">
-                    <Textarea value={editText} onChange={(e) => setEditText(e.target.value)} className="min-h-[80px] text-sm" />
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={saveEdit} className="flex-1">Guardar</Button>
-                      <Button size="sm" variant="outline" onClick={() => setEditingId(null)} className="flex-1">Cancelar</Button>
-                    </div>
-                  </div>
+                  <EditableTextWithAI
+                    value={editText}
+                    onChange={setEditText}
+                    onSave={saveEdit}
+                    onCancel={() => setEditingId(null)}
+                    categoria="Amonestación a trabajador en obra"
+                  />
                 ) : (
                   item.descripcion && <p className="text-sm text-foreground">{item.descripcion}</p>
                 )}
