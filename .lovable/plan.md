@@ -1,50 +1,38 @@
+# Plan: Arreglar geolocalización al iniciar visita
 
+## Problema detectado
 
-# Plan: Separar grabacion de voz de la mejora con IA
+En `src/pages/SelectObra.tsx` el diálogo "Obteniendo ubicación" se abre con `<Dialog open={geo.status === 'requesting'}>` **sin `onOpenChange`**. Eso provoca varios problemas:
 
-## Problema actual
-
-Al grabar una nota de voz, el unico boton disponible es "Mejorar con IA", que obliga a tener conexion a internet para guardar. Si no hay cobertura, no se puede guardar nada.
-
-## Nuevo flujo
-
-1. **Grabar** -- Pulsar micro, hablar, pulsar para parar
-2. **Revisar y guardar** -- Ver la transcripcion en un textarea editable. Boton principal: "Guardar nota" (guarda el texto tal cual, sin IA). Boton secundario: "Mejorar con IA" (solo si hay conexion, mejora el texto y vuelve al paso de edicion con el texto mejorado)
-3. **Repetir** -- Boton para volver a grabar desde cero
+1. **No se puede cancelar el diálogo**: cuando el usuario pulsa la X o Esc, Radix intenta cerrarlo pero no hay handler que actualice `geo`, así que el estado queda en `requesting` mientras el navegador sigue esperando la respuesta de GPS. En el session replay se ve al usuario pulsando la X tres veces sin éxito.
+2. **Si el usuario deniega o tarda en aceptar el permiso del navegador**, el diálogo se queda colgado hasta que salta el `timeout: 10000` ms, y como Radix bloquea la interacción por debajo, parece que la app no responde.
+3. **No hay feedback de error**: si `getCurrentPosition` falla (permiso denegado, sin señal), se llama directamente a `createVisita(obraId, null, null)` y la visita se crea sin coordenadas, sin avisar al usuario de que su ubicación no se ha registrado.
+4. **`maximumAge` no está definido**: cada intento pide GPS desde cero aunque haya una lectura reciente, lo que ralentiza el proceso.
+5. **El watcher de permisos**: en algunos navegadores móviles, si se rechazó el permiso una vez, `getCurrentPosition` ni siquiera dispara el callback de error rápido — se queda en limbo hasta el timeout.
 
 ## Cambios
 
-### 1. `src/hooks/useVoiceNote.ts`
+### `src/pages/SelectObra.tsx`
 
-- Cambiar el tipo `VoiceDialogStep` de `'recording' | 'improving' | 'editing'` a `'recording' | 'improving' | 'reviewing'`.
-- `finishRecording`: ya no llama a `improveText`. Solo para la grabacion, valida que hay texto, y cambia el step a `'reviewing'`.
-- Exponer `improveText` en el return para que el dialog pueda llamarlo desde un boton.
-- En `'reviewing'`, el texto editable es `rawTranscript` (no `improvedText`). Cuando el usuario pulsa "Mejorar con IA", se llama a `improveText` que cambia a `'improving'` y luego vuelve a `'reviewing'` con el texto mejorado en `improvedText`.
+1. **Diálogo cancelable**: añadir `onOpenChange` al diálogo `requesting` para que al cerrarlo vuelva a `idle` y permitir reintentar.
+2. **Botón "Cancelar"** dentro del diálogo de obtención de ubicación, además de la X.
+3. **Botón "Continuar sin ubicación"** en el mismo diálogo: tras unos segundos esperando, el técnico puede decidir crear la visita sin coordenadas (útil si está dentro de un edificio sin señal GPS).
+4. **Manejo de errores con toast**: si `getCurrentPosition` falla, mostrar un `toast.error` explicando el motivo (`PERMISSION_DENIED`, `POSITION_UNAVAILABLE`, `TIMEOUT`) y dejar al usuario decidir si reintenta o continúa sin ubicación, en vez de crear la visita silenciosamente sin coords.
+5. **Opciones de geolocalización mejoradas**: añadir `maximumAge: 30000` para aceptar una posición cacheada de hasta 30 s, y subir el `timeout` a 15000 ms para móviles con GPS lento.
+6. **Cancelación al desmontar**: usar un flag `cancelled` para ignorar la respuesta del GPS si el usuario cerró el diálogo antes de que llegara.
+7. **Pre-check del permiso**: si `navigator.permissions` está disponible, consultar el estado antes de pedir GPS. Si está `denied`, mostrar directamente el diálogo de error con instrucciones para habilitarlo en el navegador, sin esperar al timeout.
 
-### 2. `src/components/visita/VoiceNoteDialog.tsx`
+### Sin cambios en
 
-- Anadir prop `onImproveWithAI` y `isImproving`.
-- **Step `'recording'`**: El boton principal cambia de "Mejorar con IA" a "Parar y revisar" (icono `Square` o `StopCircle`). Solo para la grabacion y pasa al paso de revision.
-- **Step `'reviewing'`** (antes `'editing'`): 
-  - Textarea editable con el texto (raw o mejorado).
-  - Boton principal: "Guardar nota" (guarda lo que haya en el textarea).
-  - Boton secundario: "Mejorar con IA" con icono `Sparkles` (llama a la IA, muestra spinner en el boton mientras procesa, actualiza el textarea con el resultado).
-  - Boton "Repetir" para volver a grabar.
-  - Si hay normativa (tras mejora IA), se muestra debajo del textarea.
+- `MapPicker.tsx`, `geo.ts` y la lógica de creación de la visita en sí (la `INSERT` en `visitas`/`informes` se mantiene igual).
 
-### 3. Consumidores (4 archivos)
+## Resultado esperado
 
-En `ChecklistBloque.tsx`, `SeccionIncidencias.tsx`, `SeccionAmonestaciones.tsx`, `SeccionObservaciones.tsx`:
-
-- Actualizar `onSave` para que use `voice.improvedText || voice.rawTranscript` (el texto que haya en el textarea en ese momento, que ya se gestiona via `improvedText`/`setImprovedText`).
-- Pasar la nueva prop `onImproveWithAI` al `VoiceNoteDialog`.
+- El delegado puede cerrar/cancelar el diálogo de ubicación en cualquier momento.
+- Si deniega el permiso, ve un mensaje claro inmediatamente (no espera 10 s).
+- Puede elegir continuar sin ubicación de forma explícita en lugar de que ocurra "por accidente".
+- El GPS responde más rápido al permitir cache de 30 s.
 
 ## Archivos afectados
 
-- **`src/hooks/useVoiceNote.ts`** -- Separar finishRecording de improveText, exponer improveText
-- **`src/components/visita/VoiceNoteDialog.tsx`** -- Nuevo flujo de 2 pasos (revisar primero, IA opcional)
-- **`src/components/visita/ChecklistBloque.tsx`** -- Pasar nueva prop
-- **`src/components/visita/SeccionIncidencias.tsx`** -- Pasar nueva prop
-- **`src/components/visita/SeccionAmonestaciones.tsx`** -- Pasar nueva prop
-- **`src/components/visita/SeccionObservaciones.tsx`** -- Pasar nueva prop
-
+- **`src/pages/SelectObra.tsx`**
