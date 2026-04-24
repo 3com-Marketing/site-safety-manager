@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { SIGNOS_OBRA, type SignoObra } from './editorSignos';
 import * as fabric from 'fabric';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type Tool = 'select' | 'arrow' | 'circle' | 'rect' | 'text' | 'free';
 
