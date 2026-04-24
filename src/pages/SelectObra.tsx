@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
-import { ArrowLeft, Building2, MapPin, Loader2, Navigation } from 'lucide-react';
+import { ArrowLeft, Building2, MapPin, Loader2, Navigation, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import MapPicker from '@/components/MapPicker';
 import { haversineDistance, formatDistance } from '@/lib/geo';
+import { toast } from 'sonner';
 
 interface Obra {
   id: string;
