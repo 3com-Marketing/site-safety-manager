@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
-import { ArrowLeft, Building2, MapPin, Loader2, Navigation } from 'lucide-react';
+import { ArrowLeft, Building2, MapPin, Loader2, Navigation, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import MapPicker from '@/components/MapPicker';
 import { haversineDistance, formatDistance } from '@/lib/geo';
+import { toast } from 'sonner';
 
 interface Obra {
   id: string;
@@ -17,11 +18,15 @@ interface Obra {
   longitud: number | null;
 }
 
+type GeoErrorKind = 'denied' | 'unavailable' | 'timeout';
+
 type GeoState =
   | { status: 'idle' }
   | { status: 'requesting'; obraId: string }
+  | { status: 'error'; obraId: string; kind: GeoErrorKind }
   | { status: 'confirm'; obraId: string; lat: number; lng: number; obraLat: number; obraLng: number; distance: number }
   | { status: 'creating'; obraId: string; lat: number | null; lng: number | null };
+
 
 export default function SelectObra() {
   const navigate = useNavigate();
@@ -29,6 +34,7 @@ export default function SelectObra() {
   const [obras, setObras] = useState<Obra[]>([]);
   const [loading, setLoading] = useState(true);
   const [geo, setGeo] = useState<GeoState>({ status: 'idle' });
+  const cancelRef = useRef(false);
 
   useEffect(() => {
     supabase
@@ -50,19 +56,40 @@ export default function SelectObra() {
       });
   }, []);
 
-  const handleSelectObra = (obraId: string) => {
+  const cancelGeo = () => {
+    cancelRef.current = true;
+    setGeo({ status: 'idle' });
+  };
+
+  const handleSelectObra = async (obraId: string) => {
     if (!user) return;
-    setGeo({ status: 'requesting', obraId });
+    cancelRef.current = false;
 
     if (!navigator.geolocation) {
-      createVisita(obraId, null, null);
+      setGeo({ status: 'error', obraId, kind: 'unavailable' });
       return;
     }
 
+    // Pre-check permission state to fail fast on denied
+    try {
+      // @ts-ignore - permissions API not typed everywhere
+      if (navigator.permissions?.query) {
+        const status = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+        if (status.state === 'denied') {
+          setGeo({ status: 'error', obraId, kind: 'denied' });
+          return;
+        }
+      }
+    } catch {
+      // ignore permission API errors and try anyway
+    }
+
+    setGeo({ status: 'requesting', obraId });
     const obra = obras.find(o => o.id === obraId);
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        if (cancelRef.current) return;
         const tecLat = pos.coords.latitude;
         const tecLng = pos.coords.longitude;
 
@@ -81,10 +108,14 @@ export default function SelectObra() {
           createVisita(obraId, tecLat, tecLng);
         }
       },
-      () => {
-        createVisita(obraId, null, null);
+      (err) => {
+        if (cancelRef.current) return;
+        const kind: GeoErrorKind =
+          err.code === err.PERMISSION_DENIED ? 'denied' :
+          err.code === err.TIMEOUT ? 'timeout' : 'unavailable';
+        setGeo({ status: 'error', obraId, kind });
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
     );
   };
 
@@ -114,6 +145,7 @@ export default function SelectObra() {
       navigate(`/visita/${visita.id}`);
     } catch (err) {
       console.error(err);
+      toast.error('No se pudo crear la visita');
       setGeo({ status: 'idle' });
     }
   };
@@ -150,7 +182,7 @@ export default function SelectObra() {
                 <p className="font-heading font-semibold truncate">{obra.nombre}</p>
                 <p className="text-xs text-muted-foreground truncate">{obra.cliente_nombre} · {obra.direccion}</p>
               </div>
-              {geo.status !== 'idle' && geo.obraId === obra.id && geo.status !== 'confirm' && (
+              {(geo.status === 'requesting' || geo.status === 'creating') && geo.obraId === obra.id && (
                 <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   {geo.status === 'requesting' ? 'Ubicación...' : 'Creando...'}
@@ -162,18 +194,74 @@ export default function SelectObra() {
       </div>
 
       {/* GPS requesting dialog */}
-      <Dialog open={geo.status === 'requesting'}>
+      <Dialog open={geo.status === 'requesting'} onOpenChange={(open) => { if (!open) cancelGeo(); }}>
         <DialogContent className="max-w-xl text-center">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-center gap-2">
               <MapPin className="h-5 w-5 text-primary" />
               Obteniendo ubicación
             </DialogTitle>
+            <DialogDescription className="text-center">
+              Permite el acceso a tu ubicación para registrar el punto de inicio de la visita.
+            </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center gap-3 py-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Permite el acceso a tu ubicación para registrar el punto de inicio de la visita.</p>
           </div>
+          <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+            <Button variant="outline" onClick={cancelGeo}>Cancelar</Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                if (geo.status === 'requesting') {
+                  const obraId = geo.obraId;
+                  cancelRef.current = true;
+                  createVisita(obraId, null, null);
+                }
+              }}
+            >
+              Continuar sin ubicación
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* GPS error dialog */}
+      <Dialog open={geo.status === 'error'} onOpenChange={(open) => { if (!open) setGeo({ status: 'idle' }); }}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              No se pudo obtener tu ubicación
+            </DialogTitle>
+            <DialogDescription>
+              {geo.status === 'error' && geo.kind === 'denied' && 'Has denegado el permiso de ubicación. Habilítalo en los ajustes del navegador para registrar el punto de inicio de la visita.'}
+              {geo.status === 'error' && geo.kind === 'timeout' && 'La búsqueda de tu ubicación ha tardado demasiado. Sal a un sitio con mejor señal GPS o continúa sin ubicación.'}
+              {geo.status === 'error' && geo.kind === 'unavailable' && 'Tu dispositivo no puede determinar la ubicación ahora mismo. Puedes reintentar o continuar sin ubicación.'}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+            <Button variant="outline" onClick={() => setGeo({ status: 'idle' })}>Cerrar</Button>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  if (geo.status === 'error') createVisita(geo.obraId, null, null);
+                }}
+              >
+                Continuar sin ubicación
+              </Button>
+              {geo.status === 'error' && geo.kind !== 'denied' && (
+                <Button
+                  onClick={() => {
+                    if (geo.status === 'error') handleSelectObra(geo.obraId);
+                  }}
+                >
+                  Reintentar
+                </Button>
+              )}
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
