@@ -7,32 +7,58 @@ const SpeechRecognition =
 
 export type VoiceDialogStep = 'recording' | 'improving' | 'reviewing';
 
-// Normaliza para comparación: minúsculas, sin signos de puntuación, sin espacios extra.
-const normalize = (s: string) =>
-  s
+// ─── Helpers de normalización ────────────────────────────────────────────────
+
+// Normaliza una palabra: minúsculas, sin signos de puntuación.
+const normWord = (w: string) =>
+  w
     .toLowerCase()
     .replace(/[.,;:!?¡¿"'()\-–—]/g, '')
-    .replace(/\s+/g, ' ')
     .trim();
 
-// Devuelve `incoming` recortado eliminando el solape inicial que ya estaba al final
-// de `committed`. Útil cuando un motor móvil reanuda y vuelve a entregar las
-// últimas palabras de la sesión anterior.
-const stripOverlap = (committed: string, incoming: string): string => {
-  const c = normalize(committed);
-  const i = normalize(incoming);
-  if (!c || !i) return incoming;
-  const max = Math.min(c.length, i.length, 200);
-  for (let len = max; len >= 4; len--) {
-    if (c.endsWith(i.slice(0, len))) {
-      // Mapear el recorte normalizado de vuelta al string original.
-      // Aproximación: contar palabras del trozo solapado y saltarlas en `incoming`.
-      const overlapWords = i.slice(0, len).trim().split(' ').length;
-      const words = incoming.trim().split(/\s+/);
-      return words.slice(overlapWords).join(' ');
+// Convierte una cadena en array de palabras normalizadas (sin vacíos).
+const toWords = (s: string) => s.split(/\s+/).map(normWord).filter(Boolean);
+
+// Devuelve el mayor solape entre el final de `a` y el principio de `b`,
+// comparando palabras normalizadas. Se requiere un solape mínimo de 2 palabras
+// para evitar falsos positivos con palabras comunes ("y", "de"...).
+const overlapWordCount = (a: string, b: string, minOverlap = 2): number => {
+  const aw = toWords(a);
+  const bw = toWords(b);
+  if (!aw.length || !bw.length) return 0;
+  const max = Math.min(aw.length, bw.length, 30);
+  for (let len = max; len >= minOverlap; len--) {
+    let match = true;
+    for (let k = 0; k < len; k++) {
+      if (aw[aw.length - len + k] !== bw[k]) {
+        match = false;
+        break;
+      }
     }
+    if (match) return len;
   }
-  return incoming;
+  return 0;
+};
+
+// Recorta el principio de `incoming` que ya estaba al final de `committed`.
+// Trabaja sobre las palabras originales para preservar capitalización.
+const stripLeadingOverlap = (committed: string, incoming: string): string => {
+  if (!committed.trim() || !incoming.trim()) return incoming;
+  const overlap = overlapWordCount(committed, incoming);
+  if (overlap === 0) return incoming;
+  const incomingWords = incoming.trim().split(/\s+/);
+  return incomingWords.slice(overlap).join(' ');
+};
+
+// Detecta si `b` está totalmente contenido al final de `a` (subcadena de palabras).
+const containsAtEnd = (a: string, b: string): boolean => {
+  const aw = toWords(a);
+  const bw = toWords(b);
+  if (!bw.length || bw.length > aw.length) return false;
+  for (let k = 0; k < bw.length; k++) {
+    if (aw[aw.length - bw.length + k] !== bw[k]) return false;
+  }
+  return true;
 };
 
 const joinPieces = (pieces: string[]) =>
@@ -41,12 +67,13 @@ const joinPieces = (pieces: string[]) =>
     .filter(Boolean)
     .join(' ');
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
+
 export function useVoiceNote(categoriaLabel: string) {
   const recognitionRef = useRef<any>(null);
-  // Texto de sesiones de reconocimiento ya cerradas (cuando onend reinicia el motor).
+  // Texto consolidado (deduplicado) que sí se mantiene entre reinicios.
   const committedTextRef = useRef<string>('');
   // Finales de la sesión actual, indexados por posición del resultado.
-  // Si el motor refina un resultado, sobrescribimos el slot en vez de duplicar.
   const sessionFinalsRef = useRef<string[]>([]);
   const shouldKeepRecordingRef = useRef<boolean>(false);
   const restartTimerRef = useRef<number | null>(null);
@@ -66,17 +93,47 @@ export function useVoiceNote(categoriaLabel: string) {
     }
   };
 
-  const buildDisplay = (interim: string) => {
-    const sessionText = joinPieces(sessionFinalsRef.current);
-    return joinPieces([committedTextRef.current, sessionText, interim]);
+  // Calcula el texto "útil" de la sesión actual eliminando duplicados respecto
+  // al texto ya comprometido. Maneja los tres casos típicos del motor móvil:
+  //   1) la sesión repite literal el final del committed → todo solapa
+  //   2) la sesión empieza con texto viejo y añade nuevo → recortar el principio
+  //   3) la sesión es enteramente texto nuevo → no hacer nada
+  const dedupeAgainstCommitted = (sessionText: string): string => {
+    if (!sessionText.trim()) return '';
+    if (!committedTextRef.current.trim()) return sessionText;
+
+    // Caso 1: sessionText cabe entero al final del committed → ya está dicho.
+    if (containsAtEnd(committedTextRef.current, sessionText)) return '';
+
+    // Caso 2: solape parcial de palabras al principio.
+    const cleaned = stripLeadingOverlap(committedTextRef.current, sessionText);
+    return cleaned;
   };
 
-  // Mueve la sesión actual al texto comprometido, deduplicando solape.
+  const buildDisplay = (interim: string) => {
+    const sessionText = joinPieces(sessionFinalsRef.current);
+    const usefulSession = dedupeAgainstCommitted(sessionText);
+
+    // El interim también puede repetir el final → recortarlo igual.
+    let usefulInterim = interim;
+    if (usefulInterim) {
+      const base = joinPieces([committedTextRef.current, usefulSession]);
+      if (containsAtEnd(base, usefulInterim)) {
+        usefulInterim = '';
+      } else {
+        usefulInterim = stripLeadingOverlap(base, usefulInterim);
+      }
+    }
+
+    return joinPieces([committedTextRef.current, usefulSession, usefulInterim]);
+  };
+
+  // Mueve la sesión actual al texto comprometido (deduplicado) y la vacía.
   const commitSession = () => {
     const sessionText = joinPieces(sessionFinalsRef.current);
     sessionFinalsRef.current = [];
     if (!sessionText) return;
-    const cleaned = stripOverlap(committedTextRef.current, sessionText);
+    const cleaned = dedupeAgainstCommitted(sessionText);
     if (!cleaned) return;
     committedTextRef.current = joinPieces([committedTextRef.current, cleaned]);
   };
@@ -88,20 +145,15 @@ export function useVoiceNote(categoriaLabel: string) {
     recognition.interimResults = true;
 
     recognition.onresult = (event: any) => {
-      // Estrategia: tratamos los finales de la sesión como un array indexado por `i`.
-      // - Si el motor refina un resultado existente, sobrescribimos el slot.
-      // - Si llega uno nuevo, lo añadimos en su índice.
-      // - El interim se muestra aparte y NUNCA se acumula.
-      // Así, aunque el motor móvil vuelva a entregar resultados ya vistos en la
-      // misma sesión, no se duplican (ocupan el mismo índice).
       let interim = '';
       for (let i = 0; i < event.results.length; i++) {
         const result = event.results[i];
         const transcript: string = result[0].transcript || '';
         if (result.isFinal) {
+          // Sobrescribir el slot por índice: si el motor refina o reenvía el
+          // mismo índice, no se acumula.
           sessionFinalsRef.current[i] = transcript;
         } else if (i === event.results.length - 1) {
-          // Solo nos interesa el último interim (el "en curso").
           interim = transcript;
         }
       }
@@ -114,25 +166,21 @@ export function useVoiceNote(categoriaLabel: string) {
         toast.error('Permiso de micrófono denegado');
         shouldKeepRecordingRef.current = false;
         setIsRecording(false);
-      } else if (event.error === 'aborted') {
-        // Parada intencional — onend se encarga.
       } else if (
+        event.error === 'aborted' ||
         event.error === 'no-speech' ||
         event.error === 'audio-capture' ||
         event.error === 'network'
       ) {
-        // Recuperables — onend reiniciará si shouldKeepRecording sigue true.
+        // Recuperables — onend gestiona.
       } else {
         toast.error('Error en el reconocimiento de voz');
       }
     };
 
     recognition.onend = () => {
-      // Mover la sesión actual a "committed" antes de reiniciar (con dedupe).
-      // Así, en la nueva sesión, sessionFinalsRef arranca vacío y no se mezcla
-      // con índices viejos.
+      // Consolidar lo de la sesión actual con dedupe.
       commitSession();
-      // Refrescar display con el texto consolidado.
       setRawTranscript(buildDisplay(''));
 
       if (shouldKeepRecordingRef.current) {
@@ -152,7 +200,7 @@ export function useVoiceNote(categoriaLabel: string) {
               setIsRecording(false);
             }
           }
-        }, 250);
+        }, 300);
       } else {
         setIsRecording(false);
       }
@@ -167,7 +215,6 @@ export function useVoiceNote(categoriaLabel: string) {
       return;
     }
 
-    // Resetear acumuladores
     committedTextRef.current = '';
     sessionFinalsRef.current = [];
     setRawTranscript('');
@@ -197,7 +244,6 @@ export function useVoiceNote(categoriaLabel: string) {
       }
       recognitionRef.current = null;
     }
-    // Consolidar lo que quede en sesión.
     commitSession();
     setRawTranscript(buildDisplay(''));
     setIsRecording(false);
@@ -245,7 +291,6 @@ export function useVoiceNote(categoriaLabel: string) {
 
   const finishRecording = useCallback(() => {
     stopRecording();
-    // stopRecording ya consolidó la sesión.
     const finalText = (committedTextRef.current || rawTranscript).trim();
     if (!finalText) {
       toast.error('No se ha detectado ningún texto');
