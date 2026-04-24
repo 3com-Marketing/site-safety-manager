@@ -18,11 +18,15 @@ interface Obra {
   longitud: number | null;
 }
 
+type GeoErrorKind = 'denied' | 'unavailable' | 'timeout';
+
 type GeoState =
   | { status: 'idle' }
   | { status: 'requesting'; obraId: string }
+  | { status: 'error'; obraId: string; kind: GeoErrorKind }
   | { status: 'confirm'; obraId: string; lat: number; lng: number; obraLat: number; obraLng: number; distance: number }
   | { status: 'creating'; obraId: string; lat: number | null; lng: number | null };
+
 
 export default function SelectObra() {
   const navigate = useNavigate();
