@@ -182,7 +182,7 @@ export default function SelectObra() {
                 <p className="font-heading font-semibold truncate">{obra.nombre}</p>
                 <p className="text-xs text-muted-foreground truncate">{obra.cliente_nombre} · {obra.direccion}</p>
               </div>
-              {geo.status !== 'idle' && geo.obraId === obra.id && geo.status !== 'confirm' && (
+              {(geo.status === 'requesting' || geo.status === 'creating') && geo.obraId === obra.id && (
                 <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   {geo.status === 'requesting' ? 'Ubicación...' : 'Creando...'}
