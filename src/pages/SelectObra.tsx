@@ -56,19 +56,40 @@ export default function SelectObra() {
       });
   }, []);
 
-  const handleSelectObra = (obraId: string) => {
+  const cancelGeo = () => {
+    cancelRef.current = true;
+    setGeo({ status: 'idle' });
+  };
+
+  const handleSelectObra = async (obraId: string) => {
     if (!user) return;
-    setGeo({ status: 'requesting', obraId });
+    cancelRef.current = false;
 
     if (!navigator.geolocation) {
-      createVisita(obraId, null, null);
+      setGeo({ status: 'error', obraId, kind: 'unavailable' });
       return;
     }
 
+    // Pre-check permission state to fail fast on denied
+    try {
+      // @ts-ignore - permissions API not typed everywhere
+      if (navigator.permissions?.query) {
+        const status = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+        if (status.state === 'denied') {
+          setGeo({ status: 'error', obraId, kind: 'denied' });
+          return;
+        }
+      }
+    } catch {
+      // ignore permission API errors and try anyway
+    }
+
+    setGeo({ status: 'requesting', obraId });
     const obra = obras.find(o => o.id === obraId);
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        if (cancelRef.current) return;
         const tecLat = pos.coords.latitude;
         const tecLng = pos.coords.longitude;
 
@@ -87,10 +108,14 @@ export default function SelectObra() {
           createVisita(obraId, tecLat, tecLng);
         }
       },
-      () => {
-        createVisita(obraId, null, null);
+      (err) => {
+        if (cancelRef.current) return;
+        const kind: GeoErrorKind =
+          err.code === err.PERMISSION_DENIED ? 'denied' :
+          err.code === err.TIMEOUT ? 'timeout' : 'unavailable';
+        setGeo({ status: 'error', obraId, kind });
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
     );
   };
 
