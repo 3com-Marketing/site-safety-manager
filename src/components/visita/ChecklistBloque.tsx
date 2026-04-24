@@ -219,13 +219,13 @@ export default function ChecklistBloque({
                   </>
                 )}
                 {editingId === a.id ? (
-                  <div className="space-y-2">
-                    <Textarea value={editText} onChange={(e) => setEditText(e.target.value)} className="min-h-[80px] text-sm" />
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={saveEditAnotacion} className="flex-1">Guardar</Button>
-                      <Button size="sm" variant="outline" onClick={() => setEditingId(null)} className="flex-1">Cancelar</Button>
-                    </div>
-                  </div>
+                  <EditableTextWithAI
+                    value={editText}
+                    onChange={setEditText}
+                    onSave={saveEditAnotacion}
+                    onCancel={() => setEditingId(null)}
+                    categoria={`Anotación de checklist - ${bloque?.titulo ?? 'obra'}`}
+                  />
                 ) : (
                   a.texto && <p className="text-sm text-foreground">{a.texto}</p>
                 )}

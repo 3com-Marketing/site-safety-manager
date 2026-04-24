@@ -228,13 +228,13 @@ export default function SeccionIncidencias({ informeId, visitaId, obraNombre, on
                   </div>
                 ))}
                 {editingId === inc.id ? (
-                  <div className="space-y-2">
-                    <Textarea value={editText} onChange={(e) => setEditText(e.target.value)} className="min-h-[80px] text-sm" />
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={saveEdit} className="flex-1">Guardar</Button>
-                      <Button size="sm" variant="outline" onClick={() => setEditingId(null)} className="flex-1">Cancelar</Button>
-                    </div>
-                  </div>
+                  <EditableTextWithAI
+                    value={editText}
+                    onChange={setEditText}
+                    onSave={saveEdit}
+                    onCancel={() => setEditingId(null)}
+                    categoria="Incidencia de seguridad en obra"
+                  />
                 ) : (
                   inc.descripcion && <p className="text-sm text-foreground">{inc.descripcion}</p>
                 )}
