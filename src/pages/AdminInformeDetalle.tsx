@@ -483,7 +483,6 @@ export default function AdminInformeDetalle() {
                     onSave={() => {}}
                     onCancel={() => {}}
                     categoria={`Incidencia - ${CATEGORIAS[inc.categoria] || inc.categoria}`}
-                    onNormativaUpdate={(n) => handleFieldChange(inc.id, 'normativa', n)}
                   />
                   {inc.fotos.length > 0 && (
                     <div className="flex gap-3 flex-wrap">
@@ -558,7 +557,6 @@ export default function AdminInformeDetalle() {
                       onSave={() => {}}
                       onCancel={() => {}}
                       categoria="Amonestación a trabajador en obra"
-                      onNormativaUpdate={(n) => handleAmonestacionChange(a.id, 'normativa', n)}
                     />
                   </div>
                   {a.foto_url && (
