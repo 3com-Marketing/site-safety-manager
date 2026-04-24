@@ -1,69 +1,57 @@
-# Arreglar grabación de voz en móvil
+# Arreglar duplicación de frases al grabar voz en móvil
 
-## El problema
+## El problema real
 
-En móvil (sobre todo Chrome Android y Safari iOS), la `Web Speech API` se comporta de forma muy distinta que en escritorio:
+El fix anterior usa `event.resultIndex` para procesar solo resultados nuevos, pero en móvil (Chrome Android / Safari iOS) eso **no es suficiente** porque:
 
-1. **Se corta sola a los pocos segundos**: Chrome Android dispara `onend` automáticamente tras ~5–10 s de silencio, aunque hayas puesto `continuous = true`. En escritorio `continuous` funciona; en móvil se ignora en la práctica.
-2. **Repite frases en textos largos**: el bug clásico de `webkitSpeechRecognition` en Android. Cuando el motor reinicia internamente o concatena resultados, el array `event.results` incluye desde índice 0 todos los resultados anteriores. Como el código actual recorre `for (let i = 0; i < event.results.length; i++)` y **sobreescribe** `rawTranscript` con todo concatenado, cada vez que llega un nuevo trozo se vuelven a añadir los anteriores → frases duplicadas y multiplicadas.
-
-Código actual problemático en `src/hooks/useVoiceNote.ts`:
-```ts
-recognition.onresult = (event: any) => {
-  let final = '';
-  let interim = '';
-  for (let i = 0; i < event.results.length; i++) { // recorre TODO el histórico
-    ...
-  }
-  setRawTranscript(final + interim); // sobreescribe con todo
-};
-recognition.onend = () => { setIsRecording(false); }; // en móvil se dispara solo
-```
+1. Cuando el navegador termina solo el reconocimiento (cada ~5-10 s) y disparamos `recognition.start()` de nuevo, **se crea una sesión completamente nueva**. En esa sesión nueva, `event.results` empieza otra vez desde 0 y `event.resultIndex` también — pero el motor móvil **vuelve a entregar como "final" frases que ya había entregado** en la sesión anterior (mantiene un buffer interno o las re-procesa).
+2. Además, durante una misma sesión móvil, un mismo segmento puede llegar varias veces marcado como `isFinal` cuando el motor "consolida" resultados intermedios. Como concatenamos a `finalTranscriptRef.current += transcript` sin comprobar nada, se duplica.
+3. Resultado: cada par de segundos se reañade el texto entero. El usuario ve "hola buenas hola buenas hola buenas hola buenas..." sin parar.
 
 ## La solución
 
-Reescribir el hook para que se comporte de forma robusta en móvil:
+Deduplicar por contenido antes de acumular en `finalTranscriptRef`, y reiniciar el índice de resultados ya consumidos en cada sesión nueva.
 
-### 1. Usar `event.resultIndex` en vez de empezar desde 0
-Procesar solo los resultados nuevos desde `event.resultIndex` y **acumular** los `final` en una ref persistente, en vez de recalcular todo el string cada vez. Así eliminamos las repeticiones.
+### Cambios en `src/hooks/useVoiceNote.ts`
 
-### 2. Auto-reinicio en móvil cuando `onend` se dispara solo
-Mientras el usuario no haya pulsado "parar" (flag `shouldKeepRecordingRef`), si llega `onend` se vuelve a llamar a `recognition.start()` automáticamente. El usuario percibe una grabación continua aunque por debajo el motor reinicie.
+1. **Mantener un buffer por sesión** (`sessionFinalsRef`: array de strings finales ya vistos en la sesión actual). En cada `onresult`, en vez de `finalTranscriptRef.current += transcript`, hacer:
+   - Para cada índice `i` de un resultado `isFinal`, comparar `transcript` con `sessionFinalsRef.current[i]`.
+   - Si es nuevo o diferente (el motor a veces refina), reemplazar y reconstruir `finalTranscriptRef` como la concatenación de todo lo que **no** está ya en él.
+   - Mejor aún: tratar los finales de la sesión como un array indexado por `i`. El texto total = `previousSessionsText + sessionFinalsRef.current.join(' ')`.
 
-### 3. Manejo de errores típicos de móvil
-- `no-speech`, `audio-capture`, `network`: reintentar en vez de cortar.
-- `not-allowed`: avisar de permisos de micrófono.
-- `aborted`: parada intencional, no reintentar.
+2. **Separar texto de sesiones anteriores** del texto de la sesión actual:
+   - `committedTextRef`: texto ya cerrado de sesiones anteriores (lo que había en `sessionFinalsRef` cuando se disparó `onend`).
+   - `sessionFinalsRef`: array de finales de la sesión activa, indexado por posición del resultado.
+   - En `onend` (cuando vamos a reiniciar): mover `sessionFinalsRef.current.join(' ')` a `committedTextRef.current` y vaciar `sessionFinalsRef`.
+   - En `onresult`: `sessionFinalsRef.current[i] = transcript` para cada final (sobrescribe si el motor refina), y mostramos `committedTextRef + sessionFinalsRef.join(' ') + interim`.
 
-### 4. Mantener interim text aparte
-El texto provisional (interim) se muestra pero no se acumula al `final` hasta que llega como `isFinal`, evitando que se duplique al reiniciar.
+3. **Deduplicación adicional anti-solape entre sesiones**: cuando movemos texto de sesión a `committedTextRef`, comprobar si el principio del nuevo texto ya estaba al final del anterior (algunos motores móviles repiten el último segmento al reanudar). Si hay solape de N caracteres, recortarlo.
 
-### Esquema del nuevo flujo
+4. **Resetear ambas refs en `startRecording` y `openDialog`**, y en `finishRecording` leer `committedTextRef + sessionFinalsRef.join(' ')`.
+
+### Esquema
 
 ```text
-start() → shouldKeepRecording = true → recognition.start()
-        ↓
-   onresult (resultIndex=N)
-        ↓
-   acumular nuevos finales en finalRef
-   mostrar finalRef + interim
-        ↓
-   onend (móvil corta solo)
-        ↓
-   ¿shouldKeepRecording? → sí → recognition.start() de nuevo
-                        → no → setIsRecording(false)
+sesión 1: sessionFinalsRef = ["hola", "buenas tardes"]
+display = "" + "hola buenas tardes" + interim
 
-stop() → shouldKeepRecording = false → recognition.stop()
+onend → committedTextRef = "hola buenas tardes"
+        sessionFinalsRef = []
+
+sesión 2 arranca, motor manda de nuevo "buenas tardes" como final[0]
+        sessionFinalsRef = ["buenas tardes"]
+        antes de mostrar: detectar solape con final de committedText → recortar
+display = "hola buenas tardes" (sin duplicar)
+
+usuario sigue hablando → sessionFinalsRef = ["buenas tardes", "estoy en obra"]
+display = "hola buenas tardes estoy en obra"
 ```
 
 ## Archivos a modificar
 
-- **`src/hooks/useVoiceNote.ts`** — reescribir `startRecording`, `stopRecording` y los handlers `onresult` / `onend` / `onerror` con la lógica anterior. Añadir refs para `finalTranscriptRef` y `shouldKeepRecordingRef`.
-
-No hace falta tocar `VoiceNoteDialog.tsx` ni los componentes consumidores: la API pública del hook (`startRecording`, `stopRecording`, `rawTranscript`, etc.) se mantiene igual.
+- `src/hooks/useVoiceNote.ts` — lógica de acumulación y deduplicación descrita arriba. La API pública del hook no cambia.
 
 ## Resultado esperado
 
-- En móvil la grabación dura todo lo que el usuario quiera, sin cortes.
-- No se repiten frases en textos largos.
-- En escritorio sigue funcionando exactamente igual que ahora.
+- En móvil el texto crece de forma natural según hablas, sin repetir frases aunque el motor reinicie por debajo varias veces.
+- En escritorio sigue igual (allí solo hay una sesión continua, y `sessionFinalsRef` indexado funciona idéntico al comportamiento actual).
