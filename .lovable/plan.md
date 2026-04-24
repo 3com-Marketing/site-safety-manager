@@ -1,39 +1,69 @@
-## Problema
+# Arreglar grabación de voz en móvil
 
-En el editor de fotos del técnico (`FotoEditor.tsx`), el panel lateral de "Señales de obra" funciona en escritorio y tablet, pero en móvil (viewport ~390px) no es usable:
+## El problema
 
-- El panel siempre se renderiza como una columna lateral fija de `w-48` (192px) al lado del canvas.
-- En un móvil de 390px de ancho, abrir ese panel deja apenas ~180px para el canvas, y al estar el botón "Señales" en una toolbar que ya hace overflow, en pantallas estrechas queda fuera de vista o el panel resulta inutilizable.
-- Resultado: en móvil el usuario no consigue acceder a las señales.
+En móvil (sobre todo Chrome Android y Safari iOS), la `Web Speech API` se comporta de forma muy distinta que en escritorio:
 
-## Solución
+1. **Se corta sola a los pocos segundos**: Chrome Android dispara `onend` automáticamente tras ~5–10 s de silencio, aunque hayas puesto `continuous = true`. En escritorio `continuous` funciona; en móvil se ignora en la práctica.
+2. **Repite frases en textos largos**: el bug clásico de `webkitSpeechRecognition` en Android. Cuando el motor reinicia internamente o concatena resultados, el array `event.results` incluye desde índice 0 todos los resultados anteriores. Como el código actual recorre `for (let i = 0; i < event.results.length; i++)` y **sobreescribe** `rawTranscript` con todo concatenado, cada vez que llega un nuevo trozo se vuelven a añadir los anteriores → frases duplicadas y multiplicadas.
 
-Renderizar el panel de señales de forma **adaptativa según el ancho de pantalla**:
+Código actual problemático en `src/hooks/useVoiceNote.ts`:
+```ts
+recognition.onresult = (event: any) => {
+  let final = '';
+  let interim = '';
+  for (let i = 0; i < event.results.length; i++) { // recorre TODO el histórico
+    ...
+  }
+  setRawTranscript(final + interim); // sobreescribe con todo
+};
+recognition.onend = () => { setIsRecording(false); }; // en móvil se dispara solo
+```
 
-- **Escritorio / tablet (≥768px)**: mantener el comportamiento actual — panel lateral de 192px que reduce el canvas.
-- **Móvil (<768px)**: el panel de señales se abre como un **bottom sheet** (cajón inferior) que ocupa todo el ancho, con altura ~45% de la pantalla, scroll vertical y un grid de señales más cómodo (3-4 columnas según quepa). El canvas no se redimensiona; el sheet se superpone con un overlay y se cierra tocando fuera, la X o seleccionando una señal.
+## La solución
 
-Adicionalmente, en la toolbar móvil:
-- El botón "Señales" se mantiene visible y accesible (asegurar que no se pierda en el flex-wrap haciéndolo más compacto: solo icono 🚧 sin la palabra en pantallas muy estrechas, o reordenándolo antes del separador final para que sea de los primeros visibles).
+Reescribir el hook para que se comporte de forma robusta en móvil:
 
-## Detalle técnico
+### 1. Usar `event.resultIndex` en vez de empezar desde 0
+Procesar solo los resultados nuevos desde `event.resultIndex` y **acumular** los `final` en una ref persistente, en vez de recalcular todo el string cada vez. Así eliminamos las repeticiones.
 
-Archivo a modificar: `src/components/visita/FotoEditor.tsx`
+### 2. Auto-reinicio en móvil cuando `onend` se dispara solo
+Mientras el usuario no haya pulsado "parar" (flag `shouldKeepRecordingRef`), si llega `onend` se vuelve a llamar a `recognition.start()` automáticamente. El usuario percibe una grabación continua aunque por debajo el motor reinicie.
 
-1. Añadir hook `useIsMobile()` (ya existe en `src/hooks/use-mobile.tsx`) para detectar `<768px`.
-2. En `getCanvasSize()`: si es móvil, no descontar los 192px del ancho aunque `showSigns` esté activo (el panel se superpone, no empuja).
-3. Renderizado condicional del panel:
-   - Si `!isMobile`: render actual (columna lateral `w-48`).
-   - Si `isMobile && showSigns`: usar el componente `Sheet` de shadcn (`@/components/ui/sheet`) con `side="bottom"` y altura `h-[50vh]`, conteniendo el mismo grid de señales (ajustar a `grid-cols-4` para móvil).
-4. Al hacer click en una señal en móvil, cerrar el sheet automáticamente para que el usuario vea el canvas y pueda colocarla.
-5. En la toolbar, en móvil mostrar solo el icono 🚧 sin texto "Señales" para ahorrar espacio.
+### 3. Manejo de errores típicos de móvil
+- `no-speech`, `audio-capture`, `network`: reintentar en vez de cortar.
+- `not-allowed`: avisar de permisos de micrófono.
+- `aborted`: parada intencional, no reintentar.
 
-No cambia nada de la lógica de fabric, ni del guardado, ni del catálogo de señales.
+### 4. Mantener interim text aparte
+El texto provisional (interim) se muestra pero no se acumula al `final` hasta que llega como `isFinal`, evitando que se duplique al reiniciar.
 
-## Archivos a editar
+### Esquema del nuevo flujo
 
-- `src/components/visita/FotoEditor.tsx`
+```text
+start() → shouldKeepRecording = true → recognition.start()
+        ↓
+   onresult (resultIndex=N)
+        ↓
+   acumular nuevos finales en finalRef
+   mostrar finalRef + interim
+        ↓
+   onend (móvil corta solo)
+        ↓
+   ¿shouldKeepRecording? → sí → recognition.start() de nuevo
+                        → no → setIsRecording(false)
+
+stop() → shouldKeepRecording = false → recognition.stop()
+```
+
+## Archivos a modificar
+
+- **`src/hooks/useVoiceNote.ts`** — reescribir `startRecording`, `stopRecording` y los handlers `onresult` / `onend` / `onerror` con la lógica anterior. Añadir refs para `finalTranscriptRef` y `shouldKeepRecordingRef`.
+
+No hace falta tocar `VoiceNoteDialog.tsx` ni los componentes consumidores: la API pública del hook (`startRecording`, `stopRecording`, `rawTranscript`, etc.) se mantiene igual.
 
 ## Resultado esperado
 
-En móvil, al pulsar "🚧" en la toolbar del editor de fotos, se abre un cajón inferior con todas las señales de obra. Al tocar una, se añade al canvas y el cajón se cierra. En tablet y escritorio el comportamiento no cambia.
+- En móvil la grabación dura todo lo que el usuario quiera, sin cortes.
+- No se repiten frases en textos largos.
+- En escritorio sigue funcionando exactamente igual que ahora.
