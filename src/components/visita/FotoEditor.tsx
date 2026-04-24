@@ -465,7 +465,7 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
           <canvas ref={canvasRef} />
         </div>
 
-        {showSigns && (
+        {showSigns && !isMobile && (
           <div className="w-48 border-l border-border p-2 overflow-y-auto bg-card">
             <p className="text-xs font-semibold mb-2">Señales de obra</p>
             <div className="grid grid-cols-3 gap-2">
@@ -487,6 +487,33 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
           </div>
         )}
       </div>
+
+      {/* Mobile: signs as bottom sheet */}
+      {isMobile && (
+        <Sheet open={showSigns} onOpenChange={setShowSigns}>
+          <SheetContent side="bottom" className="h-[55vh] p-4 overflow-y-auto z-[60]">
+            <SheetHeader className="mb-3">
+              <SheetTitle className="text-sm">Señales de obra</SheetTitle>
+            </SheetHeader>
+            <div className="grid grid-cols-4 gap-3">
+              {SIGNOS_OBRA.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => { addSign(s); setShowSigns(false); }}
+                  className="flex flex-col items-center gap-1 p-2 rounded-lg active:bg-muted transition-colors"
+                  title={s.nombre}
+                >
+                  <div
+                    className="w-12 h-12"
+                    dangerouslySetInnerHTML={{ __html: s.svg }}
+                  />
+                  <span className="text-[10px] text-muted-foreground text-center leading-tight">{s.nombre}</span>
+                </button>
+              ))}
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   );
 }
