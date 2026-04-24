@@ -194,18 +194,74 @@ export default function SelectObra() {
       </div>
 
       {/* GPS requesting dialog */}
-      <Dialog open={geo.status === 'requesting'}>
+      <Dialog open={geo.status === 'requesting'} onOpenChange={(open) => { if (!open) cancelGeo(); }}>
         <DialogContent className="max-w-xl text-center">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-center gap-2">
               <MapPin className="h-5 w-5 text-primary" />
               Obteniendo ubicación
             </DialogTitle>
+            <DialogDescription className="text-center">
+              Permite el acceso a tu ubicación para registrar el punto de inicio de la visita.
+            </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center gap-3 py-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Permite el acceso a tu ubicación para registrar el punto de inicio de la visita.</p>
           </div>
+          <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+            <Button variant="outline" onClick={cancelGeo}>Cancelar</Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                if (geo.status === 'requesting') {
+                  const obraId = geo.obraId;
+                  cancelRef.current = true;
+                  createVisita(obraId, null, null);
+                }
+              }}
+            >
+              Continuar sin ubicación
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* GPS error dialog */}
+      <Dialog open={geo.status === 'error'} onOpenChange={(open) => { if (!open) setGeo({ status: 'idle' }); }}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              No se pudo obtener tu ubicación
+            </DialogTitle>
+            <DialogDescription>
+              {geo.status === 'error' && geo.kind === 'denied' && 'Has denegado el permiso de ubicación. Habilítalo en los ajustes del navegador para registrar el punto de inicio de la visita.'}
+              {geo.status === 'error' && geo.kind === 'timeout' && 'La búsqueda de tu ubicación ha tardado demasiado. Sal a un sitio con mejor señal GPS o continúa sin ubicación.'}
+              {geo.status === 'error' && geo.kind === 'unavailable' && 'Tu dispositivo no puede determinar la ubicación ahora mismo. Puedes reintentar o continuar sin ubicación.'}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+            <Button variant="outline" onClick={() => setGeo({ status: 'idle' })}>Cerrar</Button>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  if (geo.status === 'error') createVisita(geo.obraId, null, null);
+                }}
+              >
+                Continuar sin ubicación
+              </Button>
+              {geo.status === 'error' && geo.kind !== 'denied' && (
+                <Button
+                  onClick={() => {
+                    if (geo.status === 'error') handleSelectObra(geo.obraId);
+                  }}
+                >
+                  Reintentar
+                </Button>
+              )}
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
