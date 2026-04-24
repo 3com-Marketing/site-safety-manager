@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { SIGNOS_OBRA, type SignoObra } from './editorSignos';
 import * as fabric from 'fabric';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type Tool = 'select' | 'arrow' | 'circle' | 'rect' | 'text' | 'free';
 
@@ -44,6 +46,7 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
   const [showSigns, setShowSigns] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const isMobile = useIsMobile();
 
   // History via refs to avoid stale closures
   const historyRef = useRef<string[]>([]);
@@ -55,11 +58,12 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
   const tempObjRef = useRef<fabric.FabricObject | null>(null);
 
   const getCanvasSize = useCallback(() => {
-    const signsW = showSigns ? 192 : 0;
+    // On mobile, the signs panel is a bottom sheet overlay — don't shrink the canvas
+    const signsW = !isMobile && showSigns ? 192 : 0;
     const w = window.innerWidth - signsW - 16;
     const h = window.innerHeight - TOOLBAR_HEIGHT - 16;
     return { w: Math.max(w, 400), h: Math.max(h, 300) };
-  }, [showSigns]);
+  }, [showSigns, isMobile]);
 
   const saveHistory = useCallback((c: fabric.Canvas) => {
     // Only serialize objects, not backgroundImage (avoids revoked blob URL issue)
@@ -436,9 +440,9 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
 
         <div className="flex-1" />
 
-        <Button variant="ghost" size="sm" onClick={() => setShowSigns(!showSigns)} className="h-8 text-xs gap-1">
-          🚧 Señales
-          {showSigns ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+        <Button variant="ghost" size="sm" onClick={() => setShowSigns(!showSigns)} className="h-8 text-xs gap-1 px-2">
+          🚧 <span className="hidden sm:inline">Señales</span>
+          {!isMobile && (showSigns ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />)}
         </Button>
 
         <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0 text-white hover:text-white">
@@ -461,7 +465,7 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
           <canvas ref={canvasRef} />
         </div>
 
-        {showSigns && (
+        {showSigns && !isMobile && (
           <div className="w-48 border-l border-border p-2 overflow-y-auto bg-card">
             <p className="text-xs font-semibold mb-2">Señales de obra</p>
             <div className="grid grid-cols-3 gap-2">
@@ -483,6 +487,33 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
           </div>
         )}
       </div>
+
+      {/* Mobile: signs as bottom sheet */}
+      {isMobile && (
+        <Sheet open={showSigns} onOpenChange={setShowSigns}>
+          <SheetContent side="bottom" className="h-[55vh] p-4 overflow-y-auto z-[60]">
+            <SheetHeader className="mb-3">
+              <SheetTitle className="text-sm">Señales de obra</SheetTitle>
+            </SheetHeader>
+            <div className="grid grid-cols-4 gap-3">
+              {SIGNOS_OBRA.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => { addSign(s); setShowSigns(false); }}
+                  className="flex flex-col items-center gap-1 p-2 rounded-lg active:bg-muted transition-colors"
+                  title={s.nombre}
+                >
+                  <div
+                    className="w-12 h-12"
+                    dangerouslySetInnerHTML={{ __html: s.svg }}
+                  />
+                  <span className="text-[10px] text-muted-foreground text-center leading-tight">{s.nombre}</span>
+                </button>
+              ))}
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   );
 }
