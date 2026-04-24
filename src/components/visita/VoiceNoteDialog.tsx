@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Mic, MicOff, Sparkles, Loader2, Scale, StopCircle } from 'lucide-react';
 import type { VoiceDialogStep } from '@/hooks/useVoiceNote';
@@ -53,6 +54,11 @@ export default function VoiceNoteDialog({
             {dialogStep === 'improving' && 'Mejorando texto...'}
             {dialogStep === 'reviewing' && 'Revisar nota'}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            {dialogStep === 'recording' && 'Dicta tu nota por voz y revísala antes de guardar.'}
+            {dialogStep === 'improving' && 'Procesando el texto con inteligencia artificial.'}
+            {dialogStep === 'reviewing' && 'Revisa y edita el texto antes de guardarlo.'}
+          </DialogDescription>
         </DialogHeader>
 
         {dialogStep === 'recording' && (
