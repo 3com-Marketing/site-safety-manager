@@ -145,6 +145,7 @@ export default function SelectObra() {
       navigate(`/visita/${visita.id}`);
     } catch (err) {
       console.error(err);
+      toast.error('No se pudo crear la visita');
       setGeo({ status: 'idle' });
     }
   };
