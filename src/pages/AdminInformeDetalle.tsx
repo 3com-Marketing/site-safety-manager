@@ -352,6 +352,12 @@ export default function AdminInformeDetalle() {
         visitaId={visitaId || undefined}
         onSave={handleSaveFoto}
       />
+      <ConfirmarFirmaDialog
+        open={firmaDialogOpen}
+        onClose={() => setFirmaDialogOpen(false)}
+        firmaPerfilUrl={firmaPerfilUrl}
+        onConfirm={closeWithFirma}
+      />
       <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-card px-6 py-4">
         <Button variant="ghost" size="icon" onClick={() => navigate('/admin')}>
           <ArrowLeft className="h-5 w-5" />
