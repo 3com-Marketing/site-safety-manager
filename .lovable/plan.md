@@ -1,27 +1,25 @@
-## Cambios en el dashboard admin (`AdminInformes.tsx`)
+## Añadir filtro "Cerrado" en el dashboard admin
 
-Dos ajustes pequeños sobre la lista de visitas y la lista de informes. Sin tocar fetching, tipos, navegación ni filtros.
+Hoy en `src/pages/AdminInformes.tsx` los chips de estado son: **Todos · En progreso · Pendiente revisión · Borrador**. Falta **Cerrado**, así que un informe ya cerrado solo se ve mezclado dentro de "Todos" y no se puede aislar. El KPI "Cerrados este mes" cuenta pero no filtra la lista.
 
-### 1. Informes — limitar la lista
+### Cambios
 
-Hoy `informesFiltrados.map(...)` pinta todos los informes sin tope, igual que antes existía en visitas.
+1. **Nuevo chip "Cerrado"** en la barra de filtros, a la derecha de "Borrador". Mismo estilo que el resto, color activo naranja.
 
-- Aplicar el **mismo patrón que ya usa la columna de visitas**: mostrar 6 por defecto y un botón "Ver N más →" para expandir.
-- Nuevo estado: `showAllInformes` (boolean, default `false`).
-- Calcular `informesMostrados = showAllInformes ? informesFiltrados : informesFiltrados.slice(0, 6)` y `informesRestantes`.
-- Cuando se cambia cualquier filtro (chip estado, obra, KPI, alerta), resetear `showAllInformes` a `false` para que al filtrar la lista vuelva a estar plegada (mismo trato que conviene aplicar también a `showAllVisitas`, que actualmente no se resetea).
+2. **Lógica de filtrado de informes**: añadir la rama para `estadoChip === 'cerrado'` que filtre `informes` por `estado === 'cerrado'`.
 
-### 2. Visitas en progreso — botón para volver a colapsar
+3. **Columna de visitas cuando el chip es "Cerrado"**: ocultarla (devolver `[]`), igual que ya se hace con "Pendiente revisión" y "Borrador". Una visita en progreso no puede tener informe cerrado, así que tiene sentido vaciar esa columna y dejar al usuario centrado en los informes cerrados.
 
-Cuando el usuario pulsa "Ver N más →" la lista se expande pero no hay forma de plegarla otra vez.
+4. **KPI "Cerrados este mes"**: al hacer clic, además de marcarse como activo, activar el chip `cerrado` automáticamente (igual que "Informes pendientes" activa hoy `pendiente_revision`). Así el KPI y la lista quedan sincronizados.
 
-- Si `showAllVisitas === true` y `visitasFiltradas.length > 6`, mostrar al pie de la lista un botón **"Mostrar menos ↑"** que ponga `showAllVisitas` a `false` y haga scroll suave a `listsRef` para que la cabecera de filtros quede visible.
-- Mismo botón equivalente al pie de la lista de informes cuando estén expandidos.
+5. **Mensaje vacío**: ajustar el texto de "No hay informes" para cubrir también el caso `cerrado` (no se necesita un mensaje especial, el actual sirve).
 
 ### Detalles técnicos
 
-- Solo se edita `src/pages/AdminInformes.tsx`.
-- Estado nuevo: `const [showAllInformes, setShowAllInformes] = useState(false);`
-- Reset en los `setEstadoChip` / `setObraFilter` / `handleKpiClick` / `handleAlertClick` existentes: añadir `setShowAllVisitas(false); setShowAllInformes(false);`.
-- Botones "Ver N más" y "Mostrar menos" comparten el estilo actual (`w-full text-sm text-primary font-medium py-2 hover:underline`).
-- No se cambian queries Supabase, realtime, KPIs, alertas ni layout general.
+- Editar solo `src/pages/AdminInformes.tsx`.
+- Tipo `EstadoChip` pasa a aceptar `'cerrado'`.
+- Array `ESTADO_CHIPS` añade `{ value: 'cerrado', label: 'Cerrado' }`.
+- En el `useMemo` de `visitasFiltradas`: la condición que ya descarta `pendiente_revision` y `borrador` se amplía a `cerrado`.
+- En el `useMemo` de `informesFiltrados`: añadir `else if (estadoChip === 'cerrado') base = base.filter(i => i.estado === 'cerrado');`.
+- En `handleKpiClick('cerrados_mes')`: añadir `setEstadoChip('cerrado')` y `setSortMode('tiempo_desc')` o el orden que ya use ese KPI.
+- No se tocan queries, RLS, realtime, KPIs de la barra superior, alertas ni el resto del layout.

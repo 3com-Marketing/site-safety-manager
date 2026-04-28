@@ -32,7 +32,7 @@ interface InformeRow {
   obra_id?: string;
 }
 
-type EstadoChip = 'todos' | 'en_progreso' | 'pendiente_revision' | 'borrador';
+type EstadoChip = 'todos' | 'en_progreso' | 'pendiente_revision' | 'borrador' | 'cerrado';
 type SortMode = 'tiempo_desc' | 'tiempo_asc' | 'hora_entrada';
 type KpiKey = 'visitas_hoy' | 'tiempo_excedido' | 'pendientes' | 'cerrados_mes';
 
@@ -41,6 +41,7 @@ const ESTADO_CHIPS: { value: EstadoChip; label: string }[] = [
   { value: 'en_progreso', label: 'En progreso' },
   { value: 'pendiente_revision', label: 'Pendiente revisión' },
   { value: 'borrador', label: 'Borrador' },
+  { value: 'cerrado', label: 'Cerrado' },
 ];
 
 const HORAS_EXCEDIDO = 168;
@@ -294,6 +295,7 @@ export default function AdminInformes() {
     let base = informes;
     if (estadoChip === 'pendiente_revision') base = base.filter(i => i.estado === 'pendiente_revision');
     else if (estadoChip === 'borrador') base = base.filter(i => i.estado === 'borrador');
+    else if (estadoChip === 'cerrado') base = base.filter(i => i.estado === 'cerrado');
     if (obraFilter !== 'todas') base = base.filter(i => i.obra_id === obraFilter);
     if (activeKpi === 'cerrados_mes') {
       base = base.filter(i => i.estado === 'cerrado' && new Date(i.fecha) >= monthStart);
@@ -327,7 +329,7 @@ export default function AdminInformes() {
     } else if (kpi === 'pendientes') {
       setEstadoChip('pendiente_revision');
     } else if (kpi === 'cerrados_mes') {
-      setEstadoChip('todos');
+      setEstadoChip('cerrado');
     }
     scrollToLists();
   };
