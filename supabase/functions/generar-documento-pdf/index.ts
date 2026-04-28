@@ -300,12 +300,7 @@ function templateActaAprobacion(doc: any, extra: any, obra: any, cliente: any, s
   }
 
   html += `<p style="margin-top:24pt;font-size:10pt;">En ${extra.lugar_firma || "_______________"}, a ${fechaStr}.</p>`;
-  html += `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:40pt;margin-top:60pt;">
-      <div style="border-top:1px solid #333;padding-top:8pt;text-align:center;font-size:9pt;">El Promotor</div>
-      <div style="border-top:1px solid #333;padding-top:8pt;text-align:center;font-size:9pt;">La Coordinadora de Seguridad y Salud</div>
-    </div>
-  `;
+  html += firmaRecuadros();
 
   return html;
 }
