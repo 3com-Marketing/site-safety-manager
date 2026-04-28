@@ -76,6 +76,7 @@ export default function FormActaAprobacion({ documento, obraId, tipo, onSave, sa
       setEmpresaContratistaDGPO(extra.empresa_contratista_dgpo || '');
       setCoordSSObra(extra.coord_ss_obra || '');
       setEmpresaContratistaPlan(extra.empresa_contratista_plan || '');
+      setFirmaActualUrl(extra.firma_url || null);
     } else if (defaultValues) {
       setActuacion(defaultValues.nombre_obra || '');
       setLocalidad(defaultValues.direccion_obra || '');
@@ -84,7 +85,28 @@ export default function FormActaAprobacion({ documento, obraId, tipo, onSave, sa
     }
   }, [documento, defaultValues]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    // Si hay una nueva firma dibujada, súbela primero
+    let firmaUrlFinal: string | null = firmaActualUrl;
+    let firmaAtFinal: string | null = (documento?.datos_extra as any)?.firma_at || null;
+
+    if (firmaPayload && 'blob' in firmaPayload) {
+      try {
+        const docKey = documento?.id || `nuevo_${Date.now()}`;
+        firmaUrlFinal = await uploadFirmaDocumento(docKey, firmaPayload.blob);
+        firmaAtFinal = new Date().toISOString();
+      } catch (e: any) {
+        console.error('Error subiendo firma:', e);
+      }
+    } else if (firmaPayload && 'useStored' in firmaPayload && firmaPerfilUrl) {
+      firmaUrlFinal = firmaPerfilUrl;
+      firmaAtFinal = new Date().toISOString();
+    } else if (firmaPayload === null && (documento?.datos_extra as any)?.firma_url) {
+      // El usuario quitó la firma
+      firmaUrlFinal = null;
+      firmaAtFinal = null;
+    }
+
     onSave({
       titulo: actuacion || (isDGPO ? 'Acta aprobación DGPO' : 'Acta aprobación Plan SyS'),
       fecha_documento: fechaDocumento || null,
@@ -94,6 +116,8 @@ export default function FormActaAprobacion({ documento, obraId, tipo, onSave, sa
         coord_ss_proyecto: coordSSProyecto, autor_estudio_ss: autorEstudioSS,
         director_obra: directorObra, lugar_firma: lugarFirma,
         texto_legal: textoLegal,
+        firma_url: firmaUrlFinal,
+        firma_at: firmaAtFinal,
         ...(isDGPO
           ? { coord_actividades_empresariales: coordActividadesEmpresariales, empresa_contratista_dgpo: empresaContratistaDGPO }
           : { coord_ss_obra: coordSSObra, empresa_contratista_plan: empresaContratistaPlan }),
