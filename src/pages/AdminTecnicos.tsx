@@ -88,7 +88,11 @@ export default function AdminTecnicos() {
 
   const filteredTecnicos = tecnicos.filter(t => (t.tipo || 'tecnico') === activeTab);
 
-  const openCreate = (tipo: string) => { setEditId(null); setForm({ ...emptyForm, tipo }); setSelectedObras([]); setDialogOpen(true); };
+  const openCreate = (tipo: string) => {
+    setEditId(null); setForm({ ...emptyForm, tipo }); setSelectedObras([]);
+    setFirmaPendiente(null); setFirmaUrlActual(null); setFirmaActualizadaAt(null);
+    setDialogOpen(true);
+  };
   const openEdit = (t: Tecnico) => {
     setEditId(t.id);
     setForm({
@@ -100,6 +104,9 @@ export default function AdminTecnicos() {
       notas: t.notas, user_id: t.user_id || '', tipo: t.tipo || 'tecnico',
     });
     setSelectedObras(tecnicoObras[t.id] || []);
+    setFirmaPendiente(null);
+    setFirmaUrlActual(t.firma_url || null);
+    setFirmaActualizadaAt(t.firma_actualizada_at || null);
     setDialogOpen(true);
   };
   const openView = (t: Tecnico) => { setViewTecnico(t); setViewDialogOpen(true); };
