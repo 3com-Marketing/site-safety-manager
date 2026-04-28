@@ -203,6 +203,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       setTextoPunto13(extra.texto_punto13 || '');
       setPunto13Procede(extra.punto13_procede || 'no_procede');
       setPunto13TextoProcede(extra.punto13_texto_procede || '');
+      setFirmaActualUrl(extra.firma_url || null);
     } else if (defaultValues) {
       setObraActuacion(defaultValues.nombre_obra || '');
       setLocalidad(defaultValues.direccion_obra || '');
@@ -324,7 +325,26 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
     setRiesgos(prev => prev.includes(r) ? prev.filter(x => x !== r) : [...prev, r]);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    let firmaUrlFinal: string | null = firmaActualUrl;
+    let firmaAtFinal: string | null = (documento?.datos_extra as any)?.firma_at || null;
+
+    if (firmaPayload && 'blob' in firmaPayload) {
+      try {
+        const docKey = documento?.id || `nuevo_${Date.now()}`;
+        firmaUrlFinal = await uploadFirmaDocumento(docKey, firmaPayload.blob);
+        firmaAtFinal = new Date().toISOString();
+      } catch (e: any) {
+        console.error('Error subiendo firma:', e);
+      }
+    } else if (firmaPayload && 'useStored' in firmaPayload && firmaPerfilUrl) {
+      firmaUrlFinal = firmaPerfilUrl;
+      firmaAtFinal = new Date().toISOString();
+    } else if (firmaPayload === null && (documento?.datos_extra as any)?.firma_url) {
+      firmaUrlFinal = null;
+      firmaAtFinal = null;
+    }
+
     const datosExtra: Record<string, any> = {
       obra_actuacion: obraActuacion, localidad, lugar_reunion: lugarReunion,
       fecha_hora_reunion: fechaHora,
