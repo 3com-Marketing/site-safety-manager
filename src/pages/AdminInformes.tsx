@@ -585,7 +585,7 @@ export default function AdminInformes() {
               </Card>
             ) : (
               <div className="space-y-2">
-                {informesFiltrados.map(inf => (
+                {informesMostrados.map(inf => (
                   <button
                     key={inf.id}
                     onClick={() => navigate(`/admin/informe/${inf.id}`)}
@@ -609,6 +609,22 @@ export default function AdminInformes() {
                     </div>
                   </button>
                 ))}
+                {informesRestantes > 0 && (
+                  <button
+                    onClick={() => setShowAllInformes(true)}
+                    className="w-full text-sm text-primary font-medium py-2 hover:underline"
+                  >
+                    Ver {informesRestantes} más →
+                  </button>
+                )}
+                {showAllInformes && informesFiltrados.length > 6 && (
+                  <button
+                    onClick={collapseInformes}
+                    className="w-full text-sm text-primary font-medium py-2 hover:underline"
+                  >
+                    Mostrar menos ↑
+                  </button>
+                )}
               </div>
             )}
           </section>
