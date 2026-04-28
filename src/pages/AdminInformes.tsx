@@ -113,8 +113,15 @@ export default function AdminInformes() {
   const [sortMode, setSortMode] = useState<SortMode>('tiempo_desc');
   const [activeKpi, setActiveKpi] = useState<KpiKey | null>(null);
   const [showAllVisitas, setShowAllVisitas] = useState(false);
+  const [showAllInformes, setShowAllInformes] = useState(false);
 
   const listsRef = useRef<HTMLDivElement>(null);
+
+  // Reset expand state when filters change
+  useEffect(() => {
+    setShowAllVisitas(false);
+    setShowAllInformes(false);
+  }, [estadoChip, obraFilter, activeKpi]);
 
   useEffect(() => {
     const fetchAll = async () => {
