@@ -21,6 +21,7 @@ import AdminDocumentoPreview from "./pages/AdminDocumentoPreview";
 import TechDocumentos from "./pages/TechDocumentos";
 import TechDocumentoDetalle from "./pages/TechDocumentoDetalle";
 import AdminConfiguracion from "./pages/AdminConfiguracion";
+import AdminCalendario from "./pages/AdminCalendario";
 import RoleSwitcher from "./components/RoleSwitcher";
 import ErrorBoundary from "./components/ErrorBoundary";
 
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/documentos" element={<TechDocumentos />} />
             <Route path="/documento/:id" element={<TechDocumentoDetalle />} />
             <Route path="/admin/configuracion" element={<AdminConfiguracion />} />
+            <Route path="/admin/calendario" element={<AdminCalendario />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           </ErrorBoundary>
