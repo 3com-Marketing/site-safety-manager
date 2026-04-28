@@ -164,11 +164,16 @@ function templateActaNombramiento(doc: any, extra: any, obra: any, cliente: any,
     ? new Date(doc.fecha_documento).toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" })
     : "_______________";
 
-  let html = `
-    <div style="text-align:center;margin-bottom:20pt;">
-      ${safeworkLogo ? `<img src="${safeworkLogo}" alt="Logo" style="max-height:80pt;max-width:240pt;object-fit:contain;margin-bottom:16pt;" />` : ""}
-      <h1 style="font-size:16pt;color:#1a1a1a;font-weight:bold;margin:0;">ACTA DE NOMBRAMIENTO</h1>
-      <p style="font-size:10pt;color:#666;margin-top:6pt;">${subtitulo}</p>
+  const isNombramiento = doc.tipo?.startsWith("acta_nombramiento");
+  const compactStyle = isNombramiento
+    ? `<style>@page { margin: 1.2cm 1.5cm !important; size: A4; }</style>`
+    : "";
+
+  let html = compactStyle + `
+    <div style="text-align:center;margin:0 0 8pt 0;">
+      ${safeworkLogo ? `<img src="${safeworkLogo}" alt="Logo" style="max-height:46pt;max-width:160pt;object-fit:contain;margin-bottom:4pt;" />` : ""}
+      <h1 style="font-size:13pt;color:#1a1a1a;font-weight:bold;margin:0;">ACTA DE NOMBRAMIENTO</h1>
+      <p style="font-size:8.5pt;color:#666;margin:2pt 0 0 0;">${subtitulo}</p>
     </div>
   `;
 
@@ -177,10 +182,10 @@ function templateActaNombramiento(doc: any, extra: any, obra: any, cliente: any,
     ["Emplazamiento:", extra.emplazamiento || ""],
     ["Tipo de obra:", extra.tipo_obra || ""],
   ];
-  html += `<h2 style="font-size:11pt;font-weight:bold;border-bottom:2px solid #E63027;padding-bottom:4pt;margin-top:20pt;">DATOS DEL PROYECTO</h2>`;
-  html += `<table style="width:100%;border-collapse:collapse;margin:8pt 0;">`;
+  html += `<h2 style="font-size:9.5pt;font-weight:bold;border-bottom:1.5px solid #E63027;padding-bottom:2pt;margin:8pt 0 3pt 0;">DATOS DEL PROYECTO</h2>`;
+  html += `<table style="width:100%;border-collapse:collapse;margin:2pt 0;">`;
   for (const [label, value] of datosProyecto) {
-    html += `<tr><td style="border:1px solid #999;padding:6pt 10pt;font-size:9pt;font-weight:bold;width:35%;background:#f5f5f5;">${label}</td><td style="border:1px solid #999;padding:6pt 10pt;font-size:9pt;">${value}</td></tr>`;
+    html += `<tr><td style="border:1px solid #999;padding:2.5pt 6pt;font-size:8.5pt;font-weight:bold;width:35%;background:#f5f5f5;">${label}</td><td style="border:1px solid #999;padding:2.5pt 6pt;font-size:8.5pt;">${value}</td></tr>`;
   }
   html += `</table>`;
 
@@ -189,10 +194,10 @@ function templateActaNombramiento(doc: any, extra: any, obra: any, cliente: any,
     ["CIF:", doc.cif_promotor || ""],
     ["Domicilio:", doc.domicilio_promotor || ""],
   ];
-  html += `<h2 style="font-size:11pt;font-weight:bold;border-bottom:2px solid #E63027;padding-bottom:4pt;margin-top:20pt;">DATOS DEL PROMOTOR</h2>`;
-  html += `<table style="width:100%;border-collapse:collapse;margin:8pt 0;">`;
+  html += `<h2 style="font-size:9.5pt;font-weight:bold;border-bottom:1.5px solid #E63027;padding-bottom:2pt;margin:8pt 0 3pt 0;">DATOS DEL PROMOTOR</h2>`;
+  html += `<table style="width:100%;border-collapse:collapse;margin:2pt 0;">`;
   for (const [label, value] of datosPromotor) {
-    html += `<tr><td style="border:1px solid #999;padding:6pt 10pt;font-size:9pt;font-weight:bold;width:35%;background:#f5f5f5;">${label}</td><td style="border:1px solid #999;padding:6pt 10pt;font-size:9pt;">${value}</td></tr>`;
+    html += `<tr><td style="border:1px solid #999;padding:2.5pt 6pt;font-size:8.5pt;font-weight:bold;width:35%;background:#f5f5f5;">${label}</td><td style="border:1px solid #999;padding:2.5pt 6pt;font-size:8.5pt;">${value}</td></tr>`;
   }
   html += `</table>`;
 
@@ -207,23 +212,23 @@ function templateActaNombramiento(doc: any, extra: any, obra: any, cliente: any,
     ["Móvil:", doc.movil_coordinador || ""],
     ["Email:", doc.email_coordinador || ""],
   ];
-  html += `<h2 style="font-size:11pt;font-weight:bold;border-bottom:2px solid #E63027;padding-bottom:4pt;margin-top:20pt;">${coordTitle}</h2>`;
-  html += `<table style="width:100%;border-collapse:collapse;margin:8pt 0;">`;
+  html += `<h2 style="font-size:9.5pt;font-weight:bold;border-bottom:1.5px solid #E63027;padding-bottom:2pt;margin:8pt 0 3pt 0;">${coordTitle}</h2>`;
+  html += `<table style="width:100%;border-collapse:collapse;margin:2pt 0;">`;
   for (const [label, value] of datosCoord) {
-    html += `<tr><td style="border:1px solid #999;padding:6pt 10pt;font-size:9pt;font-weight:bold;width:35%;background:#f5f5f5;">${label}</td><td style="border:1px solid #999;padding:6pt 10pt;font-size:9pt;">${value}</td></tr>`;
+    html += `<tr><td style="border:1px solid #999;padding:2.5pt 6pt;font-size:8.5pt;font-weight:bold;width:35%;background:#f5f5f5;">${label}</td><td style="border:1px solid #999;padding:2.5pt 6pt;font-size:8.5pt;">${value}</td></tr>`;
   }
   html += `</table>`;
 
   const textoLegal = extra.texto_legal || "";
   if (textoLegal) {
-    html += `<div style="margin-top:20pt;font-size:10pt;line-height:1.6;text-align:justify;">${renderRichText(textoLegal)}</div>`;
+    html += `<div style="margin-top:8pt;font-size:8.5pt;line-height:1.35;text-align:justify;">${renderRichText(textoLegal)}</div>`;
   }
 
-  html += `<p style="margin-top:24pt;font-size:10pt;">En ${extra.lugar_firma || "_______________"}, a ${fechaStr}.</p>`;
+  html += `<p style="margin-top:10pt;font-size:9pt;">En ${extra.lugar_firma || "_______________"}, a ${fechaStr}.</p>`;
   html += `
-    <div style="display:flex;justify-content:space-around;margin-top:60pt;">
-      <div style="text-align:center;"><div style="border-top:1px solid #333;width:200pt;padding-top:8pt;font-size:9pt;">${firmaLabel1}</div></div>
-      <div style="text-align:center;"><div style="border-top:1px solid #333;width:200pt;padding-top:8pt;font-size:9pt;">${firmaLabel2}</div></div>
+    <div style="display:flex;justify-content:space-around;margin-top:30pt;">
+      <div style="text-align:center;"><div style="border-top:1px solid #333;width:180pt;padding-top:5pt;font-size:8.5pt;">${firmaLabel1}</div></div>
+      <div style="text-align:center;"><div style="border-top:1px solid #333;width:180pt;padding-top:5pt;font-size:8.5pt;">${firmaLabel2}</div></div>
     </div>
   `;
 
