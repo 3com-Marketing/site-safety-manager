@@ -51,6 +51,11 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
   const [recomendaciones, setRecomendaciones] = useState('');
   const [normativa, setNormativa] = useState('');
 
+  // Firma digital
+  const { firmaUrl: firmaPerfilUrl } = useFirmaPerfilUrl();
+  const [firmaActualUrl, setFirmaActualUrl] = useState<string | null>(null);
+  const [firmaPayload, setFirmaPayload] = useState<{ useStored: true } | { blob: Blob } | null>(null);
+
   const effectiveObraId = obraId || documento?.obra_id || '';
   const effectiveTipo = tipo || documento?.tipo || '';
   const isAT = effectiveTipo === 'informe_at';
