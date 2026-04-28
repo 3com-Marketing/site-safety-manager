@@ -73,6 +73,7 @@ function informeStyles() {
     .cover .cover-contratista { font-size: 12pt; color: #333; margin-bottom: 20pt; }
     .cover .cover-fecha { font-size: 11pt; color: #666; }
     .cover .cover-line { width: 60%; height: 3px; background: #E63027; margin: 20pt auto; }
+    .cover .cover-semana { font-size: 13pt; font-weight: bold; color: #1a1a1a; margin-bottom: 24pt; text-align: center; letter-spacing: 1pt; }
 
     /* Running header */
     .running-header-left { position: running(header-left); }

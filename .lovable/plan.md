@@ -1,72 +1,73 @@
 ## Objetivo
 
-Aplicar la identidad cromática de **HC Seguridad y Salud** (hcseguridadysalud.com) a toda la app: UI, badges, sidebar, login y los PDFs de informes y documentos. El logo de HC es negro con un check rojo sobre fondo blanco/rojo; el naranja del casco aparece como acento de apoyo.
+En la portada de los informes (CSS y AT), añadir en la parte superior un banner con el número de semana ISO y el rango de fechas de **lunes a viernes** de esa semana, con el formato:
 
-## Paleta corporativa HC
+> **SEMANA Nº 30, DEL 20 AL 24 DE ABRIL DE 2026**
 
-| Token | Hex | HSL | Uso |
-|---|---|---|---|
-| **Primario (rojo HC)** | `#E63027` | `4 78% 53%` | Botones primarios, links, focus ring, barras de acento, headings de PDF |
-| **Primario hover** | `#C8221A` | `4 76% 45%` | Estado hover/active del primario |
-| **Acento (naranja casco)** | `#F37520` | `24 90% 54%` | Badges informativos, highlights secundarios, iconos destacados |
-| **Negro grafito** | `#1A1A1A` | `0 0% 10%` | Texto principal, sidebar, headings |
-| **Gris superficie** | `#F5F5F5` | `0 0% 96%` | Fondos de tarjetas/meta en PDFs |
-| **Gris borde** | `#E0E0E0` | `0 0% 88%` | Bordes y separadores |
-| **Blanco** | `#FFFFFF` | — | Fondo app |
-| **Estados** | success `#16A34A`, warning `#F59E0B`, destructive `#DC2626` | — | Se mantienen |
+Tal y como aparece en la portada física que usa actualmente HC Seguridad y Salud.
 
-Tipografía: se conserva (Space Grotesk + DM Sans).
+## Cambios
 
-## Cambios en código
+### 1. `supabase/functions/generar-documento-pdf/index.ts`
 
-### 1. `src/index.css` — tokens HSL globales
-Sustituir variables del `:root`:
+**a) Añadir helper para calcular semana ISO + rango lunes-viernes** (justo antes de `templateInforme`):
 
-- `--primary: 4 78% 53%` (era `24 95% 53%`)
-- `--ring: 4 78% 53%`
-- `--accent: 24 90% 54%` (naranja HC, era azul)
-- `--accent-foreground: 0 0% 100%`
-- `--sidebar-primary: 4 78% 53%`
-- `--sidebar-ring: 4 78% 53%`
-- Resto de tokens se mantienen.
+```ts
+function getSemanaInfo(fechaIso: string): { numero: number; texto: string } | null {
+  if (!fechaIso) return null;
+  const d = new Date(fechaIso);
+  if (isNaN(d.getTime())) return null;
 
-Esto repinta automáticamente: botones primarios, badges, focus rings, sidebar, indicadores activos en `AdminLayout`, switch de pivot del calendario, chips de visitas, etc. (todos consumen `hsl(var(--primary))`).
+  // Lunes de esa semana (ISO: lunes = 1)
+  const day = d.getUTCDay(); // 0=domingo..6=sábado
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const lunes = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + diffToMonday));
+  const viernes = new Date(lunes); viernes.setUTCDate(lunes.getUTCDate() + 4);
 
-### 2. `index.html` — meta theme-color
-- `<meta name="theme-color" content="#E63027" />` (era `#F37520`).
+  // Número de semana ISO 8601
+  const tmp = new Date(Date.UTC(lunes.getUTCFullYear(), lunes.getUTCMonth(), lunes.getUTCDate()));
+  const dayNum = tmp.getUTCDay() || 7;
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((tmp.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
 
-### 3. PDFs — `supabase/functions/generar-pdf/index.ts` y `supabase/functions/generar-documento-pdf/index.ts`
-Reemplazo masivo del color hardcoded `#F37520` por **`#E63027`** en:
-- `h1`, `h2` (títulos y bordes inferiores)
-- `.header` border-bottom
-- `.badge` background
-- `.normativa` y `.normativa-label` (pasa de naranja a rojo HC, fondo claro `#FDECEB`)
-- `.cover-tipo`, `.cover-line`, `.section-num`, `.toc-num`, `.rh-tipo`
-- Estilos inline en cabeceras de actas (nombramiento, aprobación, reunión)
+  const meses = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  const mismoMes = lunes.getUTCMonth() === viernes.getUTCMonth();
+  const mismoAnio = lunes.getUTCFullYear() === viernes.getUTCFullYear();
 
-Resultado: portadas, cabeceras y separadores en rojo HC, manteniendo cuerpo en negro grafito y tablas en grises.
+  let texto: string;
+  if (mismoMes && mismoAnio) {
+    texto = `DEL ${lunes.getUTCDate()} AL ${viernes.getUTCDate()} DE ${meses[viernes.getUTCMonth()].toUpperCase()} DE ${viernes.getUTCFullYear()}`;
+  } else if (mismoAnio) {
+    texto = `DEL ${lunes.getUTCDate()} DE ${meses[lunes.getUTCMonth()].toUpperCase()} AL ${viernes.getUTCDate()} DE ${meses[viernes.getUTCMonth()].toUpperCase()} DE ${viernes.getUTCFullYear()}`;
+  } else {
+    texto = `DEL ${lunes.getUTCDate()} DE ${meses[lunes.getUTCMonth()].toUpperCase()} DE ${lunes.getUTCFullYear()} AL ${viernes.getUTCDate()} DE ${meses[viernes.getUTCMonth()].toUpperCase()} DE ${viernes.getUTCFullYear()}`;
+  }
+  return { numero: weekNo, texto };
+}
+```
 
-### 4. `src/components/documentos/DocumentoStatusBadge.tsx` y `src/types/documentos.ts`
-Mantener semántica de estados (rojo = pendiente, verde = firmado…). **Sin cambios** — los colores de estado son funcionales, no de marca.
+**b) Estilo CSS** (añadir junto al resto de `.cover` ~líneas 68-75):
 
-### 5. Login y splash
-`src/pages/Login.tsx` ya usa `bg-primary` / `text-primary` → adopta el rojo automáticamente. No hace falta tocar.
+```css
+.cover .cover-semana { font-size: 13pt; font-weight: bold; color: #1a1a1a; margin-bottom: 30pt; text-align: center; letter-spacing: 1pt; }
+```
 
-### 6. Memoria del proyecto
-Actualizar `mem://index.md`:
-- Core: cambiar "Orange primary (#F37520)" por "Red primary (#E63027 — HC brand), orange accent (#F37520)".
+**c) En `templateInforme`**, calcular semana y renderizar el banner como **primer elemento** dentro de `.cover` (encima del logo):
 
-## Lo que NO se toca
+```ts
+const semana = getSemanaInfo(doc.fecha_documento);
+// ...
+<div class="cover">
+  ${semana ? `<div class="cover-semana">SEMANA Nº ${semana.numero}, ${semana.texto}</div>` : ""}
+  ${safeworkLogo ? `<img class="cover-logo" ... />` : ""}
+  ...
+</div>
+```
 
-- Lógica de negocio, hooks, queries.
-- Calendario, modales y panel lateral recientes.
-- Tipografías ni radios.
-- Esquema de BD ni RLS.
-- `client.ts`, `types.ts`, `.env`.
+## Notas
 
-## Verificación tras aplicar
-
-- Botones primarios, sidebar activo y focus ring en rojo HC.
-- Badges de tipo "acento" en naranja.
-- PDFs generados (informe y acta de nombramiento) con cabecera y separadores rojos.
-- Estados pendiente/firmado conservan colores semánticos.
+- Se usa `doc.fecha_documento` (ya disponible) como referencia para deducir la semana.
+- El cálculo es **ISO 8601** (semana empieza en lunes; semana 1 = la que contiene el primer jueves del año), que es el estándar usado en España.
+- Solo afecta a los informes (`templateInforme`), no a actas u otros documentos.
+- No se toca nada que ya funciona: solo se añade un helper, una regla CSS y una línea en la portada.
