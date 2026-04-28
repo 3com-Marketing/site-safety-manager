@@ -202,7 +202,43 @@ export default function AdminInformes() {
   const visitasFinalizadasHoy = useMemo(() =>
     visitasHoy.filter(v => v.estado === 'finalizada'), [visitasHoy]);
 
-  const filtered = filter === 'todos' ? informes : informes.filter(i => i.estado === filter);
+  const [activeKpi, setActiveKpi] = useState<'visitas_hoy' | 'en_progreso' | 'pendientes' | 'cerrados_mes' | null>(null);
+  const visitasProgresoRef = useRef<HTMLDivElement>(null);
+  const actividadHoyRef = useRef<HTMLDivElement>(null);
+  const informesRef = useRef<HTMLDivElement>(null);
+
+  const filtered = (() => {
+    let base = filter === 'todos' ? informes : informes.filter(i => i.estado === filter);
+    if (activeKpi === 'cerrados_mes') {
+      base = base.filter(i => i.estado === 'cerrado' && new Date(i.fecha) >= monthStart);
+    }
+    return base;
+  })();
+
+  const handleKpiClick = (kpi: 'visitas_hoy' | 'en_progreso' | 'pendientes' | 'cerrados_mes') => {
+    if (activeKpi === kpi) {
+      setActiveKpi(null);
+      if (kpi === 'pendientes' || kpi === 'cerrados_mes') setFilter('todos');
+      return;
+    }
+    setActiveKpi(kpi);
+    if (kpi === 'pendientes') setFilter('pendiente_revision');
+    else if (kpi === 'cerrados_mes') setFilter('cerrado');
+    else setFilter('todos');
+
+    setTimeout(() => {
+      const target =
+        kpi === 'visitas_hoy' ? actividadHoyRef.current :
+        kpi === 'en_progreso' ? visitasProgresoRef.current :
+        informesRef.current;
+      target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  };
+
+  const kpiCardClass = (active: boolean) =>
+    `text-left w-full rounded-lg border bg-card transition-all cursor-pointer hover:border-primary/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+      active ? 'border-primary bg-primary/5 shadow-sm' : 'border-border'
+    }`;
 
   if (loading) {
     return (
@@ -219,8 +255,13 @@ export default function AdminInformes() {
       <div className="space-y-8">
         {/* KPIs */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border-border">
-            <CardContent className="p-4 flex items-center gap-3">
+          <button
+            type="button"
+            aria-pressed={activeKpi === 'visitas_hoy'}
+            onClick={() => handleKpiClick('visitas_hoy')}
+            className={kpiCardClass(activeKpi === 'visitas_hoy')}
+          >
+            <div className="p-4 flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                 <HardHat className="h-5 w-5 text-primary" />
               </div>
@@ -228,10 +269,15 @@ export default function AdminInformes() {
                 <p className="text-2xl font-heading font-bold">{visitasHoy.length}</p>
                 <p className="text-xs text-muted-foreground">Visitas hoy</p>
               </div>
-            </CardContent>
-          </Card>
-          <Card className="border-border">
-            <CardContent className="p-4 flex items-center gap-3">
+            </div>
+          </button>
+          <button
+            type="button"
+            aria-pressed={activeKpi === 'en_progreso'}
+            onClick={() => handleKpiClick('en_progreso')}
+            className={kpiCardClass(activeKpi === 'en_progreso')}
+          >
+            <div className="p-4 flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-warning/10">
                 <Activity className="h-5 w-5 text-warning" />
               </div>
@@ -239,10 +285,15 @@ export default function AdminInformes() {
                 <p className="text-2xl font-heading font-bold">{visitasEnProgreso.length}</p>
                 <p className="text-xs text-muted-foreground">En progreso</p>
               </div>
-            </CardContent>
-          </Card>
-          <Card className="border-border">
-            <CardContent className="p-4 flex items-center gap-3">
+            </div>
+          </button>
+          <button
+            type="button"
+            aria-pressed={activeKpi === 'pendientes'}
+            onClick={() => handleKpiClick('pendientes')}
+            className={kpiCardClass(activeKpi === 'pendientes')}
+          >
+            <div className="p-4 flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-destructive/10">
                 <AlertTriangle className="h-5 w-5 text-destructive" />
               </div>
@@ -250,10 +301,15 @@ export default function AdminInformes() {
                 <p className="text-2xl font-heading font-bold">{informesPendientes.length}</p>
                 <p className="text-xs text-muted-foreground">Informes pendientes</p>
               </div>
-            </CardContent>
-          </Card>
-          <Card className="border-border">
-            <CardContent className="p-4 flex items-center gap-3">
+            </div>
+          </button>
+          <button
+            type="button"
+            aria-pressed={activeKpi === 'cerrados_mes'}
+            onClick={() => handleKpiClick('cerrados_mes')}
+            className={kpiCardClass(activeKpi === 'cerrados_mes')}
+          >
+            <div className="p-4 flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-success/10">
                 <CheckCircle2 className="h-5 w-5 text-success" />
               </div>
@@ -261,13 +317,13 @@ export default function AdminInformes() {
                 <p className="text-2xl font-heading font-bold">{informesCerradosMes.length}</p>
                 <p className="text-xs text-muted-foreground">Cerrados este mes</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </button>
         </div>
 
         {/* Visitas en progreso */}
         {visitasEnProgreso.length > 0 && (
-          <div className="space-y-3">
+          <div ref={visitasProgresoRef} className="space-y-3 scroll-mt-20">
             <div className="flex items-center gap-2">
               <Radio className="h-5 w-5 text-warning animate-pulse" />
               <h2 className="font-heading text-lg font-bold">Visitas en progreso</h2>
@@ -311,7 +367,7 @@ export default function AdminInformes() {
         )}
 
         {/* Actividad de hoy */}
-        <div className="space-y-3">
+        <div ref={actividadHoyRef} className="space-y-3 scroll-mt-20">
           <h2 className="font-heading text-lg font-bold">Actividad de hoy</h2>
           {visitasHoy.length === 0 ? (
             <Card>
@@ -387,7 +443,7 @@ export default function AdminInformes() {
         )}
 
         {/* Informes */}
-        <div className="space-y-4">
+        <div ref={informesRef} className="space-y-4 scroll-mt-20">
           <div className="flex items-center justify-between">
             <h2 className="font-heading text-lg font-bold">Informes</h2>
           </div>
@@ -396,7 +452,7 @@ export default function AdminInformes() {
             {ESTADOS_FILTER.map(ef => (
               <button
                 key={ef.value}
-                onClick={() => setFilter(ef.value)}
+                onClick={() => { setFilter(ef.value); setActiveKpi(null); }}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                   filter === ef.value
                     ? 'bg-primary text-primary-foreground'
