@@ -91,6 +91,7 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
       const sec: Record<string, string> = {};
       SECCIONES.forEach(s => { sec[s.key] = extra[s.key] || ''; });
       setSecciones(sec);
+      setFirmaActualUrl(extra.firma_url || null);
     } else if (defaultValues) {
       setTituloObra(defaultValues.nombre_obra || '');
       setNombreTecnico(defaultValues.nombre_tecnico || '');
@@ -120,7 +121,26 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
     setSecciones(newSections);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    let firmaUrlFinal: string | null = firmaActualUrl;
+    let firmaAtFinal: string | null = (documento?.datos_extra as any)?.firma_at || null;
+
+    if (firmaPayload && 'blob' in firmaPayload) {
+      try {
+        const docKey = documento?.id || `nuevo_${Date.now()}`;
+        firmaUrlFinal = await uploadFirmaDocumento(docKey, firmaPayload.blob);
+        firmaAtFinal = new Date().toISOString();
+      } catch (e: any) {
+        console.error('Error subiendo firma:', e);
+      }
+    } else if (firmaPayload && 'useStored' in firmaPayload && firmaPerfilUrl) {
+      firmaUrlFinal = firmaPerfilUrl;
+      firmaAtFinal = new Date().toISOString();
+    } else if (firmaPayload === null && (documento?.datos_extra as any)?.firma_url) {
+      firmaUrlFinal = null;
+      firmaAtFinal = null;
+    }
+
     onSave({
       titulo: tituloObra || (effectiveTipo === 'informe_css' ? 'Informe CSS' : 'Informe AT'),
       fecha_documento: fechaVisita || null,
@@ -131,6 +151,8 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
         lugar_firma: lugarFirma,
         recomendaciones,
         normativa,
+        firma_url: firmaUrlFinal,
+        firma_at: firmaAtFinal,
         ...secciones,
       } as unknown as Json,
       ...(obraId ? { obra_id: obraId, tipo } : {}),
