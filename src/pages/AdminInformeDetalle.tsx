@@ -11,6 +11,8 @@ import { es } from 'date-fns/locale';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import FotoViewer from '@/components/visita/FotoViewer';
 import EditableTextWithAI from '@/components/visita/EditableTextWithAI';
+import ConfirmarFirmaDialog from '@/components/informes/ConfirmarFirmaDialog';
+import { useAuth } from '@/lib/auth';
 
 const CATEGORIAS: Record<string, string> = {
   EPIs: 'EPIs',
