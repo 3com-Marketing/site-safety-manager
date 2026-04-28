@@ -1,73 +1,43 @@
 ## Objetivo
 
-En la portada de los informes (CSS y AT), añadir en la parte superior un banner con el número de semana ISO y el rango de fechas de **lunes a viernes** de esa semana, con el formato:
+En la portada del informe (CSS y AT):
+1. **Quitar** el texto **"SEGURIDAD Y SALUD LABORAL"** (la línea `cover-label`) y la línea roja decorativa (`cover-line`).
+2. **Subir el contenido** para liberar espacio en la parte inferior.
+3. **Añadir el logotipo del cliente** (campo `clientes.logo_url`, ya disponible en BD) debajo del título de la obra, como aparece en la portada de referencia (logo "Abora Buenaventura" debajo del recuadro con el nombre de la obra).
 
-> **SEMANA Nº 30, DEL 20 AL 24 DE ABRIL DE 2026**
+## Cambios en `supabase/functions/generar-documento-pdf/index.ts`
 
-Tal y como aparece en la portada física que usa actualmente HC Seguridad y Salud.
+### a) Estilos `.cover` (líneas 68-76)
 
-## Cambios
+- Cambiar `justify-content: center` → `flex-start` y reducir padding superior (`1.5cm 2cm 2cm`) para que todo suba.
+- Eliminar la regla `.cover-label` y `.cover-line`.
+- Reducir `margin-bottom` del logo principal de `40pt` a `30pt`.
+- Cambiar el color del título tipo (`cover-tipo`) de rojo a negro (más fiel a la portada original) y reducir margen.
+- Estilizar `cover-obra` como un **recuadro con borde redondeado** (como aparece "22511-REPARACIÓN FACHADA BALCONES" en la imagen original).
+- Añadir nueva regla `.cover-cliente-logo` (max-height 140pt, max-width 320pt, márgen superior).
 
-### 1. `supabase/functions/generar-documento-pdf/index.ts`
+### b) Markup de la portada (líneas 779-790)
 
-**a) Añadir helper para calcular semana ISO + rango lunes-viernes** (justo antes de `templateInforme`):
-
-```ts
-function getSemanaInfo(fechaIso: string): { numero: number; texto: string } | null {
-  if (!fechaIso) return null;
-  const d = new Date(fechaIso);
-  if (isNaN(d.getTime())) return null;
-
-  // Lunes de esa semana (ISO: lunes = 1)
-  const day = d.getUTCDay(); // 0=domingo..6=sábado
-  const diffToMonday = day === 0 ? -6 : 1 - day;
-  const lunes = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + diffToMonday));
-  const viernes = new Date(lunes); viernes.setUTCDate(lunes.getUTCDate() + 4);
-
-  // Número de semana ISO 8601
-  const tmp = new Date(Date.UTC(lunes.getUTCFullYear(), lunes.getUTCMonth(), lunes.getUTCDate()));
-  const dayNum = tmp.getUTCDay() || 7;
-  tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
-  const weekNo = Math.ceil((((tmp.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-
-  const meses = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
-  const mismoMes = lunes.getUTCMonth() === viernes.getUTCMonth();
-  const mismoAnio = lunes.getUTCFullYear() === viernes.getUTCFullYear();
-
-  let texto: string;
-  if (mismoMes && mismoAnio) {
-    texto = `DEL ${lunes.getUTCDate()} AL ${viernes.getUTCDate()} DE ${meses[viernes.getUTCMonth()].toUpperCase()} DE ${viernes.getUTCFullYear()}`;
-  } else if (mismoAnio) {
-    texto = `DEL ${lunes.getUTCDate()} DE ${meses[lunes.getUTCMonth()].toUpperCase()} AL ${viernes.getUTCDate()} DE ${meses[viernes.getUTCMonth()].toUpperCase()} DE ${viernes.getUTCFullYear()}`;
-  } else {
-    texto = `DEL ${lunes.getUTCDate()} DE ${meses[lunes.getUTCMonth()].toUpperCase()} DE ${lunes.getUTCFullYear()} AL ${viernes.getUTCDate()} DE ${meses[viernes.getUTCMonth()].toUpperCase()} DE ${viernes.getUTCFullYear()}`;
-  }
-  return { numero: weekNo, texto };
-}
-```
-
-**b) Estilo CSS** (añadir junto al resto de `.cover` ~líneas 68-75):
-
-```css
-.cover .cover-semana { font-size: 13pt; font-weight: bold; color: #1a1a1a; margin-bottom: 30pt; text-align: center; letter-spacing: 1pt; }
-```
-
-**c) En `templateInforme`**, calcular semana y renderizar el banner como **primer elemento** dentro de `.cover` (encima del logo):
-
-```ts
-const semana = getSemanaInfo(doc.fecha_documento);
-// ...
+```html
 <div class="cover">
-  ${semana ? `<div class="cover-semana">SEMANA Nº ${semana.numero}, ${semana.texto}</div>` : ""}
-  ${safeworkLogo ? `<img class="cover-logo" ... />` : ""}
-  ...
+  ${semana ? `<div class="cover-semana">SEMANA Nº ... </div>` : ""}
+  ${safeworkLogo ? `<img class="cover-logo" src="${safeworkLogo}" />` : ""}
+  ${!isCSS && empresaContratista ? `<div class="cover-contratista">...</div>` : ""}
+  <div class="cover-tipo">${tipoLabel}</div>
+  <div class="cover-obra">${obraNombre}</div>
+  ${cliente?.logo_url ? `<img class="cover-cliente-logo" src="${cliente.logo_url}" alt="${cliente.nombre || ''}" />` : ""}
+  <div class="cover-fecha">${fechaDoc}</div>
 </div>
 ```
 
+Cambios concretos:
+- **Eliminada**: la línea `<div class="cover-label">SEGURIDAD Y SALUD LABORAL</div>`.
+- **Eliminada**: la línea `<div class="cover-line"></div>`.
+- **Añadida**: `<img class="cover-cliente-logo" src="${cliente.logo_url}" />` justo después del nombre de la obra, condicional a que el cliente tenga logo cargado.
+
 ## Notas
 
-- Se usa `doc.fecha_documento` (ya disponible) como referencia para deducir la semana.
-- El cálculo es **ISO 8601** (semana empieza en lunes; semana 1 = la que contiene el primer jueves del año), que es el estándar usado en España.
-- Solo afecta a los informes (`templateInforme`), no a actas u otros documentos.
-- No se toca nada que ya funciona: solo se añade un helper, una regla CSS y una línea en la portada.
+- El logo del cliente ya se obtiene en el query existente: `obras(nombre, direccion, clientes(nombre, logo_url))` (línea 869). Solo hay que renderizarlo.
+- Si un cliente no tiene `logo_url`, simplemente no se muestra (el resto de la portada queda igual).
+- No se toca nada del cuerpo del informe ni de la cabecera/pie en páginas interiores.
+- No afecta a otros tipos de documento (actas), solo a `templateInforme`.

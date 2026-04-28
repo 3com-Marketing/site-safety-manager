@@ -65,15 +65,14 @@ function informeStyles() {
     body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 10pt; color: #1a1a1a; line-height: 1.6; margin: 0; }
 
     /* Cover page */
-    .cover { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; page-break-after: always; text-align: center; padding: 3cm 2cm; }
-    .cover img.cover-logo { max-height: 120pt; max-width: 280pt; object-fit: contain; margin-bottom: 40pt; }
-    .cover .cover-label { font-size: 11pt; color: #666; text-transform: uppercase; letter-spacing: 3pt; margin-bottom: 10pt; }
-    .cover .cover-tipo { font-size: 18pt; font-weight: bold; color: #E63027; margin-bottom: 20pt; text-transform: uppercase; }
-    .cover .cover-obra { font-size: 14pt; font-weight: bold; color: #1a1a1a; margin-bottom: 12pt; }
+    .cover { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-height: 100vh; page-break-after: always; text-align: center; padding: 1.5cm 2cm 2cm; }
+    .cover img.cover-logo { max-height: 120pt; max-width: 280pt; object-fit: contain; margin-bottom: 30pt; }
+    .cover .cover-tipo { font-size: 18pt; font-weight: bold; color: #1a1a1a; margin-bottom: 16pt; text-transform: uppercase; }
+    .cover .cover-obra { font-size: 13pt; font-weight: bold; color: #1a1a1a; border: 1.5px solid #1a1a1a; border-radius: 20pt; padding: 6pt 18pt; display: inline-block; margin-bottom: 24pt; }
     .cover .cover-contratista { font-size: 12pt; color: #333; margin-bottom: 20pt; }
-    .cover .cover-fecha { font-size: 11pt; color: #666; }
-    .cover .cover-line { width: 60%; height: 3px; background: #E63027; margin: 20pt auto; }
-    .cover .cover-semana { font-size: 13pt; font-weight: bold; color: #1a1a1a; margin-bottom: 24pt; text-align: center; letter-spacing: 1pt; }
+    .cover .cover-fecha { font-size: 11pt; color: #666; margin-top: 8pt; }
+    .cover .cover-semana { font-size: 13pt; font-weight: bold; color: #1a1a1a; margin-bottom: 28pt; text-align: center; letter-spacing: 1pt; }
+    .cover img.cover-cliente-logo { max-height: 140pt; max-width: 320pt; object-fit: contain; margin-top: 20pt; }
 
     /* Running header */
     .running-header-left { position: running(header-left); }
