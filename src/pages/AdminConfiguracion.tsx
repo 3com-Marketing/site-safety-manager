@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Save, Upload, Loader2, Building2, User, Landmark, CreditCard, FileText, BookOpen } from 'lucide-react';
+import { Save, Upload, Loader2, Building2, User, FileText, BookOpen } from 'lucide-react';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { Textarea } from '@/components/ui/textarea';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
@@ -25,10 +25,6 @@ interface ConfigEmpresa {
   cargo_responsable: string;
   titulacion: string;
   num_colegiado: string;
-  registro_mercantil: string;
-  iban: string;
-  banco: string;
-  swift_bic: string;
   texto_recomendaciones: string;
   texto_normativa: string;
   texto_acta_aprobacion_sys: string;
@@ -58,7 +54,6 @@ const EMPTY_CONFIG: ConfigEmpresa = {
   nombre: '', cif: '', direccion: '', ciudad: '', telefono: '',
   email: '', web: '', logo_url: '', nombre_responsable: '',
   cargo_responsable: '', titulacion: '', num_colegiado: '',
-  registro_mercantil: '', iban: '', banco: '', swift_bic: '',
   texto_recomendaciones: '', texto_normativa: '', texto_cae_punto2_bloque2: '',
   texto_acta_aprobacion_sys: '', texto_acta_aprobacion_dgpo: '',
   texto_acta_reunion_inicial: '', texto_acta_reunion_cae: '', texto_acta_reunion_sys: '',
@@ -223,31 +218,6 @@ export default function AdminConfiguracion() {
             <div><Label>Cargo</Label><Input value={config.cargo_responsable} onChange={e => update('cargo_responsable', e.target.value)} /></div>
             <div><Label>Titulación</Label><Input value={config.titulacion} onChange={e => update('titulacion', e.target.value)} /></div>
             <div><Label>Nº Colegiado</Label><Input value={config.num_colegiado} onChange={e => update('num_colegiado', e.target.value)} /></div>
-          </CardContent>
-        </Card>
-        {/* Datos mercantiles */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Landmark className="h-4 w-4" /> Datos Mercantiles
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div><Label>Registro Mercantil</Label><Input placeholder="Ej: Tomo X, Folio Y, Hoja Z" value={config.registro_mercantil} onChange={e => update('registro_mercantil', e.target.value)} /></div>
-          </CardContent>
-        </Card>
-
-        {/* Datos bancarios */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <CreditCard className="h-4 w-4" /> Datos Bancarios
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2"><Label>IBAN</Label><Input placeholder="ES00 0000 0000 0000 0000 0000" value={config.iban} onChange={e => update('iban', e.target.value)} /></div>
-            <div><Label>Banco</Label><Input value={config.banco} onChange={e => update('banco', e.target.value)} /></div>
-            <div><Label>SWIFT / BIC</Label><Input value={config.swift_bic} onChange={e => update('swift_bic', e.target.value)} /></div>
           </CardContent>
         </Card>
         {/* Plantillas de Documentos */}
