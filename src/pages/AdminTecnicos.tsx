@@ -61,6 +61,10 @@ export default function AdminTecnicos() {
   const [viewTecnico, setViewTecnico] = useState<Tecnico | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Tecnico | null>(null);
 
+  const [firmaPendiente, setFirmaPendiente] = useState<Blob | null>(null);
+  const [firmaUrlActual, setFirmaUrlActual] = useState<string | null>(null);
+  const [firmaActualizadaAt, setFirmaActualizadaAt] = useState<string | null>(null);
+
   const fetchData = async () => {
     const [{ data: tecs }, { data: profs }, { data: obrasData }, { data: links }] = await Promise.all([
       supabase.from('tecnicos').select('*').order('nombre'),
