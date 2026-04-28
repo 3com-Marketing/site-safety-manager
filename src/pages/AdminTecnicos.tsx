@@ -10,8 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Users, Plus, Pencil, Trash2, Eye, Phone, Mail, Hash, HardHat, Building2, CreditCard, Smartphone } from 'lucide-react';
+import { Users, Plus, Pencil, Trash2, Eye, Phone, Mail, Hash, HardHat, Building2, CreditCard, Smartphone, PenLine } from 'lucide-react';
 import { toast } from 'sonner';
+import FirmaCapture from '@/components/tecnicos/FirmaCapture';
 
 interface Tecnico {
   id: string;
@@ -30,6 +31,8 @@ interface Tecnico {
   cif_empresa: string;
   notas: string;
   tipo: string;
+  firma_url: string | null;
+  firma_actualizada_at: string | null;
 }
 
 interface ProfileMin { user_id: string; nombre: string; email: string; }
