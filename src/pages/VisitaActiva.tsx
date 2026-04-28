@@ -497,14 +497,111 @@ export default function VisitaActiva() {
         </div>
       </div>
 
-      <Dialog open={gettingGeo}>
-        <DialogContent className="max-w-xs text-center">
+      {/* GPS requesting dialog */}
+      <Dialog open={finishGeo.status === 'requesting'} onOpenChange={(open) => { if (!open) setFinishGeo({ status: 'idle' }); }}>
+        <DialogContent className="max-w-xl text-center">
           <DialogHeader>
-            <DialogTitle>Obteniendo ubicación de cierre</DialogTitle>
+            <DialogTitle className="flex items-center justify-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" />
+              Obteniendo ubicación de cierre
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              Permite el acceso a tu ubicación para registrar el punto de fin de la visita.
+            </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center gap-3 py-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Registrando tu ubicación final...</p>
+          </div>
+          <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+            <Button variant="outline" onClick={() => setFinishGeo({ status: 'idle' })}>Cancelar</Button>
+            <Button variant="secondary" onClick={() => persistFinish(null, null)}>
+              Continuar sin ubicación
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* GPS error dialog */}
+      <Dialog open={finishGeo.status === 'error'} onOpenChange={(open) => { if (!open) setFinishGeo({ status: 'idle' }); }}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              No se pudo obtener tu ubicación
+            </DialogTitle>
+            <DialogDescription>
+              {finishGeo.status === 'error' && finishGeo.kind === 'denied' && 'Has denegado el permiso de ubicación. Habilítalo en los ajustes del navegador para registrar el punto de fin de la visita.'}
+              {finishGeo.status === 'error' && finishGeo.kind === 'timeout' && 'La búsqueda de tu ubicación ha tardado demasiado. Sal a un sitio con mejor señal GPS o continúa sin ubicación.'}
+              {finishGeo.status === 'error' && finishGeo.kind === 'unavailable' && 'Tu dispositivo no puede determinar la ubicación ahora mismo. Puedes reintentar o continuar sin ubicación.'}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+            <Button variant="outline" onClick={() => setFinishGeo({ status: 'idle' })}>Cerrar</Button>
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => persistFinish(null, null)}>
+                Continuar sin ubicación
+              </Button>
+              {finishGeo.status === 'error' && finishGeo.kind !== 'denied' && (
+                <Button onClick={finishVisita}>Reintentar</Button>
+              )}
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm finish with map */}
+      <Dialog open={finishGeo.status === 'confirm'} onOpenChange={(open) => { if (!open) setFinishGeo({ status: 'idle' }); }}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Navigation className="h-5 w-5 text-primary" />
+              Confirmar fin de visita
+            </DialogTitle>
+          </DialogHeader>
+          {finishGeo.status === 'confirm' && (
+            <div className="space-y-4">
+              <MapPicker
+                readOnly
+                markers={[
+                  { lat: finishGeo.obraLat, lng: finishGeo.obraLng, color: '#F37520', label: 'Obra' },
+                  { lat: finishGeo.lat, lng: finishGeo.lng, color: '#3B82F6', label: 'Tu ubicación' },
+                ]}
+                lat={finishGeo.lat}
+                lng={finishGeo.lng}
+              />
+              <div className="flex items-center justify-center gap-2 text-sm">
+                <span className="inline-block h-3 w-3 rounded-full bg-primary" />
+                <span>Obra</span>
+                <span className="mx-2 text-muted-foreground">·</span>
+                <span className="inline-block h-3 w-3 rounded-full bg-blue-500" />
+                <span>Tú</span>
+                <span className="mx-2 text-muted-foreground">·</span>
+                <span className="font-semibold">{formatDistance(finishGeo.distance)}</span>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFinishGeo({ status: 'idle' })}>Cancelar</Button>
+            <Button
+              onClick={() => {
+                if (finishGeo.status === 'confirm') persistFinish(finishGeo.lat, finishGeo.lng);
+              }}
+              className="h-12 rounded-xl bg-success hover:bg-success/90 text-success-foreground"
+            >
+              Confirmar fin de visita
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Saving overlay */}
+      <Dialog open={finishGeo.status === 'saving'}>
+        <DialogContent className="max-w-xs text-center">
+          <DialogHeader>
+            <DialogTitle>Finalizando visita</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-3 py-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         </DialogContent>
       </Dialog>
