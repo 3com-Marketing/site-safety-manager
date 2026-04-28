@@ -137,15 +137,30 @@ function metaItem(label: string, value: string) {
   return `<div class="meta-item"><div class="meta-label">${label}</div><div class="meta-value">${value}</div></div>`;
 }
 
-function firmaSection(lugarFirma: string, fecha: string, firmas: string[]) {
+function firmaSection(lugarFirma: string, fecha: string, _firmas: string[]) {
   const fechaStr = fecha ? new Date(fecha).toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" }) : "_______________";
   let html = `<p style="margin-top:24pt;">En ${lugarFirma || "_______________"}, a ${fechaStr}.</p>`;
-  html += `<div class="firma-grid">`;
-  for (const f of firmas) {
-    html += `<div class="firma-box"><br/><br/><br/>${f}</div>`;
-  }
-  html += `</div>`;
+  html += firmaRecuadros();
   return html;
+}
+
+/** Bloque unificado de firmas: dos recuadros (Técnico Inspector / Responsable Empresa) */
+function firmaRecuadros() {
+  return `
+    <div style="display:flex;gap:20pt;margin-top:20pt;page-break-inside:avoid;">
+      <div style="flex:1;border:1px solid #333;min-height:110pt;display:flex;flex-direction:column;">
+        <div style="flex:1;min-height:70pt;"></div>
+        <div style="border-top:1px solid #333;padding:5pt 6pt;text-align:center;font-size:8.5pt;font-weight:bold;">FIRMA DEL TÉCNICO INSPECTOR</div>
+      </div>
+      <div style="flex:1;border:1px solid #333;min-height:110pt;display:flex;flex-direction:column;">
+        <div style="flex:1;min-height:70pt;"></div>
+        <div style="border-top:1px solid #333;padding:5pt 6pt;text-align:center;font-size:8.5pt;font-weight:bold;">
+          FIRMA RESPONSABLE DE LA EMPRESA:
+          <div style="font-size:7.5pt;font-weight:normal;color:#555;margin-top:2pt;">Recibí nombre y cargo</div>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 // --- Template generators ---
