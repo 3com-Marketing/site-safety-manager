@@ -234,35 +234,63 @@ export default function VisitaActiva() {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  const persistFinish = async (lat: number | null, lng: number | null) => {
+    if (!id || !informeId) return;
+    setFinishGeo({ status: 'saving' });
+    try {
+      await supabase.from('visitas').update({ estado: 'finalizada', lat_fin: lat, lng_fin: lng, fecha_fin: new Date().toISOString() } as any).eq('id', id);
+      await supabase.from('informes').update({ estado: 'pendiente_revision' }).eq('id', informeId);
+      toast.success('Visita finalizada');
+      navigate(isAdminMode ? '/admin' : '/');
+    } catch (err) {
+      console.error(err);
+      toast.error('No se pudo finalizar la visita');
+      setFinishGeo({ status: 'idle' });
+    }
+  };
+
   const finishVisita = async () => {
     if (!id || !informeId) return;
-    setFinishing(true);
-    setGettingGeo(true);
 
-    let lat_fin: number | null = null;
-    let lng_fin: number | null = null;
-
-    if (navigator.geolocation) {
-      try {
-        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true,
-            timeout: 10000,
-          });
-        });
-        lat_fin = pos.coords.latitude;
-        lng_fin = pos.coords.longitude;
-      } catch {
-        // GPS denied
-      }
+    if (!navigator.geolocation) {
+      setFinishGeo({ status: 'error', kind: 'unavailable' });
+      return;
     }
 
-    setGettingGeo(false);
+    try {
+      // @ts-ignore
+      if (navigator.permissions?.query) {
+        const status = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+        if (status.state === 'denied') {
+          setFinishGeo({ status: 'error', kind: 'denied' });
+          return;
+        }
+      }
+    } catch {
+      // ignore
+    }
 
-    await supabase.from('visitas').update({ estado: 'finalizada', lat_fin, lng_fin, fecha_fin: new Date().toISOString() } as any).eq('id', id);
-    await supabase.from('informes').update({ estado: 'pendiente_revision' }).eq('id', informeId);
-    toast.success('Visita finalizada');
-    navigate(isAdminMode ? '/admin' : '/');
+    setFinishGeo({ status: 'requesting' });
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const tecLat = pos.coords.latitude;
+        const tecLng = pos.coords.longitude;
+        if (obraLat != null && obraLng != null) {
+          const dist = haversineDistance(tecLat, tecLng, obraLat, obraLng);
+          setFinishGeo({ status: 'confirm', lat: tecLat, lng: tecLng, obraLat, obraLng, distance: dist });
+        } else {
+          persistFinish(tecLat, tecLng);
+        }
+      },
+      (err) => {
+        const kind: FinishGeoErrorKind =
+          err.code === err.PERMISSION_DENIED ? 'denied' :
+          err.code === err.TIMEOUT ? 'timeout' : 'unavailable';
+        setFinishGeo({ status: 'error', kind });
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
+    );
   };
 
   const handleSelectSeccion = (seccionId: SeccionId) => {
