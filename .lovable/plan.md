@@ -1,49 +1,40 @@
-## Gestión de firma digital en el perfil de técnicos y coordinadores
+## Paso de firma en el cierre del informe
 
-Añadir una sección "Firma" únicamente dentro del diálogo de edición/creación de `AdminTecnicos.tsx` (que actúa como perfil de cada usuario técnico o coordinador). Sin tocar ninguna otra pantalla ni componente compartido.
+Añadir un diálogo de "Confirmación de firma" que aparece justo antes de marcar un informe como cerrado, sin tocar ninguna otra lógica del informe.
 
 ### Cambios en base de datos
-Migración sobre la tabla `tecnicos`:
-- `firma_url` (text, nullable) — URL pública de la firma almacenada.
-- `firma_actualizada_at` (timestamptz, nullable) — fecha de la última actualización.
+Migración sobre la tabla `informes`:
+- `firma_url` (text, nullable) — URL pública de la firma asociada al informe.
+- `firma_at` (timestamptz, nullable) — fecha y hora del cierre con firma.
 
-Las firmas se subirán al bucket de storage existente `logos` (ya público), bajo la ruta `firmas/{tecnico_id}_{timestamp}.png`. Se añade política RLS de INSERT/UPDATE/DELETE sobre `storage.objects` para que cualquier admin autenticado pueda gestionar archivos en el prefijo `firmas/` del bucket `logos`.
+Políticas RLS sobre `storage.objects` para el prefijo `firmas-informes/` del bucket `logos`:
+- INSERT/UPDATE/DELETE: cualquier usuario autenticado.
+- SELECT: público (necesario para mostrarla en el PDF y la ficha).
 
-### Nuevo componente: `src/components/tecnicos/FirmaCapture.tsx`
-Componente local (no compartido), usado solo desde el diálogo de `AdminTecnicos`. Props: `value: string | null`, `actualizadaAt: string | null`, `onChange(pngBlob: Blob): void`.
+### Nuevo componente: `src/components/informes/ConfirmarFirmaDialog.tsx`
+Componente local, usado solo desde `AdminInformeDetalle.tsx`. Props: `open`, `onClose`, `firmaPerfilUrl: string|null`, `onConfirm(blob: Blob | { useStored: true }): Promise<void>`.
 
-UI con dos pestañas (Tabs ya disponibles):
+Estados internos:
+1. **Si hay firma de perfil**: pantalla con dos opciones:
+   - Tarjeta "Firmar con mi firma guardada" mostrando la imagen de la firma del perfil + botón **"Confirmar y cerrar"**.
+   - Botón secundario "Firmar ahora" → cambia al modo dibujo.
+2. **Si NO hay firma de perfil**: directamente el canvas de dibujo + aviso «No tienes firma guardada. Puedes añadir una en tu perfil para agilizar este paso en el futuro.»
+3. **Modo dibujo**: canvas táctil 500×200, fondo blanco, trazo negro fino. Botones "Borrar", "Volver" (si hay firma de perfil) y "Confirmar y cerrar". Aplica recorte de fondo blanco para producir un PNG transparente.
 
-**Pestaña "Dibujar"**
-- `<canvas>` 500×200, fondo blanco, trazo negro fino (lineWidth 2, lineCap round).
-- Eventos `pointerdown/move/up` (soporta dedo y ratón).
-- Botones: "Borrar" (limpia canvas) y "Usar esta firma" (exporta a PNG con fondo transparente: se recorre el ImageData y los píxeles cercanos a blanco se ponen alpha=0).
+El componente reutiliza la lógica de canvas y `removeWhiteBackground` ya implementada en `FirmaCapture.tsx` (mismo patrón, sin importarlo para mantenerlos independientes).
 
-**Pestaña "Subir imagen"**
-- `<input type="file" accept="image/png,image/jpeg">`.
-- Previsualización en `<img>` antes de confirmar.
-- Botón "Usar esta imagen": dibuja la imagen en un canvas oculto y aplica el mismo recorte de fondo blanco (umbral RGB > 240 → alpha 0) para producir un PNG transparente.
-
-**Vista actual**
-- Si existe `firma_url`: muestra la firma sobre fondo cuadriculado/transparente, etiqueta "Última actualización: {fecha formateada es-ES}", y botón "Reemplazar firma" que abre las pestañas anteriores.
-
-### Cambios en `AdminTecnicos.tsx`
-1. Añadir `firma_url` y `firma_actualizada_at` al interface `Tecnico` y al `select('*')`.
-2. Estado local en el diálogo: `firmaPendiente: Blob | null` y `firmaUrlActual: string | null`.
-3. Insertar el componente `<FirmaCapture>` como nueva sección dentro del Dialog de edición (tras "Notas", antes de "Vincular a usuario"), con su propio `<Label>Firma</Label>` y un panel enmarcado.
-4. En `handleSave`:
-   - Si hay `firmaPendiente`, primero hacer `INSERT` o `UPDATE` del técnico para obtener el `id`.
-   - Subir blob a `logos/firmas/{tecnicoId}_{Date.now()}.png` (`upsert: true`, `contentType: 'image/png'`).
-   - Obtener `getPublicUrl` y hacer `UPDATE tecnicos SET firma_url=..., firma_actualizada_at=now() WHERE id=...`.
-5. En el Dialog de visualización (View), añadir una fila "Firma:" que muestre la imagen (o "—" si no hay) y la fecha de actualización.
-
-### Detalles técnicos clave
-- Recorte de fondo: función `removeWhiteBackground(canvas)` que itera `getImageData`, y para cada píxel con `r>240 && g>240 && b>240` pone `a=0`. Suficientemente robusto para firmas escaneadas/fotografiadas con fondo claro.
-- Validación de subida: tamaño máximo 5 MB, tipos permitidos `image/png` e `image/jpeg`, mostrar `toast.error` en caso contrario.
-- El canvas de dibujo escala correctamente coordenadas del puntero respecto al `getBoundingClientRect()` para soportar pantallas táctiles.
-- Limpieza de URL.createObjectURL al desmontar previews.
+### Cambios en `AdminInformeDetalle.tsx`
+1. Importar `useAuth` para obtener el `user.id` actual.
+2. Al montar, hacer una consulta adicional: `supabase.from('tecnicos').select('firma_url').eq('user_id', user.id).maybeSingle()` y guardarla en estado local `firmaPerfilUrl`.
+3. Cambiar el botón "Marcar como revisado": al pulsar, abre el `ConfirmarFirmaDialog` en lugar de cerrar directamente.
+4. Nueva función `closeWithFirma(payload)`:
+   - Si `payload.useStored`: usa `firmaPerfilUrl` directamente como `firma_url`.
+   - Si es Blob: subir a `logos/firmas-informes/{informeId}_{Date.now()}.png` con `upsert: true`, obtener `getPublicUrl`.
+   - `UPDATE informes SET estado='cerrado', firma_url=..., firma_at=now() WHERE id=...`.
+   - `toast.success('Informe cerrado y firmado')`, refetch, cerrar diálogo.
+5. **No se modifica nunca la fila de `tecnicos`.** La firma del perfil queda intacta; solo se copia su URL al informe (o se sube una nueva firma específica del informe).
 
 ### Archivos a crear/modificar
-- **Nuevo**: `src/components/tecnicos/FirmaCapture.tsx`
-- **Modificado**: `src/pages/AdminTecnicos.tsx` (sección de firma en diálogos crear/editar y ver)
-- **Migración**: añadir columnas `firma_url` y `firma_actualizada_at` a `tecnicos`, y políticas RLS en `storage.objects` para el prefijo `firmas/` del bucket `logos`.
+- **Nuevo**: `src/components/informes/ConfirmarFirmaDialog.tsx`
+- **Modificado**: `src/pages/AdminInformeDetalle.tsx` (carga de firma del perfil, nuevo handler, sustitución del comportamiento del botón "Marcar como revisado")
+- **Migración**: nuevas columnas `firma_url` y `firma_at` en `informes`, y políticas RLS en `storage.objects` para `firmas-informes/`.

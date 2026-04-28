@@ -11,6 +11,8 @@ import { es } from 'date-fns/locale';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import FotoViewer from '@/components/visita/FotoViewer';
 import EditableTextWithAI from '@/components/visita/EditableTextWithAI';
+import ConfirmarFirmaDialog from '@/components/informes/ConfirmarFirmaDialog';
+import { useAuth } from '@/lib/auth';
 
 const CATEGORIAS: Record<string, string> = {
   EPIs: 'EPIs',
@@ -55,6 +57,9 @@ export default function AdminInformeDetalle() {
   const [viewingFoto, setViewingFoto] = useState<string | null>(null);
   const [fotoMeta, setFotoMeta] = useState<{ table: string; id: string; column: string } | null>(null);
   const [visitaId, setVisitaId] = useState<string | null>(null);
+  const [firmaPerfilUrl, setFirmaPerfilUrl] = useState<string | null>(null);
+  const [firmaDialogOpen, setFirmaDialogOpen] = useState(false);
+  const { user } = useAuth();
 
   // New item forms
   const [newIncidencia, setNewIncidencia] = useState({ titulo: '', descripcion: '' });
@@ -88,6 +93,18 @@ export default function AdminInformeDetalle() {
   };
 
   useEffect(() => { fetchData(); }, [id]);
+
+  useEffect(() => {
+    if (!user) { setFirmaPerfilUrl(null); return; }
+    (async () => {
+      const { data } = await supabase
+        .from('tecnicos')
+        .select('firma_url')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      setFirmaPerfilUrl((data as any)?.firma_url || null);
+    })();
+  }, [user]);
 
   const handleFieldChange = (incId: string, field: 'titulo' | 'descripcion', value: string) => {
     setEditedFields(prev => ({
@@ -174,10 +191,35 @@ export default function AdminInformeDetalle() {
     setSaving(false);
   };
 
-  const markAsReviewed = async () => {
+  const markAsReviewed = () => {
     if (!id) return;
-    await supabase.from('informes').update({ estado: 'cerrado' }).eq('id', id);
-    toast.success('Informe marcado como revisado');
+    setFirmaDialogOpen(true);
+  };
+
+  const closeWithFirma = async (payload: { useStored: true } | { blob: Blob }) => {
+    if (!id) return;
+    let firmaUrl: string | null = null;
+    if ('useStored' in payload) {
+      firmaUrl = firmaPerfilUrl;
+    } else {
+      const path = `firmas-informes/${id}_${Date.now()}.png`;
+      const { error: upErr } = await supabase.storage.from('logos').upload(path, payload.blob, {
+        contentType: 'image/png', upsert: true,
+      });
+      if (upErr) { toast.error('Error al subir la firma'); return; }
+      const { data: urlData } = supabase.storage.from('logos').getPublicUrl(path);
+      firmaUrl = urlData.publicUrl;
+    }
+
+    const { error } = await supabase.from('informes').update({
+      estado: 'cerrado',
+      firma_url: firmaUrl,
+      firma_at: new Date().toISOString(),
+    } as any).eq('id', id);
+    if (error) { toast.error('Error al cerrar el informe'); return; }
+
+    toast.success('Informe cerrado y firmado');
+    setFirmaDialogOpen(false);
     await fetchData();
   };
 
@@ -309,6 +351,12 @@ export default function AdminInformeDetalle() {
         editable
         visitaId={visitaId || undefined}
         onSave={handleSaveFoto}
+      />
+      <ConfirmarFirmaDialog
+        open={firmaDialogOpen}
+        onClose={() => setFirmaDialogOpen(false)}
+        firmaPerfilUrl={firmaPerfilUrl}
+        onConfirm={closeWithFirma}
       />
       <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-card px-6 py-4">
         <Button variant="ghost" size="icon" onClick={() => navigate('/admin')}>
