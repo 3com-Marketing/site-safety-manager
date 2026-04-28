@@ -1,52 +1,59 @@
+# Unificar bloque de firmas en todos los PDFs
+
 ## Objetivo
 
-Hacer que el **Acta de Nombramiento (CAE y con Proyecto)** entre en **una sola página A4** al exportar a PDF.
+Reemplazar todos los bloques de firma actuales por un formato unificado tipo "acta papel" con dos recuadros lado a lado:
 
-## Diagnóstico
+```text
+┌──────────────────────────────┐   ┌──────────────────────────────┐
+│                              │   │                              │
+│        (espacio firma)       │   │        (espacio firma)       │
+│                              │   │                              │
+├──────────────────────────────┤   ├──────────────────────────────┤
+│  FIRMA DEL TÉCNICO INSPECTOR │   │  FIRMA RESPONSABLE DE LA     │
+│                              │   │  EMPRESA:                    │
+│                              │   │  Recibí nombre y cargo       │
+└──────────────────────────────┘   └──────────────────────────────┘
+```
 
-El template `templateActaNombramiento` (en `supabase/functions/generar-documento-pdf/index.ts`, líneas 153-231) usa `baseStyles()` con `@page { margin: 2cm }` y tamaños generosos. Con las 3 tablas (Proyecto, Promotor, Coordinador), el texto legal y el bloque de firma, normalmente desborda a una segunda página.
+## Cambios en `supabase/functions/generar-documento-pdf/index.ts`
 
-## Cambios en `supabase/functions/generar-documento-pdf/index.ts` (solo función `templateActaNombramiento`)
+### 1. Nuevo helper `firmaRecuadros()`
 
-Sin tocar el resto de plantillas (informes, otras actas).
+Crear una función única que devuelva el bloque HTML con los dos recuadros, reutilizable por todas las plantillas:
 
-### 1. Reducir margen de página (solo para esta acta)
-Inyectar al inicio del HTML un bloque `<style>@page { margin: 1.2cm 1.5cm !important; }</style>` que sobrescribe el del `baseStyles` para esta plantilla.
+- Dos cajas con `border: 1px solid #333`
+- Altura interna ~70pt para permitir firmar a mano
+- Línea separadora horizontal antes del texto
+- Etiquetas en negrita 8.5pt centradas:
+  - Izquierda: "FIRMA DEL TÉCNICO INSPECTOR"
+  - Derecha: "FIRMA RESPONSABLE DE LA EMPRESA:" + subtítulo "Recibí nombre y cargo"
+- Layout con `display: flex; gap: 20pt; margin-top: 20pt;`
 
-### 2. Cabecera más compacta
-- Logo SafeWork: `max-height: 80pt` → **46pt**, `margin-bottom: 16pt` → **4pt**.
-- Título "ACTA DE NOMBRAMIENTO": `16pt` → **13pt**.
-- Subtítulo: `10pt` → **8.5pt**, margen reducido.
-- Margen inferior del bloque cabecera: `20pt` → **8pt**.
+### 2. Reemplazos en cada plantilla
 
-### 3. Títulos de sección (h2)
-- Tamaño: `11pt` → **9.5pt**.
-- Borde inferior: `2px` → **1.5px**.
-- `margin-top: 20pt` → **8pt**, `margin-bottom` añadido **3pt**.
+- **Informe CSS / AT** (línea ~844-849): sustituir `firma-section` (línea única + nombre técnico) por `firmaRecuadros()`.
+- **Acta Nombramiento** (líneas ~227-232): sustituir las dos líneas con etiquetas "El Promotor / La Coordinadora" por `firmaRecuadros()`.
+- **Acta Aprobación** (líneas ~290-295 con `firmaSection()`): sustituir por `firmaRecuadros()`.
+- **Acta Reunión completa** (líneas ~659-665): sustituir bloque actual por `firmaRecuadros()`.
+- **Acta Reunión simple** (líneas ~720-726): sustituir bloque actual por `firmaRecuadros()`.
 
-### 4. Tablas de datos
-- Padding celdas: `6pt 10pt` → **2.5pt 6pt**.
-- Tamaño de letra: `9pt` → **8.5pt**.
-- `margin: 8pt 0` → **2pt 0**.
+Mantener encima de cada bloque la línea "En {lugar}, a {fecha}." que ya existe.
 
-### 5. Texto legal
-- Fuente: `10pt` → **8.5pt**.
-- `line-height: 1.6` → **1.35**.
-- `margin-top: 20pt` → **8pt**.
+### 3. CSS común
 
-### 6. Bloque de firma
-- Fecha: `margin-top: 24pt` → **10pt**, fuente `10pt` → **9pt**.
-- Línea de firmas: `margin-top: 60pt` → **30pt**.
-- Anchos de firma: `200pt` → **180pt**, fuente `9pt` → **8.5pt**, padding `8pt` → **5pt**.
+Añadir clases reutilizables en el `<style>` global:
+
+```css
+.firma-recuadros { display: flex; gap: 20pt; margin-top: 20pt; page-break-inside: avoid; }
+.firma-recuadro { flex: 1; border: 1px solid #333; min-height: 110pt; display: flex; flex-direction: column; }
+.firma-recuadro-area { flex: 1; min-height: 70pt; }
+.firma-recuadro-label { border-top: 1px solid #333; padding: 4pt 6pt; text-align: center; font-size: 8.5pt; font-weight: bold; }
+.firma-recuadro-sub { font-size: 7.5pt; font-weight: normal; color: #555; margin-top: 2pt; }
+```
 
 ## Notas
 
-- Cambios aislados al template de Acta de Nombramiento — no afectan a Acta de Aprobación, Acta de Reunión ni Informes CSS/AT.
-- Si en algún caso muy extremo (texto legal muy largo) sigue desbordando, queda margen para reducir más el `line-height` del texto legal o el tamaño de fuente, pero con estos valores debería entrar en una página con el texto legal habitual.
-
-## QA
-
-Tras aplicar, generaré un PDF de prueba del acta CAE y verificaré visualmente que:
-- Todo cabe en 1 sola página.
-- Los textos no quedan apretados ni cortados.
-- El logo y los títulos se siguen leyendo bien.
+- Las etiquetas específicas anteriores (Promotor, Coordinadora CAE, Empresa CSS, etc.) se eliminan en favor del formato unificado solicitado.
+- El nombre del técnico ya no aparece bajo la firma (irá escrito a mano en el recuadro derecho como "nombre y cargo").
+- Se mantiene `page-break-inside: avoid` para que el bloque no se parta entre páginas.
