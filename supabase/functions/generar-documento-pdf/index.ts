@@ -147,17 +147,15 @@ function firmaSection(lugarFirma: string, fecha: string, _firmas: string[]) {
 /** Bloque unificado de firmas: dos recuadros (Técnico Inspector / Responsable Empresa) */
 function firmaRecuadros() {
   return `
-    <div style="display:flex;gap:20pt;margin-top:20pt;page-break-inside:avoid;">
-      <div style="flex:1;border:1px solid #333;min-height:110pt;display:flex;flex-direction:column;">
-        <div style="flex:1;min-height:70pt;"></div>
-        <div style="border-top:1px solid #333;padding:5pt 6pt;text-align:center;font-size:8.5pt;font-weight:bold;">FIRMA DEL TÉCNICO INSPECTOR</div>
+    <div style="display:flex;gap:20pt;margin-top:20pt;page-break-inside:avoid;align-items:stretch;">
+      <div style="flex:1;border:1px solid #333;display:flex;flex-direction:column;">
+        <div style="border-bottom:1px solid #333;padding:5pt 6pt;text-align:center;font-size:8.5pt;font-weight:bold;">FIRMA DEL TÉCNICO INSPECTOR:</div>
+        <div style="min-height:80pt;"></div>
       </div>
-      <div style="flex:1;border:1px solid #333;min-height:110pt;display:flex;flex-direction:column;">
-        <div style="flex:1;min-height:70pt;"></div>
-        <div style="border-top:1px solid #333;padding:5pt 6pt;text-align:center;font-size:8.5pt;font-weight:bold;">
-          FIRMA RESPONSABLE DE LA EMPRESA:
-          <div style="font-size:7.5pt;font-weight:normal;color:#555;margin-top:2pt;">Recibí nombre y cargo</div>
-        </div>
+      <div style="flex:1;border:1px solid #333;display:flex;flex-direction:column;">
+        <div style="border-bottom:1px solid #333;padding:5pt 6pt;text-align:center;font-size:8.5pt;font-weight:bold;">FIRMA RESPONSABLE DE LA EMPRESA:</div>
+        <div style="text-align:center;font-size:7.5pt;color:#555;padding:4pt 6pt 0;">Recibí nombre y cargo</div>
+        <div style="min-height:64pt;"></div>
       </div>
     </div>
   `;
