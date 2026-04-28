@@ -408,7 +408,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
           <Input value={lugarReunion} onChange={e => setLugarReunion(e.target.value)} />
         </div>
         <div className="space-y-2">
-          <Label>Fecha y hora</Label>
+          <Label>Fecha y hora de la reunión</Label>
           <Input type="datetime-local" value={fechaHora} onChange={e => setFechaHora(e.target.value)} />
         </div>
         {isCAE && (
