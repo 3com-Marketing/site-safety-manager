@@ -366,7 +366,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
 
     onSave({
       titulo: obraActuacion || 'Acta de reunión',
-      fecha_documento: fechaHora || null,
+      fecha_documento: fechaFirma || null,
       nombre_promotor: promotor,
       datos_extra: datosExtra as unknown as Json,
       ...(obraId ? { obra_id: obraId, tipo } : {}),
