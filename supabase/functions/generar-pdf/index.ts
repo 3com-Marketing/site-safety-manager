@@ -92,19 +92,19 @@ serve(async (req) => {
 <style>
   @page { margin: 2cm; size: A4; }
   body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 11pt; color: #1a1a1a; line-height: 1.5; }
-  h1 { font-size: 22pt; color: #F37520; margin-bottom: 4pt; }
-  h2 { font-size: 14pt; color: #1a1a1a; border-bottom: 2px solid #F37520; padding-bottom: 4pt; margin-top: 24pt; }
+  h1 { font-size: 22pt; color: #E63027; margin-bottom: 4pt; }
+  h2 { font-size: 14pt; color: #1a1a1a; border-bottom: 2px solid #E63027; padding-bottom: 4pt; margin-top: 24pt; }
   h3 { font-size: 12pt; margin-top: 16pt; }
-  .header { text-align: center; margin-bottom: 32pt; padding-bottom: 16pt; border-bottom: 3px solid #F37520; }
+  .header { text-align: center; margin-bottom: 32pt; padding-bottom: 16pt; border-bottom: 3px solid #E63027; }
   .header .subtitle { color: #666; font-size: 10pt; }
   .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8pt; margin: 12pt 0; }
   .meta-item { background: #f8f8f8; padding: 8pt 12pt; border-radius: 4pt; }
   .meta-label { font-size: 9pt; color: #888; text-transform: uppercase; letter-spacing: 0.5pt; }
   .meta-value { font-weight: bold; margin-top: 2pt; }
   .item-card { border: 1px solid #e0e0e0; border-radius: 6pt; padding: 12pt; margin: 8pt 0; page-break-inside: avoid; }
-  .normativa { background: #FFF8F0; border-left: 3px solid #F37520; padding: 6pt 10pt; margin-top: 6pt; font-size: 9pt; color: #555; }
-  .normativa-label { font-weight: bold; color: #F37520; font-size: 8pt; text-transform: uppercase; }
-  .badge { display: inline-block; background: #F37520; color: white; font-size: 8pt; padding: 2pt 8pt; border-radius: 10pt; }
+  .normativa { background: #FDECEB; border-left: 3px solid #E63027; padding: 6pt 10pt; margin-top: 6pt; font-size: 9pt; color: #555; }
+  .normativa-label { font-weight: bold; color: #E63027; font-size: 8pt; text-transform: uppercase; }
+  .badge { display: inline-block; background: #E63027; color: white; font-size: 8pt; padding: 2pt 8pt; border-radius: 10pt; }
   .foto { max-width: 200pt; max-height: 150pt; border-radius: 4pt; margin: 6pt 4pt 2pt 0; }
   .foto-caption { font-size: 8pt; color: #666; text-align: center; margin: 2pt 0 6pt 0; }
   .empty { color: #999; font-style: italic; }
