@@ -558,6 +558,14 @@ export default function AdminInformes() {
                     Ver {visitasRestantes} más →
                   </button>
                 )}
+                {showAllVisitas && visitasFiltradas.length > 6 && (
+                  <button
+                    onClick={collapseVisitas}
+                    className="w-full text-sm text-primary font-medium py-2 hover:underline"
+                  >
+                    Mostrar menos ↑
+                  </button>
+                )}
               </div>
             )}
           </section>
