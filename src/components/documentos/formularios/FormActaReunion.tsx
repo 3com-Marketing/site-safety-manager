@@ -456,6 +456,19 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
         <Textarea value={excusados} onChange={e => setExcusados(e.target.value)} rows={2} />
       </div>
 
+      {/* Firma — lugar y fecha que aparecen como "En {lugar}, a {fecha}." en el PDF */}
+      <p className="text-sm font-semibold text-muted-foreground pt-2">Firma</p>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Lugar de la firma</Label>
+          <Input value={lugarFirma} onChange={e => setLugarFirma(e.target.value)} placeholder="Maspalomas" />
+        </div>
+        <div className="space-y-2">
+          <Label>Fecha del documento</Label>
+          <Input type="date" value={fechaFirma} onChange={e => setFechaFirma(e.target.value)} />
+        </div>
+      </div>
+
 
       {/* ===== NEW CAE SECTIONS ===== */}
       {isCAE && (
