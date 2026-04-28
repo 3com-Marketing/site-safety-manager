@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ChevronLeft, ChevronRight, Calendar as CalIcon, Plus, Trash2, Save } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalIcon, Plus, Trash2, Save, AlertTriangle, HardHat, User as UserIcon, Check } from 'lucide-react';
 import {
   addDays, startOfWeek, endOfWeek, format, isSameDay, getISOWeek, isSameWeek,
 } from 'date-fns';
@@ -60,7 +60,7 @@ export default function AdminCalendario() {
   const [loading, setLoading] = useState(true);
 
   const [selectedVisita, setSelectedVisita] = useState<Visita | null>(null);
-  const [nuevaCtx, setNuevaCtx] = useState<{ fecha: Date; obraId?: string; tecnicoId?: string } | null>(null);
+  const [nuevaCtx, setNuevaCtx] = useState<{ fecha: Date; obraId?: string; tecnicoId?: string; modoInicial: Pivot } | null>(null);
 
   const weekEnd = useMemo(() => endOfWeek(weekStart, { weekStartsOn: 1 }), [weekStart]);
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
@@ -324,8 +324,9 @@ export default function AdminCalendario() {
                               fecha: d,
                               obraId: pivot === 'obra' ? r.id : undefined,
                               tecnicoId: pivot === 'tecnico' ? r.id : undefined,
+                              modoInicial: pivot,
                             })}
-                            className="flex items-center justify-center rounded-md border border-dashed border-border/60 py-1 text-[11px] text-muted-foreground/60 opacity-0 hover:border-primary hover:text-primary group-hover:opacity-100 transition-opacity"
+                            className="flex items-center justify-center rounded-md border border-dashed border-border/60 py-1 text-[11px] text-muted-foreground/60 hover:border-primary hover:text-primary transition-colors"
                             style={{ opacity: items.length === 0 ? 1 : 0.35 }}
                             title="Nueva visita"
                           >
@@ -347,6 +348,10 @@ export default function AdminCalendario() {
         ctx={nuevaCtx}
         obras={obras}
         tecnicos={tecnicos}
+        tecnicosByObra={tecnicosByObra}
+        obrasByTecnico={obrasByTecnico}
+        tecByUserId={tecByUserId}
+        visitasSemana={visitas}
         onClose={() => setNuevaCtx(null)}
         onCreated={() => { setNuevaCtx(null); fetchVisitas(); }}
       />
@@ -357,6 +362,7 @@ export default function AdminCalendario() {
         obras={obras}
         tecnicos={tecnicos}
         tecByUserId={tecByUserId}
+        visitasSemana={visitas}
         onClose={() => setSelectedVisita(null)}
         onChanged={() => { setSelectedVisita(null); fetchVisitas(); }}
       />
@@ -365,15 +371,22 @@ export default function AdminCalendario() {
 }
 
 // ---------- Nueva visita ----------
+type NuevaModo = 'obra' | 'tecnico';
+
 function NuevaVisitaDialog({
-  ctx, obras, tecnicos, onClose, onCreated,
+  ctx, obras, tecnicos, tecnicosByObra, obrasByTecnico, tecByUserId, visitasSemana, onClose, onCreated,
 }: {
-  ctx: { fecha: Date; obraId?: string; tecnicoId?: string } | null;
+  ctx: { fecha: Date; obraId?: string; tecnicoId?: string; modoInicial: NuevaModo } | null;
   obras: Obra[];
   tecnicos: Tecnico[];
+  tecnicosByObra: Record<string, string[]>;
+  obrasByTecnico: Record<string, string[]>;
+  tecByUserId: Map<string, Tecnico>;
+  visitasSemana: Visita[];
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const [modo, setModo] = useState<NuevaModo>('obra');
   const [obraId, setObraId] = useState('');
   const [tecnicoId, setTecnicoId] = useState('');
   const [hora, setHora] = useState('09:00');
@@ -382,6 +395,7 @@ function NuevaVisitaDialog({
 
   useEffect(() => {
     if (ctx) {
+      setModo(ctx.modoInicial);
       setObraId(ctx.obraId || '');
       setTecnicoId(ctx.tecnicoId || '');
       setHora('09:00');
@@ -389,8 +403,36 @@ function NuevaVisitaDialog({
     }
   }, [ctx]);
 
-  const open = !!ctx;
   if (!ctx) return null;
+  const open = !!ctx;
+
+  // visitas activas (excluye canceladas)
+  const visitasActivas = useMemo(
+    () => visitasSemana.filter(v => v.estado !== 'cancelada'),
+    [visitasSemana]
+  );
+
+  // visitas de un técnico ese día
+  const visitasTecnicoDia = (tecId: string) => {
+    const tec = tecnicos.find(t => t.id === tecId);
+    if (!tec?.user_id) return [];
+    return visitasActivas.filter(
+      v => v.usuario_id === tec.user_id && isSameDay(new Date(v.fecha), ctx.fecha)
+    );
+  };
+
+  // visitas del técnico en esa obra esa semana
+  const visitasTecObraSemana = (tecId: string, obId: string) => {
+    const tec = tecnicos.find(t => t.id === tecId);
+    if (!tec?.user_id) return 0;
+    return visitasActivas.filter(v => v.usuario_id === tec.user_id && v.obra_id === obId).length;
+  };
+
+  const tecnicosDeObra = obraId ? (tecnicosByObra[obraId] || []) : [];
+  const obrasDelTecnico = tecnicoId ? (obrasByTecnico[tecnicoId] || []) : [];
+
+  const tecnicoSeleccionado = tecnicos.find(t => t.id === tecnicoId);
+  const visitasMismoDia = tecnicoId ? visitasTecnicoDia(tecnicoId).length : 0;
 
   const submit = async () => {
     if (!obraId || !tecnicoId) {
@@ -421,33 +463,147 @@ function NuevaVisitaDialog({
     onCreated();
   };
 
+  const dispoColor = (n: number) =>
+    n === 0 ? 'bg-green-100 text-green-800 border-green-200'
+    : n === 1 ? 'bg-orange-100 text-orange-800 border-orange-200'
+    : 'bg-red-100 text-red-800 border-red-200';
+  const dispoLabel = (n: number) =>
+    n === 0 ? 'Disponible' : n === 1 ? '1 visita ese día' : `${n} visitas ese día`;
+
   return (
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Nueva visita</DialogTitle>
-          <p className="text-sm text-muted-foreground">{format(ctx.fecha, "EEEE d 'de' MMMM", { locale: es })}</p>
+          <p className="text-sm text-muted-foreground capitalize">
+            {format(ctx.fecha, "EEEE d 'de' MMMM", { locale: es })}
+          </p>
         </DialogHeader>
-        <div className="space-y-3">
-          <div>
-            <Label>Obra</Label>
-            <Select value={obraId} onValueChange={setObraId}>
-              <SelectTrigger><SelectValue placeholder="Selecciona obra" /></SelectTrigger>
-              <SelectContent>
-                {obras.map(o => <SelectItem key={o.id} value={o.id}>{o.nombre}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Técnico</Label>
-            <Select value={tecnicoId} onValueChange={setTecnicoId}>
-              <SelectTrigger><SelectValue placeholder="Selecciona técnico" /></SelectTrigger>
-              <SelectContent>
-                {tecnicos.map(t => <SelectItem key={t.id} value={t.id}>{t.nombre} {t.apellidos}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
+
+        {/* Modo selector */}
+        <div className="inline-flex rounded-full bg-secondary p-1 self-start">
+          {(['obra', 'tecnico'] as NuevaModo[]).map(m => {
+            const active = modo === m;
+            return (
+              <button
+                key={m}
+                onClick={() => { setModo(m); setObraId(''); setTecnicoId(''); }}
+                className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                  active ? 'bg-primary text-primary-foreground shadow' : 'text-secondary-foreground hover:bg-secondary/80'
+                }`}
+              >
+                {m === 'obra' ? 'Desde la obra' : 'Desde el técnico'}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
+          {modo === 'obra' ? (
+            <>
+              <div>
+                <Label>Obra</Label>
+                <Select value={obraId} onValueChange={(v) => { setObraId(v); setTecnicoId(''); }}>
+                  <SelectTrigger><SelectValue placeholder="Selecciona obra" /></SelectTrigger>
+                  <SelectContent>
+                    {obras.map(o => <SelectItem key={o.id} value={o.id}>{o.nombre}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {obraId && (
+                <div>
+                  <Label className="mb-2 block">Técnicos asignados</Label>
+                  {tecnicosDeObra.length === 0 ? (
+                    <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+                      Esta obra no tiene técnicos asignados.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {tecnicosDeObra.map(tid => {
+                        const t = tecnicos.find(x => x.id === tid);
+                        if (!t) return null;
+                        const n = visitasTecnicoDia(tid).length;
+                        const selected = tecnicoId === tid;
+                        return (
+                          <button
+                            key={tid}
+                            onClick={() => setTecnicoId(tid)}
+                            className={`w-full flex items-center justify-between gap-3 rounded-lg border-2 p-3 text-left transition-all ${
+                              selected ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary">
+                                <UserIcon className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                              <div className="font-medium truncate">{t.nombre} {t.apellidos}</div>
+                            </div>
+                            <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium ${dispoColor(n)}`}>
+                              {dispoLabel(n)}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div>
+                <Label>Técnico</Label>
+                <Select value={tecnicoId} onValueChange={(v) => { setTecnicoId(v); setObraId(''); }}>
+                  <SelectTrigger><SelectValue placeholder="Selecciona técnico" /></SelectTrigger>
+                  <SelectContent>
+                    {tecnicos.map(t => <SelectItem key={t.id} value={t.id}>{t.nombre} {t.apellidos}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {tecnicoId && (
+                <div>
+                  <Label className="mb-2 block">Obras asignadas</Label>
+                  {obrasDelTecnico.length === 0 ? (
+                    <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+                      Este técnico no tiene obras asignadas.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {obrasDelTecnico.map(oid => {
+                        const o = obras.find(x => x.id === oid);
+                        if (!o) return null;
+                        const n = visitasTecObraSemana(tecnicoId, oid);
+                        const selected = obraId === oid;
+                        return (
+                          <button
+                            key={oid}
+                            onClick={() => setObraId(oid)}
+                            className={`w-full flex items-center justify-between gap-3 rounded-lg border-2 p-3 text-left transition-all ${
+                              selected ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary">
+                                <HardHat className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                              <div className="font-medium truncate">{o.nombre}</div>
+                            </div>
+                            <span className="shrink-0 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">
+                              {n} esta semana
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+
+          <div className="grid grid-cols-2 gap-3 pt-2">
             <div>
               <Label>Hora</Label>
               <Input type="time" value={hora} onChange={e => setHora(e.target.value)} />
@@ -464,11 +620,21 @@ function NuevaVisitaDialog({
               </Select>
             </div>
           </div>
+
+          {tecnicoSeleccionado && visitasMismoDia >= 1 && (
+            <div className="flex items-start gap-2 rounded-md border border-yellow-300 bg-yellow-50 p-3 text-sm text-yellow-900">
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+              <div>
+                Este técnico ya tiene {visitasMismoDia} visita{visitasMismoDia > 1 ? 's' : ''} programada{visitasMismoDia > 1 ? 's' : ''} ese día.
+              </div>
+            </div>
+          )}
         </div>
+
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button onClick={submit} disabled={saving}>
-            <Save className="h-4 w-4 mr-1" /> Crear
+          <Button onClick={submit} disabled={saving || !obraId || !tecnicoId}>
+            <Check className="h-4 w-4 mr-1" /> Crear visita
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -478,17 +644,16 @@ function NuevaVisitaDialog({
 
 // ---------- Detalle (Sheet) ----------
 function VisitaDetalleSheet({
-  visita, obras, tecnicos, tecByUserId, onClose, onChanged,
+  visita, obras, tecnicos, tecByUserId, visitasSemana, onClose, onChanged,
 }: {
   visita: Visita | null;
   obras: Obra[];
   tecnicos: Tecnico[];
   tecByUserId: Map<string, Tecnico>;
+  visitasSemana: Visita[];
   onClose: () => void;
   onChanged: () => void;
 }) {
-  const [obraId, setObraId] = useState('');
-  const [tecnicoId, setTecnicoId] = useState('');
   const [fechaStr, setFechaStr] = useState('');
   const [horaStr, setHoraStr] = useState('');
   const [estado, setEstado] = useState<EstadoVisita>('programada');
@@ -496,33 +661,52 @@ function VisitaDetalleSheet({
 
   useEffect(() => {
     if (!visita) return;
-    setObraId(visita.obra_id);
-    const t = tecByUserId.get(visita.usuario_id);
-    setTecnicoId(t?.id || '');
     const d = new Date(visita.fecha);
     setFechaStr(format(d, 'yyyy-MM-dd'));
     setHoraStr(format(d, 'HH:mm'));
     setEstado((visita.estado as EstadoVisita) || 'programada');
-  }, [visita, tecByUserId]);
+  }, [visita]);
 
   if (!visita) return null;
 
+  const obra = obras.find(o => o.id === visita.obra_id);
+  const tecnico = tecByUserId.get(visita.usuario_id);
+  const meta = ESTADO_META[visita.estado] || ESTADO_META.programada;
+
+  // Contadores
+  const visitasActivas = visitasSemana.filter(v => v.estado !== 'cancelada');
+  const enEstaObraSemana = visitasActivas.filter(
+    v => v.usuario_id === visita.usuario_id && v.obra_id === visita.obra_id
+  ).length;
+  const totalSemana = visitasActivas.filter(v => v.usuario_id === visita.usuario_id).length;
+
+  // dirty check
+  const origFecha = format(new Date(visita.fecha), 'yyyy-MM-dd');
+  const origHora = format(new Date(visita.fecha), 'HH:mm');
+  const dirty = fechaStr !== origFecha || horaStr !== origHora || estado !== visita.estado;
+
+  // Reglas según estado
+  const isReadonly = visita.estado === 'finalizada' || visita.estado === 'cancelada' || visita.estado === 'en_progreso';
+
+  const estadoOpciones: EstadoVisita[] = (() => {
+    switch (visita.estado) {
+      case 'en_progreso': return ['en_progreso', 'finalizada', 'cancelada'];
+      case 'finalizada': return ['finalizada', 'en_progreso', 'cancelada'];
+      case 'cancelada': return ['cancelada', 'programada'];
+      default: return ['programada', 'pendiente_confirmar', 'finalizada', 'cancelada'];
+    }
+  })();
+
   const guardar = async () => {
-    const tec = tecnicos.find(t => t.id === tecnicoId);
-    if (!tec?.user_id) { toast.error('Técnico inválido'); return; }
     setSaving(true);
     const [y, mo, d] = fechaStr.split('-').map(Number);
     const [hh, mm] = horaStr.split(':').map(Number);
     const fecha = new Date(y, (mo || 1) - 1, d || 1, hh || 0, mm || 0);
-    const { error } = await supabase
-      .from('visitas')
-      .update({
-        obra_id: obraId,
-        usuario_id: tec.user_id,
-        fecha: fecha.toISOString(),
-        estado,
-      })
-      .eq('id', visita.id);
+    const payload: any = { estado };
+    if (!isReadonly) {
+      payload.fecha = fecha.toISOString();
+    }
+    const { error } = await supabase.from('visitas').update(payload).eq('id', visita.id);
     setSaving(false);
     if (error) { toast.error('Error al guardar'); return; }
     toast.success('Visita actualizada');
@@ -531,10 +715,7 @@ function VisitaDetalleSheet({
 
   const cancelar = async () => {
     if (!confirm('¿Cancelar esta visita?')) return;
-    const { error } = await supabase
-      .from('visitas')
-      .update({ estado: 'cancelada' })
-      .eq('id', visita.id);
+    const { error } = await supabase.from('visitas').update({ estado: 'cancelada' }).eq('id', visita.id);
     if (error) { toast.error('No se pudo cancelar'); return; }
     toast.success('Visita cancelada');
     onChanged();
@@ -542,63 +723,95 @@ function VisitaDetalleSheet({
 
   return (
     <Sheet open={!!visita} onOpenChange={v => !v && onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-md">
+      <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Detalle de visita</SheetTitle>
-          <SheetDescription>
+          <SheetDescription className="capitalize">
             {format(new Date(visita.fecha), "EEEE d 'de' MMMM, HH:mm", { locale: es })}
           </SheetDescription>
         </SheetHeader>
+
+        {/* Info bloque */}
+        <div className="mt-6 space-y-3 rounded-lg border border-border bg-muted/30 p-4">
+          <div className="flex items-start gap-2">
+            <HardHat className="h-4 w-4 mt-0.5 text-muted-foreground" />
+            <div className="min-w-0 flex-1">
+              <div className="text-xs text-muted-foreground">Obra</div>
+              <div className="font-medium truncate">{obra?.nombre || '—'}</div>
+            </div>
+          </div>
+          <div className="flex items-start gap-2">
+            <UserIcon className="h-4 w-4 mt-0.5 text-muted-foreground" />
+            <div className="min-w-0 flex-1">
+              <div className="text-xs text-muted-foreground">Técnico</div>
+              <div className="font-medium truncate">
+                {tecnico ? `${tecnico.nombre} ${tecnico.apellidos}`.trim() : '—'}
+              </div>
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground mb-1">Estado actual</div>
+            <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${meta.chip}`}>
+              {meta.label}
+            </span>
+          </div>
+        </div>
+
+        {/* Contadores */}
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="rounded-lg border border-border bg-card p-3 text-center">
+            <div className="text-2xl font-bold text-primary">{enEstaObraSemana}</div>
+            <div className="text-xs text-muted-foreground mt-0.5">En esta obra esta semana</div>
+          </div>
+          <div className="rounded-lg border border-border bg-card p-3 text-center">
+            <div className="text-2xl font-bold text-primary">{totalSemana}</div>
+            <div className="text-xs text-muted-foreground mt-0.5">Total esta semana</div>
+          </div>
+        </div>
+
+        {/* Edición */}
         <div className="mt-6 space-y-3">
-          <div>
-            <Label>Obra</Label>
-            <Select value={obraId} onValueChange={setObraId}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {obras.map(o => <SelectItem key={o.id} value={o.id}>{o.nombre}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Técnico</Label>
-            <Select value={tecnicoId} onValueChange={setTecnicoId}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {tecnicos.map(t => <SelectItem key={t.id} value={t.id}>{t.nombre} {t.apellidos}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Fecha</Label>
-              <Input type="date" value={fechaStr} onChange={e => setFechaStr(e.target.value)} />
+          {!isReadonly && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Fecha</Label>
+                <Input type="date" value={fechaStr} onChange={e => setFechaStr(e.target.value)} />
+              </div>
+              <div>
+                <Label>Hora</Label>
+                <Input type="time" value={horaStr} onChange={e => setHoraStr(e.target.value)} />
+              </div>
             </div>
-            <div>
-              <Label>Hora</Label>
-              <Input type="time" value={horaStr} onChange={e => setHoraStr(e.target.value)} />
-            </div>
-          </div>
+          )}
           <div>
-            <Label>Estado</Label>
+            <Label>Cambiar estado</Label>
             <Select value={estado} onValueChange={v => setEstado(v as EstadoVisita)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="programada">Programada</SelectItem>
-                <SelectItem value="pendiente_confirmar">Pendiente confirmar</SelectItem>
-                <SelectItem value="en_progreso">En progreso</SelectItem>
-                <SelectItem value="finalizada">Realizada</SelectItem>
-                <SelectItem value="cancelada">Cancelada</SelectItem>
+                {estadoOpciones.map(op => (
+                  <SelectItem key={op} value={op}>{ESTADO_META[op]?.label || op}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
         </div>
+
+        {/* Acciones */}
         <div className="mt-6 flex flex-col gap-2">
-          <Button onClick={guardar} disabled={saving}>
-            <Save className="h-4 w-4 mr-1" /> Guardar cambios
-          </Button>
-          <Button variant="outline" onClick={cancelar} className="text-destructive border-destructive/40 hover:bg-destructive/10">
-            <Trash2 className="h-4 w-4 mr-1" /> Cancelar visita
-          </Button>
+          {dirty && (
+            <Button onClick={guardar} disabled={saving}>
+              <Save className="h-4 w-4 mr-1" /> Guardar cambios
+            </Button>
+          )}
+          {visita.estado !== 'cancelada' && (
+            <Button
+              variant="outline"
+              onClick={cancelar}
+              className="text-destructive border-destructive/40 hover:bg-destructive/10"
+            >
+              <Trash2 className="h-4 w-4 mr-1" /> Cancelar visita
+            </Button>
+          )}
         </div>
       </SheetContent>
     </Sheet>
