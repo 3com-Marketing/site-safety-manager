@@ -379,6 +379,17 @@ export default function AdminInformes() {
 
   const visitasMostradas = showAllVisitas ? visitasFiltradas : visitasFiltradas.slice(0, 6);
   const visitasRestantes = visitasFiltradas.length - visitasMostradas.length;
+  const informesMostrados = showAllInformes ? informesFiltrados : informesFiltrados.slice(0, 6);
+  const informesRestantes = informesFiltrados.length - informesMostrados.length;
+
+  const collapseVisitas = () => {
+    setShowAllVisitas(false);
+    listsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  const collapseInformes = () => {
+    setShowAllInformes(false);
+    listsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   return (
     <AdminLayout>
