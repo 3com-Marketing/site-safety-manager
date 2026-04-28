@@ -11,6 +11,8 @@ import { useDocumentosObra, type DocumentoConRelaciones } from '@/hooks/useDocum
 import ImportarVisitaButton, { type VisitaImportData } from '@/components/documentos/ImportarVisitaButton';
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
+import FirmaSelector from '@/components/documentos/FirmaSelector';
+import { useFirmaPerfilUrl, uploadFirmaDocumento } from '@/components/documentos/useFirmaPerfil';
 
 interface Props {
   documento?: DocumentoConRelaciones | null;
