@@ -211,10 +211,10 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
 
   // --- Import handler ---
   const handleImport = (data: VisitaImportData) => {
-    if (data.visita.fecha_fin) {
-      setFechaHora(data.visita.fecha_fin.slice(0, 16));
-    } else if (data.visita.fecha) {
-      setFechaHora(data.visita.fecha.slice(0, 16));
+    const visitaIso = data.visita.fecha_fin || data.visita.fecha || '';
+    if (visitaIso) {
+      setFechaHora(visitaIso.slice(0, 16));
+      if (!fechaFirma) setFechaFirma(visitaIso.slice(0, 10));
     }
     if (isCAE && data.informe.empresas_presentes) {
       const empresas = data.informe.empresas_presentes
