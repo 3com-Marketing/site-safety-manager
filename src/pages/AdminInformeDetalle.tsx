@@ -191,10 +191,35 @@ export default function AdminInformeDetalle() {
     setSaving(false);
   };
 
-  const markAsReviewed = async () => {
+  const markAsReviewed = () => {
     if (!id) return;
-    await supabase.from('informes').update({ estado: 'cerrado' }).eq('id', id);
-    toast.success('Informe marcado como revisado');
+    setFirmaDialogOpen(true);
+  };
+
+  const closeWithFirma = async (payload: { useStored: true } | { blob: Blob }) => {
+    if (!id) return;
+    let firmaUrl: string | null = null;
+    if ('useStored' in payload) {
+      firmaUrl = firmaPerfilUrl;
+    } else {
+      const path = `firmas-informes/${id}_${Date.now()}.png`;
+      const { error: upErr } = await supabase.storage.from('logos').upload(path, payload.blob, {
+        contentType: 'image/png', upsert: true,
+      });
+      if (upErr) { toast.error('Error al subir la firma'); return; }
+      const { data: urlData } = supabase.storage.from('logos').getPublicUrl(path);
+      firmaUrl = urlData.publicUrl;
+    }
+
+    const { error } = await supabase.from('informes').update({
+      estado: 'cerrado',
+      firma_url: firmaUrl,
+      firma_at: new Date().toISOString(),
+    } as any).eq('id', id);
+    if (error) { toast.error('Error al cerrar el informe'); return; }
+
+    toast.success('Informe cerrado y firmado');
+    setFirmaDialogOpen(false);
     await fetchData();
   };
 
