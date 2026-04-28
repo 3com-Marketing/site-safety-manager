@@ -1,34 +1,60 @@
+# Mapa de confirmación al iniciar y finalizar visita
+
 ## Objetivo
 
-Convertir las 4 tarjetas del dashboard de admin (`/admin`) en botones clicables que filtren la información mostrada debajo según el KPI seleccionado.
+1. Al **iniciar** visita: invertir el mapa de confirmación actual para que la ubicación del técnico sea la principal (mapa centrado en el técnico) y la obra sea el marcador de referencia para medir distancia.
+2. Al **finalizar** visita: mostrar el **mismo** diálogo de confirmación con mapa antes de cerrarla, en lugar del actual diálogo silencioso de "obteniendo ubicación".
 
-## Comportamiento por tarjeta
+## Cambios
 
-| Tarjeta | Al hacer clic |
-|---|---|
-| **Visitas hoy** | Hace scroll a la sección "Actividad de hoy" y la resalta. |
-| **En progreso** | Hace scroll a la sección "Visitas en progreso" y la resalta. |
-| **Informes pendientes** | Hace scroll a "Informes" y aplica el filtro `pendiente_revision`. |
-| **Cerrados este mes** | Hace scroll a "Informes" y aplica el filtro `cerrado` (mostrando solo los del mes actual). |
+### 1. `src/pages/SelectObra.tsx` — invertir el mapa de inicio
 
-Comportamiento adicional:
-- Pulsar la tarjeta ya activa la deselecciona (vuelve a "Todos" / sin filtro).
-- La tarjeta seleccionada se marca visualmente con un borde primario y fondo sutil.
-- En las tarjetas de visitas, si el listado correspondiente está vacío se muestra un estado vacío en lugar de ocultarse.
+En el bloque `confirmState`, cambiar el `MapPicker` para centrarlo en la ubicación del técnico:
 
-## Cambios técnicos
+- `lat={confirmState.lat}` y `lng={confirmState.lng}` (en lugar de `obraLat`/`obraLng`).
+- Mantener ambos marcadores (obra naranja, técnico azul) tal como están, así el usuario ve primero su posición y puede desplazar el mapa hasta la obra para verificar la distancia.
+- El badge inferior con `formatDistance(confirmState.distance)` se mantiene igual.
 
-Archivo: `src/pages/AdminInformes.tsx`
+No cambia la lógica de cálculo de distancia ni el botón "Confirmar inicio".
 
-1. Añadir estado `activeKpi: 'visitas_hoy' | 'en_progreso' | 'pendientes' | 'cerrados_mes' | null`.
-2. Envolver cada `<Card>` KPI en un `<button>` (o convertir Card en clicable con `role="button"`, `onClick`, `tabIndex`, `aria-pressed`) con clase condicional `border-primary bg-primary/5` cuando esté activa.
-3. Añadir `ref`s a las secciones "Visitas en progreso", "Actividad de hoy" e "Informes" y hacer `scrollIntoView({ behavior: 'smooth', block: 'start' })` al activar el KPI correspondiente.
-4. Para los KPIs de informes, además de hacer scroll, actualizar `setFilter('pendiente_revision' | 'cerrado')`.
-5. Para "Cerrados este mes", filtrar adicionalmente la lista de informes al mes actual cuando `activeKpi === 'cerrados_mes'` (extender `filtered` con un check de fecha ≥ `monthStart`).
-6. Mantener el comportamiento existente de los chips de filtro (Todos / Pendiente / Borrador / Cerrado); al pulsar un chip se limpia `activeKpi` para evitar conflictos.
+### 2. `src/pages/VisitaActiva.tsx` — añadir confirmación con mapa al finalizar
 
-## Accesibilidad
+Reemplazar el flujo actual de `finishVisita` (que solo muestra un loader) por un flujo en dos pasos análogo al de inicio:
 
-- `aria-pressed={activeKpi === '...'}` en cada tarjeta.
-- `cursor-pointer` y `transition-colors` para feedback visual.
-- Foco visible (`focus-visible:ring-2 focus-visible:ring-primary`).
+**Nuevo estado:**
+```ts
+type FinishGeoState =
+  | { status: 'idle' }
+  | { status: 'requesting' }
+  | { status: 'error'; kind: 'denied' | 'timeout' | 'unavailable' }
+  | { status: 'confirm'; lat: number; lng: number; obraLat: number | null; obraLng: number | null; distance: number | null }
+  | { status: 'saving'; lat: number | null; lng: number | null };
+```
+
+**Cargar coordenadas de la obra** en `fetchData` (extender el select de `visitas` para incluir `obras(nombre, latitud, longitud)`) y guardarlas en estado.
+
+**Flujo nuevo de `finishVisita`:**
+1. Pulsar "FINALIZAR VISITA" → pedir geolocalización (`enableHighAccuracy`, timeout 15s) mostrando diálogo "Obteniendo ubicación" con botones **Cancelar** y **Continuar sin ubicación**.
+2. Al obtener posición:
+   - Si la obra tiene coordenadas → calcular `haversineDistance` y abrir diálogo de confirmación con mapa (mismo componente visual que `SelectObra`: mapa centrado en el técnico, marcador naranja para la obra, marcador azul para el técnico, badge de distancia).
+   - Si la obra no tiene coordenadas → guardar directamente sin confirmación.
+3. En caso de error de GPS → diálogo con opciones **Reintentar** y **Continuar sin ubicación** (mismo patrón que `SelectObra`).
+4. Botones del diálogo de confirmación: **Cancelar** (vuelve a la visita sin finalizar) y **Confirmar fin de visita** (ejecuta el `update` de `visitas` + `informes` y navega).
+
+**Mover lógica de persistencia** a una función `persistFinish(lat, lng)` que haga los dos `update` actuales y la navegación.
+
+### 3. Pequeña refactorización opcional
+
+Los tres diálogos (requesting/error/confirm) son prácticamente idénticos a los de `SelectObra`. Para no duplicar JSX, los inlineamos en `VisitaActiva.tsx` reutilizando `MapPicker`, `haversineDistance` y `formatDistance` (ya existen). No se extrae componente compartido en este cambio para mantener el diff pequeño.
+
+## Archivos a modificar
+
+- `src/pages/SelectObra.tsx` — invertir centro del mapa de confirmación.
+- `src/pages/VisitaActiva.tsx` — cargar coords de obra, sustituir `finishVisita` por flujo con diálogos GPS + mapa de confirmación.
+
+## Detalles técnicos
+
+- `MapPicker` con `lat`/`lng` define el centro y el zoom inicial; los `markers` se pintan independientemente, así que centrar en el técnico no afecta a la visualización de ambos puntos.
+- Se reutiliza `haversineDistance` y `formatDistance` de `src/lib/geo.ts`.
+- El `update` a `visitas` al finalizar mantiene los mismos campos (`estado`, `lat_fin`, `lng_fin`, `fecha_fin`); solo se difiere hasta que el usuario confirme en el mapa.
+- Modo admin (`isAdminMode`) no muestra el botón finalizar, así que no se ve afectado.

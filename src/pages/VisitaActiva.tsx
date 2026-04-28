@@ -3,17 +3,27 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Check, ChevronLeft, Loader2, Clock } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ChevronLeft, Loader2, Clock, MapPin, AlertTriangle, Navigation } from 'lucide-react';
 import { toast } from 'sonner';
 import { addDays, isAfter, format, differenceInSeconds } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import VisitaSecciones, { type SeccionId } from '@/components/visita/VisitaSecciones';
 import ChecklistBloque from '@/components/visita/ChecklistBloque';
 import SeccionIncidencias from '@/components/visita/SeccionIncidencias';
 import SeccionAmonestaciones from '@/components/visita/SeccionAmonestaciones';
 import SeccionObservaciones from '@/components/visita/SeccionObservaciones';
 import SeccionDatosGenerales from '@/components/visita/SeccionDatosGenerales';
+import MapPicker from '@/components/MapPicker';
+import { haversineDistance, formatDistance } from '@/lib/geo';
+
+type FinishGeoErrorKind = 'denied' | 'unavailable' | 'timeout';
+type FinishGeoState =
+  | { status: 'idle' }
+  | { status: 'requesting' }
+  | { status: 'error'; kind: FinishGeoErrorKind }
+  | { status: 'confirm'; lat: number; lng: number; obraLat: number; obraLng: number; distance: number }
+  | { status: 'saving' };
 
 const BLOQUE_LABELS: Record<string, string> = {
   EPIs: 'EPIs',
@@ -71,18 +81,21 @@ export default function VisitaActiva() {
 
   const [informeId, setInformeId] = useState<string | null>(null);
   const [obraNombre, setObraNombre] = useState('');
+  const [obraLat, setObraLat] = useState<number | null>(null);
+  const [obraLng, setObraLng] = useState<number | null>(null);
   const [bloques, setBloques] = useState<BloqueData[]>([]);
   const [incidenciasCount, setIncidenciasCount] = useState(0);
   const [amonestacionesCount, setAmonestacionesCount] = useState(0);
   const [observacionesCount, setObservacionesCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [finishing, setFinishing] = useState(false);
-  const [gettingGeo, setGettingGeo] = useState(false);
+  const [finishGeo, setFinishGeo] = useState<FinishGeoState>({ status: 'idle' });
   const [view, setView] = useState<ViewState>({ type: 'secciones' });
   const [isFinalized, setIsFinalized] = useState(false);
   const [editableUntil, setEditableUntil] = useState<Date | null>(null);
   const [fechaInicio, setFechaInicio] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
+
+  const finishing = finishGeo.status !== 'idle';
 
   const currentStepIndex = view.type === 'step' ? STEPS.indexOf(view.stepId) : -1;
   const isFirstStep = currentStepIndex === 0;
@@ -109,7 +122,7 @@ export default function VisitaActiva() {
 
     const { data: visita } = await supabase
       .from('visitas')
-      .select('id, estado, fecha, obras(nombre)')
+      .select('id, estado, fecha, obras(nombre, latitud, longitud)')
       .eq('id', id)
       .single();
 
@@ -129,7 +142,10 @@ export default function VisitaActiva() {
     }
 
     setFechaInicio(visita.fecha);
-    setObraNombre((visita as any).obras?.nombre || 'Obra');
+    const obra: any = (visita as any).obras;
+    setObraNombre(obra?.nombre || 'Obra');
+    setObraLat(obra?.latitud ?? null);
+    setObraLng(obra?.longitud ?? null);
 
     const { data: informe } = await supabase
       .from('informes')
@@ -218,35 +234,63 @@ export default function VisitaActiva() {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  const persistFinish = async (lat: number | null, lng: number | null) => {
+    if (!id || !informeId) return;
+    setFinishGeo({ status: 'saving' });
+    try {
+      await supabase.from('visitas').update({ estado: 'finalizada', lat_fin: lat, lng_fin: lng, fecha_fin: new Date().toISOString() } as any).eq('id', id);
+      await supabase.from('informes').update({ estado: 'pendiente_revision' }).eq('id', informeId);
+      toast.success('Visita finalizada');
+      navigate(isAdminMode ? '/admin' : '/');
+    } catch (err) {
+      console.error(err);
+      toast.error('No se pudo finalizar la visita');
+      setFinishGeo({ status: 'idle' });
+    }
+  };
+
   const finishVisita = async () => {
     if (!id || !informeId) return;
-    setFinishing(true);
-    setGettingGeo(true);
 
-    let lat_fin: number | null = null;
-    let lng_fin: number | null = null;
-
-    if (navigator.geolocation) {
-      try {
-        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true,
-            timeout: 10000,
-          });
-        });
-        lat_fin = pos.coords.latitude;
-        lng_fin = pos.coords.longitude;
-      } catch {
-        // GPS denied
-      }
+    if (!navigator.geolocation) {
+      setFinishGeo({ status: 'error', kind: 'unavailable' });
+      return;
     }
 
-    setGettingGeo(false);
+    try {
+      // @ts-ignore
+      if (navigator.permissions?.query) {
+        const status = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+        if (status.state === 'denied') {
+          setFinishGeo({ status: 'error', kind: 'denied' });
+          return;
+        }
+      }
+    } catch {
+      // ignore
+    }
 
-    await supabase.from('visitas').update({ estado: 'finalizada', lat_fin, lng_fin, fecha_fin: new Date().toISOString() } as any).eq('id', id);
-    await supabase.from('informes').update({ estado: 'pendiente_revision' }).eq('id', informeId);
-    toast.success('Visita finalizada');
-    navigate(isAdminMode ? '/admin' : '/');
+    setFinishGeo({ status: 'requesting' });
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const tecLat = pos.coords.latitude;
+        const tecLng = pos.coords.longitude;
+        if (obraLat != null && obraLng != null) {
+          const dist = haversineDistance(tecLat, tecLng, obraLat, obraLng);
+          setFinishGeo({ status: 'confirm', lat: tecLat, lng: tecLng, obraLat, obraLng, distance: dist });
+        } else {
+          persistFinish(tecLat, tecLng);
+        }
+      },
+      (err) => {
+        const kind: FinishGeoErrorKind =
+          err.code === err.PERMISSION_DENIED ? 'denied' :
+          err.code === err.TIMEOUT ? 'timeout' : 'unavailable';
+        setFinishGeo({ status: 'error', kind });
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
+    );
   };
 
   const handleSelectSeccion = (seccionId: SeccionId) => {
@@ -453,14 +497,111 @@ export default function VisitaActiva() {
         </div>
       </div>
 
-      <Dialog open={gettingGeo}>
-        <DialogContent className="max-w-xs text-center">
+      {/* GPS requesting dialog */}
+      <Dialog open={finishGeo.status === 'requesting'} onOpenChange={(open) => { if (!open) setFinishGeo({ status: 'idle' }); }}>
+        <DialogContent className="max-w-xl text-center">
           <DialogHeader>
-            <DialogTitle>Obteniendo ubicación de cierre</DialogTitle>
+            <DialogTitle className="flex items-center justify-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" />
+              Obteniendo ubicación de cierre
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              Permite el acceso a tu ubicación para registrar el punto de fin de la visita.
+            </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center gap-3 py-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Registrando tu ubicación final...</p>
+          </div>
+          <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+            <Button variant="outline" onClick={() => setFinishGeo({ status: 'idle' })}>Cancelar</Button>
+            <Button variant="secondary" onClick={() => persistFinish(null, null)}>
+              Continuar sin ubicación
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* GPS error dialog */}
+      <Dialog open={finishGeo.status === 'error'} onOpenChange={(open) => { if (!open) setFinishGeo({ status: 'idle' }); }}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              No se pudo obtener tu ubicación
+            </DialogTitle>
+            <DialogDescription>
+              {finishGeo.status === 'error' && finishGeo.kind === 'denied' && 'Has denegado el permiso de ubicación. Habilítalo en los ajustes del navegador para registrar el punto de fin de la visita.'}
+              {finishGeo.status === 'error' && finishGeo.kind === 'timeout' && 'La búsqueda de tu ubicación ha tardado demasiado. Sal a un sitio con mejor señal GPS o continúa sin ubicación.'}
+              {finishGeo.status === 'error' && finishGeo.kind === 'unavailable' && 'Tu dispositivo no puede determinar la ubicación ahora mismo. Puedes reintentar o continuar sin ubicación.'}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+            <Button variant="outline" onClick={() => setFinishGeo({ status: 'idle' })}>Cerrar</Button>
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => persistFinish(null, null)}>
+                Continuar sin ubicación
+              </Button>
+              {finishGeo.status === 'error' && finishGeo.kind !== 'denied' && (
+                <Button onClick={finishVisita}>Reintentar</Button>
+              )}
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm finish with map */}
+      <Dialog open={finishGeo.status === 'confirm'} onOpenChange={(open) => { if (!open) setFinishGeo({ status: 'idle' }); }}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Navigation className="h-5 w-5 text-primary" />
+              Confirmar fin de visita
+            </DialogTitle>
+          </DialogHeader>
+          {finishGeo.status === 'confirm' && (
+            <div className="space-y-4">
+              <MapPicker
+                readOnly
+                markers={[
+                  { lat: finishGeo.obraLat, lng: finishGeo.obraLng, color: '#F37520', label: 'Obra' },
+                  { lat: finishGeo.lat, lng: finishGeo.lng, color: '#3B82F6', label: 'Tu ubicación' },
+                ]}
+                lat={finishGeo.lat}
+                lng={finishGeo.lng}
+              />
+              <div className="flex items-center justify-center gap-2 text-sm">
+                <span className="inline-block h-3 w-3 rounded-full bg-primary" />
+                <span>Obra</span>
+                <span className="mx-2 text-muted-foreground">·</span>
+                <span className="inline-block h-3 w-3 rounded-full bg-blue-500" />
+                <span>Tú</span>
+                <span className="mx-2 text-muted-foreground">·</span>
+                <span className="font-semibold">{formatDistance(finishGeo.distance)}</span>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFinishGeo({ status: 'idle' })}>Cancelar</Button>
+            <Button
+              onClick={() => {
+                if (finishGeo.status === 'confirm') persistFinish(finishGeo.lat, finishGeo.lng);
+              }}
+              className="h-12 rounded-xl bg-success hover:bg-success/90 text-success-foreground"
+            >
+              Confirmar fin de visita
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Saving overlay */}
+      <Dialog open={finishGeo.status === 'saving'}>
+        <DialogContent className="max-w-xs text-center">
+          <DialogHeader>
+            <DialogTitle>Finalizando visita</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-3 py-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         </DialogContent>
       </Dialog>

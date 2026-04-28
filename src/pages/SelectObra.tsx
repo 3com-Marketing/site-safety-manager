@@ -282,8 +282,8 @@ export default function SelectObra() {
                   { lat: confirmState.obraLat, lng: confirmState.obraLng, color: '#F37520', label: 'Obra' },
                   { lat: confirmState.lat, lng: confirmState.lng, color: '#3B82F6', label: 'Tu ubicación' },
                 ]}
-                lat={confirmState.obraLat}
-                lng={confirmState.obraLng}
+                lat={confirmState.lat}
+                lng={confirmState.lng}
               />
               <div className="flex items-center justify-center gap-2 text-sm">
                 <span className="inline-block h-3 w-3 rounded-full bg-primary" />
