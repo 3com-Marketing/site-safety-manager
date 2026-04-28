@@ -81,18 +81,21 @@ export default function VisitaActiva() {
 
   const [informeId, setInformeId] = useState<string | null>(null);
   const [obraNombre, setObraNombre] = useState('');
+  const [obraLat, setObraLat] = useState<number | null>(null);
+  const [obraLng, setObraLng] = useState<number | null>(null);
   const [bloques, setBloques] = useState<BloqueData[]>([]);
   const [incidenciasCount, setIncidenciasCount] = useState(0);
   const [amonestacionesCount, setAmonestacionesCount] = useState(0);
   const [observacionesCount, setObservacionesCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [finishing, setFinishing] = useState(false);
-  const [gettingGeo, setGettingGeo] = useState(false);
+  const [finishGeo, setFinishGeo] = useState<FinishGeoState>({ status: 'idle' });
   const [view, setView] = useState<ViewState>({ type: 'secciones' });
   const [isFinalized, setIsFinalized] = useState(false);
   const [editableUntil, setEditableUntil] = useState<Date | null>(null);
   const [fechaInicio, setFechaInicio] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
+
+  const finishing = finishGeo.status !== 'idle';
 
   const currentStepIndex = view.type === 'step' ? STEPS.indexOf(view.stepId) : -1;
   const isFirstStep = currentStepIndex === 0;
