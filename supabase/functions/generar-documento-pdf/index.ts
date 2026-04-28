@@ -241,7 +241,7 @@ function templateActaNombramiento(doc: any, extra: any, obra: any, cliente: any,
   }
 
   html += `<p style="margin-top:10pt;font-size:9pt;">En ${extra.lugar_firma || "_______________"}, a ${fechaStr}.</p>`;
-  html += firmaRecuadros();
+  html += firmaRecuadros(extra.firma_url);
 
   return html;
 }
@@ -301,7 +301,7 @@ function templateActaAprobacion(doc: any, extra: any, obra: any, cliente: any, s
   }
 
   html += `<p style="margin-top:24pt;font-size:10pt;">En ${extra.lugar_firma || "_______________"}, a ${fechaStr}.</p>`;
-  html += firmaRecuadros();
+  html += firmaRecuadros(extra.firma_url);
 
   return html;
 }
@@ -664,7 +664,7 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
 
   // Firma
   html += `<p style="margin-top:24pt;font-size:10pt;">En ${extra.lugar_firma || extra.localidad || "_______________"}, a ${fechaStr}.</p>`;
-  html += firmaRecuadros();
+  html += firmaRecuadros(extra.firma_url);
 
   return html;
 }
@@ -720,7 +720,7 @@ function templateActaReunionSimple(doc: any, extra: any, obra: any, cliente: any
   }
 
   html += `<p style="margin-top:24pt;font-size:10pt;">En ${extra.lugar_firma || extra.localidad || "_______________"}, a ${fechaStr}.</p>`;
-  html += firmaRecuadros();
+  html += firmaRecuadros(extra.firma_url);
 
   return html;
 }
@@ -838,7 +838,7 @@ function templateInforme(doc: any, extra: any, obra: any, cliente: any, safework
   }
 
   html += `<p style="margin-top:24pt;font-size:10pt;">En ${extra.lugar_firma || "_______________"}, a ${fechaDoc || "_______________"}.</p>`;
-  html += firmaRecuadros();
+  html += firmaRecuadros(extra.firma_url);
 
   return html;
 }
