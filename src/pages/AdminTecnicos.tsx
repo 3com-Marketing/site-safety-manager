@@ -282,6 +282,21 @@ export default function AdminTecnicos() {
             <div><Label>Dirección / Domicilio</Label><Input value={form.direccion} onChange={e => setForm({ ...form, direccion: e.target.value })} /></div>
             <div><Label>Notas</Label><Textarea value={form.notas} onChange={e => setForm({ ...form, notas: e.target.value })} rows={2} /></div>
             <div>
+              <Label className="mb-2 flex items-center gap-2"><PenLine className="h-4 w-4" />Firma</Label>
+              <FirmaCapture
+                firmaUrl={firmaUrlActual}
+                actualizadaAt={firmaActualizadaAt}
+                onFirmaReady={(blob) => {
+                  setFirmaPendiente(blob);
+                  setFirmaUrlActual(URL.createObjectURL(blob));
+                  setFirmaActualizadaAt(new Date().toISOString());
+                }}
+              />
+              {firmaPendiente && (
+                <p className="text-xs text-primary mt-1">Firma pendiente de guardar al pulsar "Guardar".</p>
+              )}
+            </div>
+            <div>
               <Label>Vincular a usuario registrado</Label>
               <Select value={form.user_id || '_none'} onValueChange={val => setForm({ ...form, user_id: val === '_none' ? '' : val })}>
                 <SelectTrigger><SelectValue placeholder="Sin vincular" /></SelectTrigger>
