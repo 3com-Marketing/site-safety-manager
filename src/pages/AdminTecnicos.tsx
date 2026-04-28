@@ -145,6 +145,23 @@ export default function AdminTecnicos() {
       await supabase.from('user_roles').insert({ user_id: form.user_id, role: 'tecnico' as any });
     }
 
+    if (firmaPendiente && tecnicoId) {
+      const path = `firmas/${tecnicoId}_${Date.now()}.png`;
+      const { error: upErr } = await supabase.storage.from('logos').upload(path, firmaPendiente, {
+        contentType: 'image/png', upsert: true,
+      });
+      if (upErr) {
+        toast.error('Error al subir la firma');
+      } else {
+        const { data: urlData } = supabase.storage.from('logos').getPublicUrl(path);
+        const { error: updErr } = await supabase.from('tecnicos').update({
+          firma_url: urlData.publicUrl,
+          firma_actualizada_at: new Date().toISOString(),
+        }).eq('id', tecnicoId);
+        if (updErr) toast.error('Error al guardar la firma');
+      }
+    }
+
     toast.success(editId ? 'Actualizado' : 'Creado');
     setDialogOpen(false);
     fetchData();
