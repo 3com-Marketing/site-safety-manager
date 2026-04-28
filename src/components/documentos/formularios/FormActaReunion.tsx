@@ -11,6 +11,8 @@ import { useDocumentosObra, type DocumentoConRelaciones } from '@/hooks/useDocum
 import ImportarVisitaButton, { type VisitaImportData } from '@/components/documentos/ImportarVisitaButton';
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
+import FirmaSelector from '@/components/documentos/FirmaSelector';
+import { useFirmaPerfilUrl, uploadFirmaDocumento } from '@/components/documentos/useFirmaPerfil';
 
 interface Props {
   documento?: DocumentoConRelaciones | null;
@@ -63,6 +65,11 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   const [fechaFirma, setFechaFirma] = useState('');
   const [excusados, setExcusados] = useState('');
   const [textoLegal, setTextoLegal] = useState('');
+
+  // Firma digital
+  const { firmaUrl: firmaPerfilUrl } = useFirmaPerfilUrl();
+  const [firmaActualUrl, setFirmaActualUrl] = useState<string | null>(null);
+  const [firmaPayload, setFirmaPayload] = useState<{ useStored: true } | { blob: Blob } | null>(null);
 
   // CAE specific
   const [mesReunion, setMesReunion] = useState('');
@@ -196,6 +203,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       setTextoPunto13(extra.texto_punto13 || '');
       setPunto13Procede(extra.punto13_procede || 'no_procede');
       setPunto13TextoProcede(extra.punto13_texto_procede || '');
+      setFirmaActualUrl(extra.firma_url || null);
     } else if (defaultValues) {
       setObraActuacion(defaultValues.nombre_obra || '');
       setLocalidad(defaultValues.direccion_obra || '');
@@ -317,11 +325,32 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
     setRiesgos(prev => prev.includes(r) ? prev.filter(x => x !== r) : [...prev, r]);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    let firmaUrlFinal: string | null = firmaActualUrl;
+    let firmaAtFinal: string | null = (documento?.datos_extra as any)?.firma_at || null;
+
+    if (firmaPayload && 'blob' in firmaPayload) {
+      try {
+        const docKey = documento?.id || `nuevo_${Date.now()}`;
+        firmaUrlFinal = await uploadFirmaDocumento(docKey, firmaPayload.blob);
+        firmaAtFinal = new Date().toISOString();
+      } catch (e: any) {
+        console.error('Error subiendo firma:', e);
+      }
+    } else if (firmaPayload && 'useStored' in firmaPayload && firmaPerfilUrl) {
+      firmaUrlFinal = firmaPerfilUrl;
+      firmaAtFinal = new Date().toISOString();
+    } else if (firmaPayload === null && (documento?.datos_extra as any)?.firma_url) {
+      firmaUrlFinal = null;
+      firmaAtFinal = null;
+    }
+
     const datosExtra: Record<string, any> = {
       obra_actuacion: obraActuacion, localidad, lugar_reunion: lugarReunion,
       fecha_hora_reunion: fechaHora,
       lugar_firma: lugarFirma,
+      firma_url: firmaUrlFinal,
+      firma_at: firmaAtFinal,
       excusados, texto_legal: textoLegal,
     };
     if (isCAE) {
@@ -456,8 +485,8 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
         <Textarea value={excusados} onChange={e => setExcusados(e.target.value)} rows={2} />
       </div>
 
-      {/* Firma — lugar y fecha que aparecen como "En {lugar}, a {fecha}." en el PDF */}
-      <p className="text-sm font-semibold text-muted-foreground pt-2">Firma</p>
+      {/* Lugar y fecha del documento */}
+      <p className="text-sm font-semibold text-muted-foreground pt-2">Lugar y fecha del documento</p>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Lugar de la firma</Label>
@@ -468,6 +497,17 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
           <Input type="date" value={fechaFirma} onChange={e => setFechaFirma(e.target.value)} />
         </div>
       </div>
+
+      {/* Firma digital */}
+      <p className="text-sm font-semibold text-muted-foreground pt-2">Firma digital</p>
+      <FirmaSelector
+        firmaPerfilUrl={firmaPerfilUrl}
+        firmaActualUrl={firmaActualUrl}
+        onChange={(payload, preview) => {
+          setFirmaPayload(payload);
+          setFirmaActualUrl(preview);
+        }}
+      />
 
 
       {/* ===== NEW CAE SECTIONS ===== */}

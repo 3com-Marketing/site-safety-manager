@@ -8,6 +8,8 @@ import ImportarVisitaButton, { type VisitaImportData } from '@/components/docume
 import { supabase } from '@/integrations/supabase/client';
 import type { Documento } from '@/hooks/useDocumentosObra';
 import type { Json } from '@/integrations/supabase/types';
+import FirmaSelector from '@/components/documentos/FirmaSelector';
+import { useFirmaPerfilUrl, uploadFirmaDocumento } from '@/components/documentos/useFirmaPerfil';
 
 interface Props {
   documento?: Documento | null;
@@ -49,6 +51,11 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
   const [recomendaciones, setRecomendaciones] = useState('');
   const [normativa, setNormativa] = useState('');
 
+  // Firma digital
+  const { firmaUrl: firmaPerfilUrl } = useFirmaPerfilUrl();
+  const [firmaActualUrl, setFirmaActualUrl] = useState<string | null>(null);
+  const [firmaPayload, setFirmaPayload] = useState<{ useStored: true } | { blob: Blob } | null>(null);
+
   const effectiveObraId = obraId || documento?.obra_id || '';
   const effectiveTipo = tipo || documento?.tipo || '';
   const isAT = effectiveTipo === 'informe_at';
@@ -84,6 +91,7 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
       const sec: Record<string, string> = {};
       SECCIONES.forEach(s => { sec[s.key] = extra[s.key] || ''; });
       setSecciones(sec);
+      setFirmaActualUrl(extra.firma_url || null);
     } else if (defaultValues) {
       setTituloObra(defaultValues.nombre_obra || '');
       setNombreTecnico(defaultValues.nombre_tecnico || '');
@@ -113,7 +121,26 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
     setSecciones(newSections);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    let firmaUrlFinal: string | null = firmaActualUrl;
+    let firmaAtFinal: string | null = (documento?.datos_extra as any)?.firma_at || null;
+
+    if (firmaPayload && 'blob' in firmaPayload) {
+      try {
+        const docKey = documento?.id || `nuevo_${Date.now()}`;
+        firmaUrlFinal = await uploadFirmaDocumento(docKey, firmaPayload.blob);
+        firmaAtFinal = new Date().toISOString();
+      } catch (e: any) {
+        console.error('Error subiendo firma:', e);
+      }
+    } else if (firmaPayload && 'useStored' in firmaPayload && firmaPerfilUrl) {
+      firmaUrlFinal = firmaPerfilUrl;
+      firmaAtFinal = new Date().toISOString();
+    } else if (firmaPayload === null && (documento?.datos_extra as any)?.firma_url) {
+      firmaUrlFinal = null;
+      firmaAtFinal = null;
+    }
+
     onSave({
       titulo: tituloObra || (effectiveTipo === 'informe_css' ? 'Informe CSS' : 'Informe AT'),
       fecha_documento: fechaVisita || null,
@@ -124,6 +151,8 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
         lugar_firma: lugarFirma,
         recomendaciones,
         normativa,
+        firma_url: firmaUrlFinal,
+        firma_at: firmaAtFinal,
         ...secciones,
       } as unknown as Json,
       ...(obraId ? { obra_id: obraId, tipo } : {}),
@@ -189,18 +218,29 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
         />
       </div>
 
-      {/* Firma — lugar y fecha que aparecen como "En {lugar}, a {fecha}." en el PDF */}
-      <p className="text-sm font-semibold text-muted-foreground pt-2">Firma</p>
+      {/* Lugar y fecha del documento */}
+      <p className="text-sm font-semibold text-muted-foreground pt-2">Lugar y fecha del documento</p>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Lugar de la firma</Label>
           <Input value={lugarFirma} onChange={e => setLugarFirma(e.target.value)} placeholder="Maspalomas" />
         </div>
         <div className="space-y-2">
-          <Label>Fecha de la firma</Label>
+          <Label>Fecha del documento</Label>
           <Input type="date" value={fechaVisita} onChange={e => setFechaVisita(e.target.value)} />
         </div>
       </div>
+
+      {/* Firma digital */}
+      <p className="text-sm font-semibold text-muted-foreground pt-2">Firma digital</p>
+      <FirmaSelector
+        firmaPerfilUrl={firmaPerfilUrl}
+        firmaActualUrl={firmaActualUrl}
+        onChange={(payload, preview) => {
+          setFirmaPayload(payload);
+          setFirmaActualUrl(preview);
+        }}
+      />
 
       <div className="flex justify-end pt-4">
         <Button onClick={handleSubmit} disabled={saving} className="h-12 rounded-xl">

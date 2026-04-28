@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import type { Documento } from '@/hooks/useDocumentosObra';
 import type { Json } from '@/integrations/supabase/types';
+import FirmaSelector from '@/components/documentos/FirmaSelector';
+import { useFirmaPerfilUrl, uploadFirmaDocumento } from '@/components/documentos/useFirmaPerfil';
 
 interface Props {
   documento?: Documento | null;
@@ -44,6 +46,11 @@ export default function FormActaNombramiento({ documento, obraId, tipo, onSave, 
   const [textoLegal, setTextoLegal] = useState('');
   const [lugarFirma, setLugarFirma] = useState('Maspalomas');
   const [fechaDocumento, setFechaDocumento] = useState('');
+
+  // Firma digital
+  const { firmaUrl: firmaPerfilUrl } = useFirmaPerfilUrl();
+  const [firmaActualUrl, setFirmaActualUrl] = useState<string | null>(null);
+  const [firmaPayload, setFirmaPayload] = useState<{ useStored: true } | { blob: Blob } | null>(null);
 
   // Store the raw template from config so we can re-apply substitutions
   const templateRef = useRef<string | null>(null);
@@ -101,6 +108,7 @@ export default function FormActaNombramiento({ documento, obraId, tipo, onSave, 
       setNombrePromotor(documento.nombre_promotor || '');
       setCifPromotor(documento.cif_promotor || '');
       setDomicilioPromotor(documento.domicilio_promotor || '');
+      setFirmaActualUrl(extra.firma_url || null);
     } else if (defaultValues) {
       setDenominacion(defaultValues.nombre_obra || '');
       setEmplazamiento(defaultValues.direccion_obra || '');
@@ -114,7 +122,26 @@ export default function FormActaNombramiento({ documento, obraId, tipo, onSave, 
     }
   }, [documento, defaultValues]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    let firmaUrlFinal: string | null = firmaActualUrl;
+    let firmaAtFinal: string | null = (documento?.datos_extra as any)?.firma_at || null;
+
+    if (firmaPayload && 'blob' in firmaPayload) {
+      try {
+        const docKey = documento?.id || `nuevo_${Date.now()}`;
+        firmaUrlFinal = await uploadFirmaDocumento(docKey, firmaPayload.blob);
+        firmaAtFinal = new Date().toISOString();
+      } catch (e: any) {
+        console.error('Error subiendo firma:', e);
+      }
+    } else if (firmaPayload && 'useStored' in firmaPayload && firmaPerfilUrl) {
+      firmaUrlFinal = firmaPerfilUrl;
+      firmaAtFinal = new Date().toISOString();
+    } else if (firmaPayload === null && (documento?.datos_extra as any)?.firma_url) {
+      firmaUrlFinal = null;
+      firmaAtFinal = null;
+    }
+
     onSave({
       titulo: denominacion || 'Acta de nombramiento',
       fecha_documento: fechaDocumento || null,
@@ -132,6 +159,8 @@ export default function FormActaNombramiento({ documento, obraId, tipo, onSave, 
       datos_extra: {
         denominacion, emplazamiento, tipo_obra: tipoObra,
         modalidad, lugar_firma: lugarFirma, texto_legal: textoLegal,
+        firma_url: firmaUrlFinal,
+        firma_at: firmaAtFinal,
       } as unknown as Json,
       ...(obraId ? { obra_id: obraId, tipo } : {}),
     });
@@ -230,18 +259,29 @@ export default function FormActaNombramiento({ documento, obraId, tipo, onSave, 
         placeholder="Texto legal del acta de nombramiento..."
       />
 
-      {/* Firma */}
-      <p className="text-sm font-semibold text-muted-foreground pt-2">Firma</p>
+      {/* Lugar y fecha del documento */}
+      <p className="text-sm font-semibold text-muted-foreground pt-2">Lugar y fecha del documento</p>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Lugar</Label>
+          <Label>Lugar de la firma</Label>
           <Input value={lugarFirma} onChange={e => setLugarFirma(e.target.value)} />
         </div>
         <div className="space-y-2">
-          <Label>Fecha</Label>
+          <Label>Fecha del documento</Label>
           <Input type="date" value={fechaDocumento} onChange={e => setFechaDocumento(e.target.value)} />
         </div>
       </div>
+
+      {/* Firma digital */}
+      <p className="text-sm font-semibold text-muted-foreground pt-2">Firma digital</p>
+      <FirmaSelector
+        firmaPerfilUrl={firmaPerfilUrl}
+        firmaActualUrl={firmaActualUrl}
+        onChange={(payload, preview) => {
+          setFirmaPayload(payload);
+          setFirmaActualUrl(preview);
+        }}
+      />
 
       <div className="flex justify-end pt-4">
         <Button onClick={handleSubmit} disabled={saving} className="h-12 rounded-xl">

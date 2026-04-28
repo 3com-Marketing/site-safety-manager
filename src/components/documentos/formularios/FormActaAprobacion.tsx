@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import type { Documento } from '@/hooks/useDocumentosObra';
 import type { Json } from '@/integrations/supabase/types';
+import FirmaSelector from '@/components/documentos/FirmaSelector';
+import { useFirmaPerfilUrl, uploadFirmaDocumento } from '@/components/documentos/useFirmaPerfil';
 
 interface Props {
   documento?: Documento | null;
@@ -31,6 +33,11 @@ export default function FormActaAprobacion({ documento, obraId, tipo, onSave, sa
   const [lugarFirma, setLugarFirma] = useState('Maspalomas');
   const [fechaDocumento, setFechaDocumento] = useState('');
   const [textoLegal, setTextoLegal] = useState('');
+
+  // Firma digital
+  const { firmaUrl: firmaPerfilUrl } = useFirmaPerfilUrl();
+  const [firmaActualUrl, setFirmaActualUrl] = useState<string | null>(null);
+  const [firmaPayload, setFirmaPayload] = useState<{ useStored: true } | { blob: Blob } | null>(null);
 
   // DGPO specific
   const [coordActividadesEmpresariales, setCoordActividadesEmpresariales] = useState('');
@@ -69,6 +76,7 @@ export default function FormActaAprobacion({ documento, obraId, tipo, onSave, sa
       setEmpresaContratistaDGPO(extra.empresa_contratista_dgpo || '');
       setCoordSSObra(extra.coord_ss_obra || '');
       setEmpresaContratistaPlan(extra.empresa_contratista_plan || '');
+      setFirmaActualUrl(extra.firma_url || null);
     } else if (defaultValues) {
       setActuacion(defaultValues.nombre_obra || '');
       setLocalidad(defaultValues.direccion_obra || '');
@@ -77,7 +85,28 @@ export default function FormActaAprobacion({ documento, obraId, tipo, onSave, sa
     }
   }, [documento, defaultValues]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    // Si hay una nueva firma dibujada, súbela primero
+    let firmaUrlFinal: string | null = firmaActualUrl;
+    let firmaAtFinal: string | null = (documento?.datos_extra as any)?.firma_at || null;
+
+    if (firmaPayload && 'blob' in firmaPayload) {
+      try {
+        const docKey = documento?.id || `nuevo_${Date.now()}`;
+        firmaUrlFinal = await uploadFirmaDocumento(docKey, firmaPayload.blob);
+        firmaAtFinal = new Date().toISOString();
+      } catch (e: any) {
+        console.error('Error subiendo firma:', e);
+      }
+    } else if (firmaPayload && 'useStored' in firmaPayload && firmaPerfilUrl) {
+      firmaUrlFinal = firmaPerfilUrl;
+      firmaAtFinal = new Date().toISOString();
+    } else if (firmaPayload === null && (documento?.datos_extra as any)?.firma_url) {
+      // El usuario quitó la firma
+      firmaUrlFinal = null;
+      firmaAtFinal = null;
+    }
+
     onSave({
       titulo: actuacion || (isDGPO ? 'Acta aprobación DGPO' : 'Acta aprobación Plan SyS'),
       fecha_documento: fechaDocumento || null,
@@ -87,6 +116,8 @@ export default function FormActaAprobacion({ documento, obraId, tipo, onSave, sa
         coord_ss_proyecto: coordSSProyecto, autor_estudio_ss: autorEstudioSS,
         director_obra: directorObra, lugar_firma: lugarFirma,
         texto_legal: textoLegal,
+        firma_url: firmaUrlFinal,
+        firma_at: firmaAtFinal,
         ...(isDGPO
           ? { coord_actividades_empresariales: coordActividadesEmpresariales, empresa_contratista_dgpo: empresaContratistaDGPO }
           : { coord_ss_obra: coordSSObra, empresa_contratista_plan: empresaContratistaPlan }),
@@ -174,17 +205,27 @@ export default function FormActaAprobacion({ documento, obraId, tipo, onSave, sa
         />
       </div>
 
-      <p className="text-sm font-semibold text-muted-foreground pt-2">Firma</p>
+      <p className="text-sm font-semibold text-muted-foreground pt-2">Lugar y fecha del documento</p>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Lugar</Label>
+          <Label>Lugar de la firma</Label>
           <Input value={lugarFirma} onChange={e => setLugarFirma(e.target.value)} />
         </div>
         <div className="space-y-2">
-          <Label>Fecha</Label>
+          <Label>Fecha del documento</Label>
           <Input type="date" value={fechaDocumento} onChange={e => setFechaDocumento(e.target.value)} />
         </div>
       </div>
+
+      <p className="text-sm font-semibold text-muted-foreground pt-2">Firma digital</p>
+      <FirmaSelector
+        firmaPerfilUrl={firmaPerfilUrl}
+        firmaActualUrl={firmaActualUrl}
+        onChange={(payload, preview) => {
+          setFirmaPayload(payload);
+          setFirmaActualUrl(preview);
+        }}
+      />
 
       <div className="flex justify-end pt-4">
         <Button onClick={handleSubmit} disabled={saving} className="h-12 rounded-xl">
