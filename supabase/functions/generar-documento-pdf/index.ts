@@ -836,12 +836,7 @@ function templateInforme(doc: any, extra: any, obra: any, cliente: any, safework
     html += `<div class="legal-text">${renderRichText(normativa)}</div>`;
   }
 
-  html += `
-    <div class="firma-section">
-      <div class="firma-line"></div>
-      <div class="firma-label">${tecnicoNombre}<br/>${rolLabel}</div>
-    </div>
-  `;
+  html += firmaRecuadros();
 
   return html;
 }
