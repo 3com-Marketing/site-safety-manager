@@ -78,6 +78,7 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
       setTituloObra(extra.titulo_obra || '');
       setNombreTecnico(extra.nombre_tecnico || '');
       setEmpresaContratista(extra.empresa_contratista || '');
+      setLugarFirma(extra.lugar_firma || '');
       setRecomendaciones(extra.recomendaciones || '');
       setNormativa(extra.normativa || '');
       const sec: Record<string, string> = {};
@@ -86,6 +87,7 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
     } else if (defaultValues) {
       setTituloObra(defaultValues.nombre_obra || '');
       setNombreTecnico(defaultValues.nombre_tecnico || '');
+      setLugarFirma(defaultValues.direccion_obra || 'Maspalomas');
     }
   }, [documento, defaultValues]);
 
