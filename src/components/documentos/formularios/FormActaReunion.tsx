@@ -200,6 +200,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       setObraActuacion(defaultValues.nombre_obra || '');
       setLocalidad(defaultValues.direccion_obra || '');
       setPromotor(defaultValues.nombre_promotor || '');
+      setLugarFirma(defaultValues.direccion_obra || 'Maspalomas');
     }
   }, [documento, defaultValues]);
 
