@@ -59,6 +59,8 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   const [promotor, setPromotor] = useState('');
   const [lugarReunion, setLugarReunion] = useState('');
   const [fechaHora, setFechaHora] = useState('');
+  const [lugarFirma, setLugarFirma] = useState('');
+  const [fechaFirma, setFechaFirma] = useState('');
   const [excusados, setExcusados] = useState('');
   const [textoLegal, setTextoLegal] = useState('');
 
@@ -154,7 +156,9 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       setLocalidad(extra.localidad || '');
       setPromotor(documento.nombre_promotor || '');
       setLugarReunion(extra.lugar_reunion || '');
-      setFechaHora(documento.fecha_documento || '');
+      setFechaHora(extra.fecha_hora_reunion || '');
+      setLugarFirma(extra.lugar_firma || '');
+      setFechaFirma(documento.fecha_documento || '');
       setExcusados(extra.excusados || '');
       setTextoLegal(extra.texto_legal || '');
       setMesReunion(extra.mes_reunion || '');
@@ -196,6 +200,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       setObraActuacion(defaultValues.nombre_obra || '');
       setLocalidad(defaultValues.direccion_obra || '');
       setPromotor(defaultValues.nombre_promotor || '');
+      setLugarFirma(defaultValues.direccion_obra || 'Maspalomas');
     }
   }, [documento, defaultValues]);
 
@@ -206,10 +211,10 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
 
   // --- Import handler ---
   const handleImport = (data: VisitaImportData) => {
-    if (data.visita.fecha_fin) {
-      setFechaHora(data.visita.fecha_fin.slice(0, 16));
-    } else if (data.visita.fecha) {
-      setFechaHora(data.visita.fecha.slice(0, 16));
+    const visitaIso = data.visita.fecha_fin || data.visita.fecha || '';
+    if (visitaIso) {
+      setFechaHora(visitaIso.slice(0, 16));
+      if (!fechaFirma) setFechaFirma(visitaIso.slice(0, 10));
     }
     if (isCAE && data.informe.empresas_presentes) {
       const empresas = data.informe.empresas_presentes
@@ -315,6 +320,8 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   const handleSubmit = () => {
     const datosExtra: Record<string, any> = {
       obra_actuacion: obraActuacion, localidad, lugar_reunion: lugarReunion,
+      fecha_hora_reunion: fechaHora,
+      lugar_firma: lugarFirma,
       excusados, texto_legal: textoLegal,
     };
     if (isCAE) {
@@ -359,7 +366,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
 
     onSave({
       titulo: obraActuacion || 'Acta de reunión',
-      fecha_documento: fechaHora || null,
+      fecha_documento: fechaFirma || null,
       nombre_promotor: promotor,
       datos_extra: datosExtra as unknown as Json,
       ...(obraId ? { obra_id: obraId, tipo } : {}),
@@ -401,7 +408,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
           <Input value={lugarReunion} onChange={e => setLugarReunion(e.target.value)} />
         </div>
         <div className="space-y-2">
-          <Label>Fecha y hora</Label>
+          <Label>Fecha y hora de la reunión</Label>
           <Input type="datetime-local" value={fechaHora} onChange={e => setFechaHora(e.target.value)} />
         </div>
         {isCAE && (
@@ -447,6 +454,19 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       <div className="space-y-2">
         <Label>Excusados / Ausentes</Label>
         <Textarea value={excusados} onChange={e => setExcusados(e.target.value)} rows={2} />
+      </div>
+
+      {/* Firma — lugar y fecha que aparecen como "En {lugar}, a {fecha}." en el PDF */}
+      <p className="text-sm font-semibold text-muted-foreground pt-2">Firma</p>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Lugar de la firma</Label>
+          <Input value={lugarFirma} onChange={e => setLugarFirma(e.target.value)} placeholder="Maspalomas" />
+        </div>
+        <div className="space-y-2">
+          <Label>Fecha del documento</Label>
+          <Input type="date" value={fechaFirma} onChange={e => setFechaFirma(e.target.value)} />
+        </div>
       </div>
 
 

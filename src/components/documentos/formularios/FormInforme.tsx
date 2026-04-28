@@ -42,6 +42,7 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
   const [tituloObra, setTituloObra] = useState('');
   const [nombreTecnico, setNombreTecnico] = useState('');
   const [empresaContratista, setEmpresaContratista] = useState('');
+  const [lugarFirma, setLugarFirma] = useState('');
   const [secciones, setSecciones] = useState<Record<string, string>>(
     Object.fromEntries(SECCIONES.map(s => [s.key, '']))
   );
@@ -77,6 +78,7 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
       setTituloObra(extra.titulo_obra || '');
       setNombreTecnico(extra.nombre_tecnico || '');
       setEmpresaContratista(extra.empresa_contratista || '');
+      setLugarFirma(extra.lugar_firma || '');
       setRecomendaciones(extra.recomendaciones || '');
       setNormativa(extra.normativa || '');
       const sec: Record<string, string> = {};
@@ -85,6 +87,7 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
     } else if (defaultValues) {
       setTituloObra(defaultValues.nombre_obra || '');
       setNombreTecnico(defaultValues.nombre_tecnico || '');
+      setLugarFirma(defaultValues.direccion_obra || 'Maspalomas');
     }
   }, [documento, defaultValues]);
 
@@ -118,6 +121,7 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
         titulo_obra: tituloObra,
         nombre_tecnico: nombreTecnico,
         empresa_contratista: empresaContratista,
+        lugar_firma: lugarFirma,
         recomendaciones,
         normativa,
         ...secciones,
@@ -130,7 +134,7 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Fecha de visita</Label>
+          <Label>Fecha del documento</Label>
           <Input type="date" value={fechaVisita} onChange={e => setFechaVisita(e.target.value)} />
         </div>
         <div className="space-y-2">
@@ -183,6 +187,19 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
           onChange={setNormativa}
           placeholder="Lista de normativa aplicable..."
         />
+      </div>
+
+      {/* Firma — lugar y fecha que aparecen como "En {lugar}, a {fecha}." en el PDF */}
+      <p className="text-sm font-semibold text-muted-foreground pt-2">Firma</p>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Lugar de la firma</Label>
+          <Input value={lugarFirma} onChange={e => setLugarFirma(e.target.value)} placeholder="Maspalomas" />
+        </div>
+        <div className="space-y-2">
+          <Label>Fecha de la firma</Label>
+          <Input type="date" value={fechaVisita} onChange={e => setFechaVisita(e.target.value)} />
+        </div>
       </div>
 
       <div className="flex justify-end pt-4">

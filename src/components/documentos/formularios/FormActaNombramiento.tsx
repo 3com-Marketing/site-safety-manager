@@ -110,6 +110,7 @@ export default function FormActaNombramiento({ documento, obraId, tipo, onSave, 
       setNombrePromotor(defaultValues.nombre_promotor || '');
       setCifPromotor(defaultValues.cif_promotor || '');
       setDomicilioPromotor(defaultValues.domicilio_promotor || '');
+      if (defaultValues.direccion_obra) setLugarFirma(defaultValues.direccion_obra);
     }
   }, [documento, defaultValues]);
 
