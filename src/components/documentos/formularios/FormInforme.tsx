@@ -218,18 +218,29 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
         />
       </div>
 
-      {/* Firma — lugar y fecha que aparecen como "En {lugar}, a {fecha}." en el PDF */}
-      <p className="text-sm font-semibold text-muted-foreground pt-2">Firma</p>
+      {/* Lugar y fecha del documento */}
+      <p className="text-sm font-semibold text-muted-foreground pt-2">Lugar y fecha del documento</p>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Lugar de la firma</Label>
           <Input value={lugarFirma} onChange={e => setLugarFirma(e.target.value)} placeholder="Maspalomas" />
         </div>
         <div className="space-y-2">
-          <Label>Fecha de la firma</Label>
+          <Label>Fecha del documento</Label>
           <Input type="date" value={fechaVisita} onChange={e => setFechaVisita(e.target.value)} />
         </div>
       </div>
+
+      {/* Firma digital */}
+      <p className="text-sm font-semibold text-muted-foreground pt-2">Firma digital</p>
+      <FirmaSelector
+        firmaPerfilUrl={firmaPerfilUrl}
+        firmaActualUrl={firmaActualUrl}
+        onChange={(payload, preview) => {
+          setFirmaPayload(payload);
+          setFirmaActualUrl(preview);
+        }}
+      />
 
       <div className="flex justify-end pt-4">
         <Button onClick={handleSubmit} disabled={saving} className="h-12 rounded-xl">
