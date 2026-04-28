@@ -42,6 +42,7 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
   const [tituloObra, setTituloObra] = useState('');
   const [nombreTecnico, setNombreTecnico] = useState('');
   const [empresaContratista, setEmpresaContratista] = useState('');
+  const [lugarFirma, setLugarFirma] = useState('');
   const [secciones, setSecciones] = useState<Record<string, string>>(
     Object.fromEntries(SECCIONES.map(s => [s.key, '']))
   );
