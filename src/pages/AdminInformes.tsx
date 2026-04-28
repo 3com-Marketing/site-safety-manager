@@ -295,6 +295,7 @@ export default function AdminInformes() {
     let base = informes;
     if (estadoChip === 'pendiente_revision') base = base.filter(i => i.estado === 'pendiente_revision');
     else if (estadoChip === 'borrador') base = base.filter(i => i.estado === 'borrador');
+    else if (estadoChip === 'cerrado') base = base.filter(i => i.estado === 'cerrado');
     if (obraFilter !== 'todas') base = base.filter(i => i.obra_id === obraFilter);
     if (activeKpi === 'cerrados_mes') {
       base = base.filter(i => i.estado === 'cerrado' && new Date(i.fecha) >= monthStart);
