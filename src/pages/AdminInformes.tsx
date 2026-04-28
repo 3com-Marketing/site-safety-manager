@@ -113,8 +113,15 @@ export default function AdminInformes() {
   const [sortMode, setSortMode] = useState<SortMode>('tiempo_desc');
   const [activeKpi, setActiveKpi] = useState<KpiKey | null>(null);
   const [showAllVisitas, setShowAllVisitas] = useState(false);
+  const [showAllInformes, setShowAllInformes] = useState(false);
 
   const listsRef = useRef<HTMLDivElement>(null);
+
+  // Reset expand state when filters change
+  useEffect(() => {
+    setShowAllVisitas(false);
+    setShowAllInformes(false);
+  }, [estadoChip, obraFilter, activeKpi]);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -372,6 +379,17 @@ export default function AdminInformes() {
 
   const visitasMostradas = showAllVisitas ? visitasFiltradas : visitasFiltradas.slice(0, 6);
   const visitasRestantes = visitasFiltradas.length - visitasMostradas.length;
+  const informesMostrados = showAllInformes ? informesFiltrados : informesFiltrados.slice(0, 6);
+  const informesRestantes = informesFiltrados.length - informesMostrados.length;
+
+  const collapseVisitas = () => {
+    setShowAllVisitas(false);
+    listsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  const collapseInformes = () => {
+    setShowAllInformes(false);
+    listsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   return (
     <AdminLayout>
@@ -540,6 +558,14 @@ export default function AdminInformes() {
                     Ver {visitasRestantes} más →
                   </button>
                 )}
+                {showAllVisitas && visitasFiltradas.length > 6 && (
+                  <button
+                    onClick={collapseVisitas}
+                    className="w-full text-sm text-primary font-medium py-2 hover:underline"
+                  >
+                    Mostrar menos ↑
+                  </button>
+                )}
               </div>
             )}
           </section>
@@ -559,7 +585,7 @@ export default function AdminInformes() {
               </Card>
             ) : (
               <div className="space-y-2">
-                {informesFiltrados.map(inf => (
+                {informesMostrados.map(inf => (
                   <button
                     key={inf.id}
                     onClick={() => navigate(`/admin/informe/${inf.id}`)}
@@ -583,6 +609,22 @@ export default function AdminInformes() {
                     </div>
                   </button>
                 ))}
+                {informesRestantes > 0 && (
+                  <button
+                    onClick={() => setShowAllInformes(true)}
+                    className="w-full text-sm text-primary font-medium py-2 hover:underline"
+                  >
+                    Ver {informesRestantes} más →
+                  </button>
+                )}
+                {showAllInformes && informesFiltrados.length > 6 && (
+                  <button
+                    onClick={collapseInformes}
+                    className="w-full text-sm text-primary font-medium py-2 hover:underline"
+                  >
+                    Mostrar menos ↑
+                  </button>
+                )}
               </div>
             )}
           </section>
