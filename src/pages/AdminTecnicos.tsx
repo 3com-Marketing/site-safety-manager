@@ -355,6 +355,19 @@ export default function AdminTecnicos() {
               <div><span className="font-semibold">Móvil:</span> {viewTecnico.movil || '—'}</div>
               <div><span className="font-semibold">Dirección:</span> {viewTecnico.direccion || '—'}</div>
               <div><span className="font-semibold">Notas:</span> {viewTecnico.notas || '—'}</div>
+              <div>
+                <span className="font-semibold">Firma:</span>{' '}
+                {viewTecnico.firma_url ? (
+                  <div className="mt-1 inline-block rounded-md border border-border bg-white p-2">
+                    <img src={viewTecnico.firma_url} alt="Firma" className="max-h-20 object-contain" />
+                    {viewTecnico.firma_actualizada_at && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Actualizada: {new Date(viewTecnico.firma_actualizada_at).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}
+                      </p>
+                    )}
+                  </div>
+                ) : <span className="text-muted-foreground">—</span>}
+              </div>
               {(() => {
                 const linked = profiles.find(p => p.user_id === viewTecnico.user_id);
                 return linked ? <div><span className="font-semibold">Usuario vinculado:</span> {linked.nombre} ({linked.email})</div> : null;
