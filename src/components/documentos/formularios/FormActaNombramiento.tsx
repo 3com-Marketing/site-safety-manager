@@ -47,6 +47,11 @@ export default function FormActaNombramiento({ documento, obraId, tipo, onSave, 
   const [lugarFirma, setLugarFirma] = useState('Maspalomas');
   const [fechaDocumento, setFechaDocumento] = useState('');
 
+  // Firma digital
+  const { firmaUrl: firmaPerfilUrl } = useFirmaPerfilUrl();
+  const [firmaActualUrl, setFirmaActualUrl] = useState<string | null>(null);
+  const [firmaPayload, setFirmaPayload] = useState<{ useStored: true } | { blob: Blob } | null>(null);
+
   // Store the raw template from config so we can re-apply substitutions
   const templateRef = useRef<string | null>(null);
 
