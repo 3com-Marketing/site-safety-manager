@@ -320,6 +320,8 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   const handleSubmit = () => {
     const datosExtra: Record<string, any> = {
       obra_actuacion: obraActuacion, localidad, lugar_reunion: lugarReunion,
+      fecha_hora_reunion: fechaHora,
+      lugar_firma: lugarFirma,
       excusados, texto_legal: textoLegal,
     };
     if (isCAE) {
