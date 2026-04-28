@@ -73,6 +73,7 @@ function informeStyles() {
     .cover .cover-contratista { font-size: 12pt; color: #333; margin-bottom: 20pt; }
     .cover .cover-fecha { font-size: 11pt; color: #666; }
     .cover .cover-line { width: 60%; height: 3px; background: #E63027; margin: 20pt auto; }
+    .cover .cover-semana { font-size: 13pt; font-weight: bold; color: #1a1a1a; margin-bottom: 24pt; text-align: center; letter-spacing: 1pt; }
 
     /* Running header */
     .running-header-left { position: running(header-left); }
@@ -724,6 +725,33 @@ function templateActaReunionSimple(doc: any, extra: any, obra: any, cliente: any
   return html;
 }
 
+function getSemanaInfo(fechaIso: string): { numero: number; texto: string } | null {
+  if (!fechaIso) return null;
+  const d = new Date(fechaIso);
+  if (isNaN(d.getTime())) return null;
+  const day = d.getUTCDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const lunes = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + diffToMonday));
+  const viernes = new Date(lunes); viernes.setUTCDate(lunes.getUTCDate() + 4);
+  const tmp = new Date(Date.UTC(lunes.getUTCFullYear(), lunes.getUTCMonth(), lunes.getUTCDate()));
+  const dayNum = tmp.getUTCDay() || 7;
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((tmp.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  const meses = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  const mismoMes = lunes.getUTCMonth() === viernes.getUTCMonth();
+  const mismoAnio = lunes.getUTCFullYear() === viernes.getUTCFullYear();
+  let texto: string;
+  if (mismoMes && mismoAnio) {
+    texto = `DEL ${lunes.getUTCDate()} AL ${viernes.getUTCDate()} DE ${meses[viernes.getUTCMonth()].toUpperCase()} DE ${viernes.getUTCFullYear()}`;
+  } else if (mismoAnio) {
+    texto = `DEL ${lunes.getUTCDate()} DE ${meses[lunes.getUTCMonth()].toUpperCase()} AL ${viernes.getUTCDate()} DE ${meses[viernes.getUTCMonth()].toUpperCase()} DE ${viernes.getUTCFullYear()}`;
+  } else {
+    texto = `DEL ${lunes.getUTCDate()} DE ${meses[lunes.getUTCMonth()].toUpperCase()} DE ${lunes.getUTCFullYear()} AL ${viernes.getUTCDate()} DE ${meses[viernes.getUTCMonth()].toUpperCase()} DE ${viernes.getUTCFullYear()}`;
+  }
+  return { numero: weekNo, texto };
+}
+
 function templateInforme(doc: any, extra: any, obra: any, cliente: any, safeworkLogo: string, empresaConfig: any) {
   const isCSS = doc.tipo === "informe_css";
   const tipoLabel = isCSS ? "INFORME COORDINACIÓN DE SEGURIDAD Y SALUD" : "INFORME ASISTENCIA TÉCNICA DE SEGURIDAD Y SALUD";
@@ -746,8 +774,11 @@ function templateInforme(doc: any, extra: any, obra: any, cliente: any, safework
     { num: 10, key: "medios_auxiliares", label: "Medios auxiliares" },
   ];
 
+  const semana = getSemanaInfo(doc.fecha_documento);
+
   let html = `
     <div class="cover">
+      ${semana ? `<div class="cover-semana">SEMANA Nº ${semana.numero}, ${semana.texto}</div>` : ""}
       ${safeworkLogo ? `<img class="cover-logo" src="${safeworkLogo}" alt="Logo" />` : ""}
       <div class="cover-label">SEGURIDAD Y SALUD LABORAL</div>
       <div class="cover-line"></div>
