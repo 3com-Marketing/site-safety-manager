@@ -122,7 +122,7 @@ export default function VisitaActiva() {
 
     const { data: visita } = await supabase
       .from('visitas')
-      .select('id, estado, fecha, obras(nombre)')
+      .select('id, estado, fecha, obras(nombre, latitud, longitud)')
       .eq('id', id)
       .single();
 
@@ -142,7 +142,10 @@ export default function VisitaActiva() {
     }
 
     setFechaInicio(visita.fecha);
-    setObraNombre((visita as any).obras?.nombre || 'Obra');
+    const obra: any = (visita as any).obras;
+    setObraNombre(obra?.nombre || 'Obra');
+    setObraLat(obra?.latitud ?? null);
+    setObraLng(obra?.longitud ?? null);
 
     const { data: informe } = await supabase
       .from('informes')
