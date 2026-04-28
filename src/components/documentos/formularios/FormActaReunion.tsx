@@ -59,6 +59,8 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   const [promotor, setPromotor] = useState('');
   const [lugarReunion, setLugarReunion] = useState('');
   const [fechaHora, setFechaHora] = useState('');
+  const [lugarFirma, setLugarFirma] = useState('');
+  const [fechaFirma, setFechaFirma] = useState('');
   const [excusados, setExcusados] = useState('');
   const [textoLegal, setTextoLegal] = useState('');
 
