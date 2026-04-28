@@ -765,6 +765,8 @@ export type Database = {
           dni: string
           email: string
           empresa: string
+          firma_actualizada_at: string | null
+          firma_url: string | null
           id: string
           movil: string
           nombre: string
@@ -784,6 +786,8 @@ export type Database = {
           dni?: string
           email?: string
           empresa?: string
+          firma_actualizada_at?: string | null
+          firma_url?: string | null
           id?: string
           movil?: string
           nombre?: string
@@ -803,6 +807,8 @@ export type Database = {
           dni?: string
           email?: string
           empresa?: string
+          firma_actualizada_at?: string | null
+          firma_url?: string | null
           id?: string
           movil?: string
           nombre?: string

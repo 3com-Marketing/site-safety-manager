@@ -10,8 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Users, Plus, Pencil, Trash2, Eye, Phone, Mail, Hash, HardHat, Building2, CreditCard, Smartphone } from 'lucide-react';
+import { Users, Plus, Pencil, Trash2, Eye, Phone, Mail, Hash, HardHat, Building2, CreditCard, Smartphone, PenLine } from 'lucide-react';
 import { toast } from 'sonner';
+import FirmaCapture from '@/components/tecnicos/FirmaCapture';
 
 interface Tecnico {
   id: string;
@@ -30,6 +31,8 @@ interface Tecnico {
   cif_empresa: string;
   notas: string;
   tipo: string;
+  firma_url: string | null;
+  firma_actualizada_at: string | null;
 }
 
 interface ProfileMin { user_id: string; nombre: string; email: string; }
@@ -58,6 +61,10 @@ export default function AdminTecnicos() {
   const [viewTecnico, setViewTecnico] = useState<Tecnico | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Tecnico | null>(null);
 
+  const [firmaPendiente, setFirmaPendiente] = useState<Blob | null>(null);
+  const [firmaUrlActual, setFirmaUrlActual] = useState<string | null>(null);
+  const [firmaActualizadaAt, setFirmaActualizadaAt] = useState<string | null>(null);
+
   const fetchData = async () => {
     const [{ data: tecs }, { data: profs }, { data: obrasData }, { data: links }] = await Promise.all([
       supabase.from('tecnicos').select('*').order('nombre'),
@@ -81,7 +88,11 @@ export default function AdminTecnicos() {
 
   const filteredTecnicos = tecnicos.filter(t => (t.tipo || 'tecnico') === activeTab);
 
-  const openCreate = (tipo: string) => { setEditId(null); setForm({ ...emptyForm, tipo }); setSelectedObras([]); setDialogOpen(true); };
+  const openCreate = (tipo: string) => {
+    setEditId(null); setForm({ ...emptyForm, tipo }); setSelectedObras([]);
+    setFirmaPendiente(null); setFirmaUrlActual(null); setFirmaActualizadaAt(null);
+    setDialogOpen(true);
+  };
   const openEdit = (t: Tecnico) => {
     setEditId(t.id);
     setForm({
@@ -93,6 +104,9 @@ export default function AdminTecnicos() {
       notas: t.notas, user_id: t.user_id || '', tipo: t.tipo || 'tecnico',
     });
     setSelectedObras(tecnicoObras[t.id] || []);
+    setFirmaPendiente(null);
+    setFirmaUrlActual(t.firma_url || null);
+    setFirmaActualizadaAt(t.firma_actualizada_at || null);
     setDialogOpen(true);
   };
   const openView = (t: Tecnico) => { setViewTecnico(t); setViewDialogOpen(true); };
@@ -129,6 +143,23 @@ export default function AdminTecnicos() {
     if (form.user_id) {
       await supabase.from('user_roles').delete().eq('user_id', form.user_id);
       await supabase.from('user_roles').insert({ user_id: form.user_id, role: 'tecnico' as any });
+    }
+
+    if (firmaPendiente && tecnicoId) {
+      const path = `firmas/${tecnicoId}_${Date.now()}.png`;
+      const { error: upErr } = await supabase.storage.from('logos').upload(path, firmaPendiente, {
+        contentType: 'image/png', upsert: true,
+      });
+      if (upErr) {
+        toast.error('Error al subir la firma');
+      } else {
+        const { data: urlData } = supabase.storage.from('logos').getPublicUrl(path);
+        const { error: updErr } = await supabase.from('tecnicos').update({
+          firma_url: urlData.publicUrl,
+          firma_actualizada_at: new Date().toISOString(),
+        }).eq('id', tecnicoId);
+        if (updErr) toast.error('Error al guardar la firma');
+      }
     }
 
     toast.success(editId ? 'Actualizado' : 'Creado');
@@ -251,6 +282,21 @@ export default function AdminTecnicos() {
             <div><Label>Dirección / Domicilio</Label><Input value={form.direccion} onChange={e => setForm({ ...form, direccion: e.target.value })} /></div>
             <div><Label>Notas</Label><Textarea value={form.notas} onChange={e => setForm({ ...form, notas: e.target.value })} rows={2} /></div>
             <div>
+              <Label className="mb-2 flex items-center gap-2"><PenLine className="h-4 w-4" />Firma</Label>
+              <FirmaCapture
+                firmaUrl={firmaUrlActual}
+                actualizadaAt={firmaActualizadaAt}
+                onFirmaReady={(blob) => {
+                  setFirmaPendiente(blob);
+                  setFirmaUrlActual(URL.createObjectURL(blob));
+                  setFirmaActualizadaAt(new Date().toISOString());
+                }}
+              />
+              {firmaPendiente && (
+                <p className="text-xs text-primary mt-1">Firma pendiente de guardar al pulsar "Guardar".</p>
+              )}
+            </div>
+            <div>
               <Label>Vincular a usuario registrado</Label>
               <Select value={form.user_id || '_none'} onValueChange={val => setForm({ ...form, user_id: val === '_none' ? '' : val })}>
                 <SelectTrigger><SelectValue placeholder="Sin vincular" /></SelectTrigger>
@@ -309,6 +355,19 @@ export default function AdminTecnicos() {
               <div><span className="font-semibold">Móvil:</span> {viewTecnico.movil || '—'}</div>
               <div><span className="font-semibold">Dirección:</span> {viewTecnico.direccion || '—'}</div>
               <div><span className="font-semibold">Notas:</span> {viewTecnico.notas || '—'}</div>
+              <div>
+                <span className="font-semibold">Firma:</span>{' '}
+                {viewTecnico.firma_url ? (
+                  <div className="mt-1 inline-block rounded-md border border-border bg-white p-2">
+                    <img src={viewTecnico.firma_url} alt="Firma" className="max-h-20 object-contain" />
+                    {viewTecnico.firma_actualizada_at && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Actualizada: {new Date(viewTecnico.firma_actualizada_at).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}
+                      </p>
+                    )}
+                  </div>
+                ) : <span className="text-muted-foreground">—</span>}
+              </div>
               {(() => {
                 const linked = profiles.find(p => p.user_id === viewTecnico.user_id);
                 return linked ? <div><span className="font-semibold">Usuario vinculado:</span> {linked.nombre} ({linked.email})</div> : null;
