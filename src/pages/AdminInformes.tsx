@@ -367,7 +367,7 @@ export default function AdminInformes() {
         )}
 
         {/* Actividad de hoy */}
-        <div className="space-y-3">
+        <div ref={actividadHoyRef} className="space-y-3 scroll-mt-20">
           <h2 className="font-heading text-lg font-bold">Actividad de hoy</h2>
           {visitasHoy.length === 0 ? (
             <Card>
