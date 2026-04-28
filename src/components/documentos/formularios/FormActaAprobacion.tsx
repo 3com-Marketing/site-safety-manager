@@ -34,6 +34,11 @@ export default function FormActaAprobacion({ documento, obraId, tipo, onSave, sa
   const [fechaDocumento, setFechaDocumento] = useState('');
   const [textoLegal, setTextoLegal] = useState('');
 
+  // Firma digital
+  const { firmaUrl: firmaPerfilUrl } = useFirmaPerfilUrl();
+  const [firmaActualUrl, setFirmaActualUrl] = useState<string | null>(null);
+  const [firmaPayload, setFirmaPayload] = useState<{ useStored: true } | { blob: Blob } | null>(null);
+
   // DGPO specific
   const [coordActividadesEmpresariales, setCoordActividadesEmpresariales] = useState('');
   const [empresaContratistaDGPO, setEmpresaContratistaDGPO] = useState('');
