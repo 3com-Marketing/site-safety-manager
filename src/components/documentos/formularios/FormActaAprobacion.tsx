@@ -73,6 +73,7 @@ export default function FormActaAprobacion({ documento, obraId, tipo, onSave, sa
       setActuacion(defaultValues.nombre_obra || '');
       setLocalidad(defaultValues.direccion_obra || '');
       setPromotor(defaultValues.nombre_promotor || '');
+      if (defaultValues.direccion_obra) setLugarFirma(defaultValues.direccion_obra);
     }
   }, [documento, defaultValues]);
 
