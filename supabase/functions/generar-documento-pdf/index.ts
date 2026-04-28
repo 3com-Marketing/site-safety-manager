@@ -137,20 +137,23 @@ function metaItem(label: string, value: string) {
   return `<div class="meta-item"><div class="meta-label">${label}</div><div class="meta-value">${value}</div></div>`;
 }
 
-function firmaSection(lugarFirma: string, fecha: string, _firmas: string[]) {
+function firmaSection(lugarFirma: string, fecha: string, _firmas: string[], firmaUrl?: string | null) {
   const fechaStr = fecha ? new Date(fecha).toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" }) : "_______________";
   let html = `<p style="margin-top:24pt;">En ${lugarFirma || "_______________"}, a ${fechaStr}.</p>`;
-  html += firmaRecuadros();
+  html += firmaRecuadros(firmaUrl);
   return html;
 }
 
 /** Bloque unificado de firmas: dos recuadros (Técnico Inspector / Responsable Empresa) */
-function firmaRecuadros() {
+function firmaRecuadros(firmaUrl?: string | null) {
+  const firmaImgHtml = firmaUrl
+    ? `<div style="flex:1;display:flex;align-items:center;justify-content:center;padding:6pt;"><img src="${firmaUrl}" style="max-height:70pt;max-width:90%;object-fit:contain;" alt="Firma" /></div>`
+    : `<div style="min-height:80pt;"></div>`;
   return `
     <div style="display:flex;gap:20pt;margin-top:20pt;page-break-inside:avoid;align-items:stretch;">
       <div style="flex:1;border:1px solid #333;display:flex;flex-direction:column;">
         <div style="border-bottom:1px solid #333;padding:5pt 6pt;text-align:center;font-size:8.5pt;font-weight:bold;">FIRMA DEL TÉCNICO INSPECTOR:</div>
-        <div style="min-height:80pt;"></div>
+        ${firmaImgHtml}
       </div>
       <div style="flex:1;border:1px solid #333;display:flex;flex-direction:column;">
         <div style="border-bottom:1px solid #333;padding:5pt 6pt;text-align:center;font-size:8.5pt;font-weight:bold;">FIRMA RESPONSABLE DE LA EMPRESA:</div>
