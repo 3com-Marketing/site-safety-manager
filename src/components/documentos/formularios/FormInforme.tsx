@@ -121,6 +121,7 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
         titulo_obra: tituloObra,
         nombre_tecnico: nombreTecnico,
         empresa_contratista: empresaContratista,
+        lugar_firma: lugarFirma,
         recomendaciones,
         normativa,
         ...secciones,
