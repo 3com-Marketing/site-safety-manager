@@ -1,10 +1,11 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
-import { Shield, LogOut, FileText, Users, Building2, HardHat, FileStack, Settings } from 'lucide-react';
+import { Shield, LogOut, FileText, Users, Building2, HardHat, FileStack, Settings, CalendarDays } from 'lucide-react';
 
 const TABS = [
   { path: '/admin', label: 'Dashboard', icon: FileText },
+  { path: '/admin/calendario', label: 'Calendario', icon: CalendarDays },
   { path: '/admin/clientes', label: 'Clientes', icon: Building2 },
   { path: '/admin/obras', label: 'Obras', icon: HardHat },
   { path: '/admin/tecnicos', label: 'Técnicos', icon: Users },
