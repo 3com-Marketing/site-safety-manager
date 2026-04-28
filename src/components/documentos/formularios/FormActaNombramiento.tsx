@@ -108,6 +108,7 @@ export default function FormActaNombramiento({ documento, obraId, tipo, onSave, 
       setNombrePromotor(documento.nombre_promotor || '');
       setCifPromotor(documento.cif_promotor || '');
       setDomicilioPromotor(documento.domicilio_promotor || '');
+      setFirmaActualUrl(extra.firma_url || null);
     } else if (defaultValues) {
       setDenominacion(defaultValues.nombre_obra || '');
       setEmplazamiento(defaultValues.direccion_obra || '');
@@ -121,7 +122,26 @@ export default function FormActaNombramiento({ documento, obraId, tipo, onSave, 
     }
   }, [documento, defaultValues]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    let firmaUrlFinal: string | null = firmaActualUrl;
+    let firmaAtFinal: string | null = (documento?.datos_extra as any)?.firma_at || null;
+
+    if (firmaPayload && 'blob' in firmaPayload) {
+      try {
+        const docKey = documento?.id || `nuevo_${Date.now()}`;
+        firmaUrlFinal = await uploadFirmaDocumento(docKey, firmaPayload.blob);
+        firmaAtFinal = new Date().toISOString();
+      } catch (e: any) {
+        console.error('Error subiendo firma:', e);
+      }
+    } else if (firmaPayload && 'useStored' in firmaPayload && firmaPerfilUrl) {
+      firmaUrlFinal = firmaPerfilUrl;
+      firmaAtFinal = new Date().toISOString();
+    } else if (firmaPayload === null && (documento?.datos_extra as any)?.firma_url) {
+      firmaUrlFinal = null;
+      firmaAtFinal = null;
+    }
+
     onSave({
       titulo: denominacion || 'Acta de nombramiento',
       fecha_documento: fechaDocumento || null,
@@ -139,6 +159,8 @@ export default function FormActaNombramiento({ documento, obraId, tipo, onSave, 
       datos_extra: {
         denominacion, emplazamiento, tipo_obra: tipoObra,
         modalidad, lugar_firma: lugarFirma, texto_legal: textoLegal,
+        firma_url: firmaUrlFinal,
+        firma_at: firmaAtFinal,
       } as unknown as Json,
       ...(obraId ? { obra_id: obraId, tipo } : {}),
     });
