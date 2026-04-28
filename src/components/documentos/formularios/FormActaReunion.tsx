@@ -156,7 +156,9 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       setLocalidad(extra.localidad || '');
       setPromotor(documento.nombre_promotor || '');
       setLugarReunion(extra.lugar_reunion || '');
-      setFechaHora(documento.fecha_documento || '');
+      setFechaHora(extra.fecha_hora_reunion || '');
+      setLugarFirma(extra.lugar_firma || '');
+      setFechaFirma(documento.fecha_documento || '');
       setExcusados(extra.excusados || '');
       setTextoLegal(extra.texto_legal || '');
       setMesReunion(extra.mes_reunion || '');
