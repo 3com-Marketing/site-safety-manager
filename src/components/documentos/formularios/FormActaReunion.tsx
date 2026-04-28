@@ -349,6 +349,8 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       obra_actuacion: obraActuacion, localidad, lugar_reunion: lugarReunion,
       fecha_hora_reunion: fechaHora,
       lugar_firma: lugarFirma,
+      firma_url: firmaUrlFinal,
+      firma_at: firmaAtFinal,
       excusados, texto_legal: textoLegal,
     };
     if (isCAE) {
