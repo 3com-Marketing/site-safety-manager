@@ -32,7 +32,7 @@ interface InformeRow {
   obra_id?: string;
 }
 
-type EstadoChip = 'todos' | 'en_progreso' | 'pendiente_revision' | 'borrador';
+type EstadoChip = 'todos' | 'en_progreso' | 'pendiente_revision' | 'borrador' | 'cerrado';
 type SortMode = 'tiempo_desc' | 'tiempo_asc' | 'hora_entrada';
 type KpiKey = 'visitas_hoy' | 'tiempo_excedido' | 'pendientes' | 'cerrados_mes';
 
