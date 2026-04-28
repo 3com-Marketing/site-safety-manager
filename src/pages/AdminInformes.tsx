@@ -202,7 +202,43 @@ export default function AdminInformes() {
   const visitasFinalizadasHoy = useMemo(() =>
     visitasHoy.filter(v => v.estado === 'finalizada'), [visitasHoy]);
 
-  const filtered = filter === 'todos' ? informes : informes.filter(i => i.estado === filter);
+  const [activeKpi, setActiveKpi] = useState<'visitas_hoy' | 'en_progreso' | 'pendientes' | 'cerrados_mes' | null>(null);
+  const visitasProgresoRef = useRef<HTMLDivElement>(null);
+  const actividadHoyRef = useRef<HTMLDivElement>(null);
+  const informesRef = useRef<HTMLDivElement>(null);
+
+  const filtered = (() => {
+    let base = filter === 'todos' ? informes : informes.filter(i => i.estado === filter);
+    if (activeKpi === 'cerrados_mes') {
+      base = base.filter(i => i.estado === 'cerrado' && new Date(i.fecha) >= monthStart);
+    }
+    return base;
+  })();
+
+  const handleKpiClick = (kpi: 'visitas_hoy' | 'en_progreso' | 'pendientes' | 'cerrados_mes') => {
+    if (activeKpi === kpi) {
+      setActiveKpi(null);
+      if (kpi === 'pendientes' || kpi === 'cerrados_mes') setFilter('todos');
+      return;
+    }
+    setActiveKpi(kpi);
+    if (kpi === 'pendientes') setFilter('pendiente_revision');
+    else if (kpi === 'cerrados_mes') setFilter('cerrado');
+    else setFilter('todos');
+
+    setTimeout(() => {
+      const target =
+        kpi === 'visitas_hoy' ? actividadHoyRef.current :
+        kpi === 'en_progreso' ? visitasProgresoRef.current :
+        informesRef.current;
+      target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  };
+
+  const kpiCardClass = (active: boolean) =>
+    `text-left w-full rounded-lg border bg-card transition-all cursor-pointer hover:border-primary/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+      active ? 'border-primary bg-primary/5 shadow-sm' : 'border-border'
+    }`;
 
   if (loading) {
     return (
