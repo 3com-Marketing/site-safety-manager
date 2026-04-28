@@ -403,14 +403,14 @@ function NuevaVisitaDialog({
     }
   }, [ctx]);
 
-  if (!ctx) return null;
-  const open = !!ctx;
-
-  // visitas activas (excluye canceladas)
+  // Hooks SIEMPRE antes de cualquier early return (evita "Rendered more hooks than during the previous render")
   const visitasActivas = useMemo(
     () => visitasSemana.filter(v => v.estado !== 'cancelada'),
     [visitasSemana]
   );
+
+  if (!ctx) return null;
+  const open = !!ctx;
 
   // visitas de un técnico ese día
   const visitasTecnicoDia = (tecId: string) => {
