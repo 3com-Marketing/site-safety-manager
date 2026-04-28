@@ -57,6 +57,9 @@ export default function AdminInformeDetalle() {
   const [viewingFoto, setViewingFoto] = useState<string | null>(null);
   const [fotoMeta, setFotoMeta] = useState<{ table: string; id: string; column: string } | null>(null);
   const [visitaId, setVisitaId] = useState<string | null>(null);
+  const [firmaPerfilUrl, setFirmaPerfilUrl] = useState<string | null>(null);
+  const [firmaDialogOpen, setFirmaDialogOpen] = useState(false);
+  const { user } = useAuth();
 
   // New item forms
   const [newIncidencia, setNewIncidencia] = useState({ titulo: '', descripcion: '' });
