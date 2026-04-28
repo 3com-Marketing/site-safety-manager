@@ -329,7 +329,7 @@ export default function AdminInformes() {
     } else if (kpi === 'pendientes') {
       setEstadoChip('pendiente_revision');
     } else if (kpi === 'cerrados_mes') {
-      setEstadoChip('todos');
+      setEstadoChip('cerrado');
     }
     scrollToLists();
   };
