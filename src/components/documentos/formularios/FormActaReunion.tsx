@@ -66,6 +66,11 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   const [excusados, setExcusados] = useState('');
   const [textoLegal, setTextoLegal] = useState('');
 
+  // Firma digital
+  const { firmaUrl: firmaPerfilUrl } = useFirmaPerfilUrl();
+  const [firmaActualUrl, setFirmaActualUrl] = useState<string | null>(null);
+  const [firmaPayload, setFirmaPayload] = useState<{ useStored: true } | { blob: Blob } | null>(null);
+
   // CAE specific
   const [mesReunion, setMesReunion] = useState('');
   const [textoPunto1, setTextoPunto1] = useState('');
