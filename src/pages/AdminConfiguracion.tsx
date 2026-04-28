@@ -25,10 +25,6 @@ interface ConfigEmpresa {
   cargo_responsable: string;
   titulacion: string;
   num_colegiado: string;
-  registro_mercantil: string;
-  iban: string;
-  banco: string;
-  swift_bic: string;
   texto_recomendaciones: string;
   texto_normativa: string;
   texto_acta_aprobacion_sys: string;
@@ -58,7 +54,6 @@ const EMPTY_CONFIG: ConfigEmpresa = {
   nombre: '', cif: '', direccion: '', ciudad: '', telefono: '',
   email: '', web: '', logo_url: '', nombre_responsable: '',
   cargo_responsable: '', titulacion: '', num_colegiado: '',
-  registro_mercantil: '', iban: '', banco: '', swift_bic: '',
   texto_recomendaciones: '', texto_normativa: '', texto_cae_punto2_bloque2: '',
   texto_acta_aprobacion_sys: '', texto_acta_aprobacion_dgpo: '',
   texto_acta_reunion_inicial: '', texto_acta_reunion_cae: '', texto_acta_reunion_sys: '',
