@@ -774,8 +774,11 @@ function templateInforme(doc: any, extra: any, obra: any, cliente: any, safework
     { num: 10, key: "medios_auxiliares", label: "Medios auxiliares" },
   ];
 
+  const semana = getSemanaInfo(doc.fecha_documento);
+
   let html = `
     <div class="cover">
+      ${semana ? `<div class="cover-semana">SEMANA Nº ${semana.numero}, ${semana.texto}</div>` : ""}
       ${safeworkLogo ? `<img class="cover-logo" src="${safeworkLogo}" alt="Logo" />` : ""}
       <div class="cover-label">SEGURIDAD Y SALUD LABORAL</div>
       <div class="cover-line"></div>
