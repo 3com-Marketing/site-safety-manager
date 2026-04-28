@@ -443,7 +443,7 @@ export default function AdminInformes() {
         )}
 
         {/* Informes */}
-        <div className="space-y-4">
+        <div ref={informesRef} className="space-y-4 scroll-mt-20">
           <div className="flex items-center justify-between">
             <h2 className="font-heading text-lg font-bold">Informes</h2>
           </div>
@@ -452,7 +452,7 @@ export default function AdminInformes() {
             {ESTADOS_FILTER.map(ef => (
               <button
                 key={ef.value}
-                onClick={() => setFilter(ef.value)}
+                onClick={() => { setFilter(ef.value); setActiveKpi(null); }}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                   filter === ef.value
                     ? 'bg-primary text-primary-foreground'
