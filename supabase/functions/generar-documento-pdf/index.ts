@@ -240,12 +240,7 @@ function templateActaNombramiento(doc: any, extra: any, obra: any, cliente: any,
   }
 
   html += `<p style="margin-top:10pt;font-size:9pt;">En ${extra.lugar_firma || "_______________"}, a ${fechaStr}.</p>`;
-  html += `
-    <div style="display:flex;justify-content:space-around;margin-top:30pt;">
-      <div style="text-align:center;"><div style="border-top:1px solid #333;width:180pt;padding-top:5pt;font-size:8.5pt;">${firmaLabel1}</div></div>
-      <div style="text-align:center;"><div style="border-top:1px solid #333;width:180pt;padding-top:5pt;font-size:8.5pt;">${firmaLabel2}</div></div>
-    </div>
-  `;
+  html += firmaRecuadros();
 
   return html;
 }
