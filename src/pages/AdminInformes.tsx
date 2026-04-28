@@ -323,7 +323,7 @@ export default function AdminInformes() {
 
         {/* Visitas en progreso */}
         {visitasEnProgreso.length > 0 && (
-          <div className="space-y-3">
+          <div ref={visitasProgresoRef} className="space-y-3 scroll-mt-20">
             <div className="flex items-center gap-2">
               <Radio className="h-5 w-5 text-warning animate-pulse" />
               <h2 className="font-heading text-lg font-bold">Visitas en progreso</h2>
