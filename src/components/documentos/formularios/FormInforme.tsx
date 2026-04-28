@@ -134,7 +134,7 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Fecha de visita</Label>
+          <Label>Fecha del documento</Label>
           <Input type="date" value={fechaVisita} onChange={e => setFechaVisita(e.target.value)} />
         </div>
         <div className="space-y-2">
