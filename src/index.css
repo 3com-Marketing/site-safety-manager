@@ -15,7 +15,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 220 20% 10%;
 
-    --primary: 24 95% 53%;
+    --primary: 4 78% 53%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 215 25% 93%;
@@ -24,7 +24,7 @@
     --muted: 210 15% 95%;
     --muted-foreground: 215 12% 50%;
 
-    --accent: 215 80% 55%;
+    --accent: 24 90% 54%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
@@ -38,18 +38,18 @@
 
     --border: 214 20% 88%;
     --input: 214 20% 88%;
-    --ring: 24 95% 53%;
+    --ring: 4 78% 53%;
 
     --radius: 0.75rem;
 
     --sidebar-background: 220 20% 10%;
     --sidebar-foreground: 210 15% 90%;
-    --sidebar-primary: 24 95% 53%;
+    --sidebar-primary: 4 78% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 18% 16%;
     --sidebar-accent-foreground: 210 15% 90%;
     --sidebar-border: 220 15% 18%;
-    --sidebar-ring: 24 95% 53%;
+    --sidebar-ring: 4 78% 53%;
 
     --font-heading: 'Space Grotesk', sans-serif;
     --font-body: 'DM Sans', sans-serif;

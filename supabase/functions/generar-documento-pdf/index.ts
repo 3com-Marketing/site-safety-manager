@@ -23,11 +23,11 @@ function baseStyles() {
   return `
     @page { margin: 2cm; size: A4; }
     body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 10pt; color: #1a1a1a; line-height: 1.5; margin: 0; }
-    .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 16pt; border-bottom: 3px solid #F37520; margin-bottom: 24pt; }
+    .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 16pt; border-bottom: 3px solid #E63027; margin-bottom: 24pt; }
     .header img { max-height: 60pt; max-width: 180pt; object-fit: contain; }
     .header .title-block { text-align: center; flex: 1; }
-    h1 { font-size: 16pt; color: #F37520; margin: 0 0 4pt 0; }
-    h2 { font-size: 12pt; color: #1a1a1a; border-bottom: 2px solid #F37520; padding-bottom: 3pt; margin-top: 20pt; margin-bottom: 8pt; }
+    h1 { font-size: 16pt; color: #E63027; margin: 0 0 4pt 0; }
+    h2 { font-size: 12pt; color: #1a1a1a; border-bottom: 2px solid #E63027; padding-bottom: 3pt; margin-top: 20pt; margin-bottom: 8pt; }
     .subtitle { color: #666; font-size: 9pt; }
     .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6pt; margin: 10pt 0; }
     .meta-item { background: #f8f8f8; padding: 6pt 10pt; border-radius: 4pt; }
@@ -68,26 +68,26 @@ function informeStyles() {
     .cover { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; page-break-after: always; text-align: center; padding: 3cm 2cm; }
     .cover img.cover-logo { max-height: 120pt; max-width: 280pt; object-fit: contain; margin-bottom: 40pt; }
     .cover .cover-label { font-size: 11pt; color: #666; text-transform: uppercase; letter-spacing: 3pt; margin-bottom: 10pt; }
-    .cover .cover-tipo { font-size: 18pt; font-weight: bold; color: #F37520; margin-bottom: 20pt; text-transform: uppercase; }
+    .cover .cover-tipo { font-size: 18pt; font-weight: bold; color: #E63027; margin-bottom: 20pt; text-transform: uppercase; }
     .cover .cover-obra { font-size: 14pt; font-weight: bold; color: #1a1a1a; margin-bottom: 12pt; }
     .cover .cover-contratista { font-size: 12pt; color: #333; margin-bottom: 20pt; }
     .cover .cover-fecha { font-size: 11pt; color: #666; }
-    .cover .cover-line { width: 60%; height: 3px; background: #F37520; margin: 20pt auto; }
+    .cover .cover-line { width: 60%; height: 3px; background: #E63027; margin: 20pt auto; }
 
     /* Running header */
     .running-header-left { position: running(header-left); }
     .running-header-right { position: running(header-right); }
     .running-footer { position: running(footer-center); }
-    .rh-table { width: 100%; border-collapse: collapse; border-bottom: 2px solid #F37520; padding-bottom: 6pt; margin-bottom: 0; }
+    .rh-table { width: 100%; border-collapse: collapse; border-bottom: 2px solid #E63027; padding-bottom: 6pt; margin-bottom: 0; }
     .rh-table td { border: none; padding: 2pt 0; font-size: 8pt; color: #666; vertical-align: middle; }
     .rh-table img { max-height: 36pt; max-width: 120pt; object-fit: contain; }
-    .rh-tipo { font-weight: bold; color: #F37520; font-size: 9pt; }
+    .rh-tipo { font-weight: bold; color: #E63027; font-size: 9pt; }
     .rf-text { font-size: 8pt; color: #999; text-align: center; border-top: 1px solid #ddd; padding-top: 4pt; }
 
     /* Content */
-    h2 { font-size: 13pt; color: #F37520; border-bottom: 2px solid #F37520; padding-bottom: 4pt; margin-top: 24pt; margin-bottom: 10pt; text-transform: uppercase; }
+    h2 { font-size: 13pt; color: #E63027; border-bottom: 2px solid #E63027; padding-bottom: 4pt; margin-top: 24pt; margin-bottom: 10pt; text-transform: uppercase; }
     h3 { font-size: 11pt; color: #333; margin-top: 14pt; margin-bottom: 6pt; }
-    .section-num { color: #F37520; font-weight: bold; margin-right: 6pt; }
+    .section-num { color: #E63027; font-weight: bold; margin-right: 6pt; }
     .section-text { margin: 6pt 0; line-height: 1.6; }
     .section-text p { margin: 4pt 0; }
     .section-text ul, .section-text ol { margin: 4pt 0 4pt 16pt; padding: 0; }
@@ -104,7 +104,7 @@ function informeStyles() {
     /* TOC */
     .toc { margin: 20pt 0; }
     .toc-item { display: flex; justify-content: space-between; padding: 4pt 0; border-bottom: 1px dotted #ccc; font-size: 10pt; }
-    .toc-item .toc-num { color: #F37520; font-weight: bold; min-width: 30pt; }
+    .toc-item .toc-num { color: #E63027; font-weight: bold; min-width: 30pt; }
 
     .firma-section { margin-top: 60pt; text-align: center; }
     .firma-line { border-top: 1px solid #333; width: 250pt; margin: 60pt auto 6pt auto; }
@@ -177,7 +177,7 @@ function templateActaNombramiento(doc: any, extra: any, obra: any, cliente: any,
     ["Emplazamiento:", extra.emplazamiento || ""],
     ["Tipo de obra:", extra.tipo_obra || ""],
   ];
-  html += `<h2 style="font-size:11pt;font-weight:bold;border-bottom:2px solid #F37520;padding-bottom:4pt;margin-top:20pt;">DATOS DEL PROYECTO</h2>`;
+  html += `<h2 style="font-size:11pt;font-weight:bold;border-bottom:2px solid #E63027;padding-bottom:4pt;margin-top:20pt;">DATOS DEL PROYECTO</h2>`;
   html += `<table style="width:100%;border-collapse:collapse;margin:8pt 0;">`;
   for (const [label, value] of datosProyecto) {
     html += `<tr><td style="border:1px solid #999;padding:6pt 10pt;font-size:9pt;font-weight:bold;width:35%;background:#f5f5f5;">${label}</td><td style="border:1px solid #999;padding:6pt 10pt;font-size:9pt;">${value}</td></tr>`;
@@ -189,7 +189,7 @@ function templateActaNombramiento(doc: any, extra: any, obra: any, cliente: any,
     ["CIF:", doc.cif_promotor || ""],
     ["Domicilio:", doc.domicilio_promotor || ""],
   ];
-  html += `<h2 style="font-size:11pt;font-weight:bold;border-bottom:2px solid #F37520;padding-bottom:4pt;margin-top:20pt;">DATOS DEL PROMOTOR</h2>`;
+  html += `<h2 style="font-size:11pt;font-weight:bold;border-bottom:2px solid #E63027;padding-bottom:4pt;margin-top:20pt;">DATOS DEL PROMOTOR</h2>`;
   html += `<table style="width:100%;border-collapse:collapse;margin:8pt 0;">`;
   for (const [label, value] of datosPromotor) {
     html += `<tr><td style="border:1px solid #999;padding:6pt 10pt;font-size:9pt;font-weight:bold;width:35%;background:#f5f5f5;">${label}</td><td style="border:1px solid #999;padding:6pt 10pt;font-size:9pt;">${value}</td></tr>`;
@@ -207,7 +207,7 @@ function templateActaNombramiento(doc: any, extra: any, obra: any, cliente: any,
     ["Móvil:", doc.movil_coordinador || ""],
     ["Email:", doc.email_coordinador || ""],
   ];
-  html += `<h2 style="font-size:11pt;font-weight:bold;border-bottom:2px solid #F37520;padding-bottom:4pt;margin-top:20pt;">${coordTitle}</h2>`;
+  html += `<h2 style="font-size:11pt;font-weight:bold;border-bottom:2px solid #E63027;padding-bottom:4pt;margin-top:20pt;">${coordTitle}</h2>`;
   html += `<table style="width:100%;border-collapse:collapse;margin:8pt 0;">`;
   for (const [label, value] of datosCoord) {
     html += `<tr><td style="border:1px solid #999;padding:6pt 10pt;font-size:9pt;font-weight:bold;width:35%;background:#f5f5f5;">${label}</td><td style="border:1px solid #999;padding:6pt 10pt;font-size:9pt;">${value}</td></tr>`;
@@ -356,7 +356,7 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
   html += `</table>`;
 
   // Asistentes table with DNI and Firma columns
-  html += `<h2 style="font-size:11pt;margin-top:14pt;margin-bottom:6pt;border-bottom:2px solid #F37520;padding-bottom:3pt;">ASISTENTES</h2>`;
+  html += `<h2 style="font-size:11pt;margin-top:14pt;margin-bottom:6pt;border-bottom:2px solid #E63027;padding-bottom:3pt;">ASISTENTES</h2>`;
   if (asistentes.length > 0) {
     html += `<table><tr><th>Nombre</th><th>Apellidos</th><th>Cargo</th><th>Empresa</th><th>DNI/NIE</th><th style="width:80pt;">Firma</th></tr>`;
     for (const a of asistentes) {
@@ -377,7 +377,7 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
 
   // PAGE BREAK — PAGE 2: Orden del día
   html += `<div style="page-break-before:always;"></div>`;
-  html += `<h2 style="font-size:13pt;color:#F37520;border-bottom:2px solid #F37520;padding-bottom:4pt;margin-top:0;">ORDEN DEL DÍA</h2>`;
+  html += `<h2 style="font-size:13pt;color:#E63027;border-bottom:2px solid #E63027;padding-bottom:4pt;margin-top:0;">ORDEN DEL DÍA</h2>`;
   const tocItems = [
     "Objetivo y alcance",
     "Intercambio de documentación y acceso a obra",
@@ -395,7 +395,7 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
   ];
   html += `<div style="margin:10pt 0;">`;
   for (let i = 0; i < tocItems.length; i++) {
-    html += `<div style="display:flex;padding:4pt 0;border-bottom:1px dotted #ccc;font-size:10pt;"><span style="color:#F37520;font-weight:bold;min-width:30pt;">${i + 1}.</span><span>${tocItems[i]}</span></div>`;
+    html += `<div style="display:flex;padding:4pt 0;border-bottom:1px dotted #ccc;font-size:10pt;"><span style="color:#E63027;font-weight:bold;min-width:30pt;">${i + 1}.</span><span>${tocItems[i]}</span></div>`;
   }
   html += `</div>`;
 
@@ -403,7 +403,7 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
   html += `<div style="page-break-before:always;"></div>`;
 
   // 1. Objetivo y alcance + Actividades table
-  html += `<h2 style="font-size:12pt;color:#F37520;border-bottom:2px solid #F37520;padding-bottom:3pt;margin-top:0;"><span style="font-weight:bold;">1.</span> OBJETIVO Y ALCANCE</h2>`;
+  html += `<h2 style="font-size:12pt;color:#E63027;border-bottom:2px solid #E63027;padding-bottom:3pt;margin-top:0;"><span style="font-weight:bold;">1.</span> OBJETIVO Y ALCANCE</h2>`;
   const textoPunto1 = extra.texto_punto1 || "El presente protocolo tiene por objeto establecer los criterios de coordinación de actividades empresariales para la prevención de los riesgos laborales de las empresas contratadas para la ejecución de los trabajos descritos en la siguiente tabla, conforme a lo dispuesto en el Real Decreto 171/2004.";
   html += `<div class="section-text" style="font-size:9pt;text-align:justify;">${renderRichText(textoPunto1)}</div>`;
 
@@ -417,7 +417,7 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
   }
 
   // 2. Intercambio documentación + Empresas table
-  html += `<h2 style="font-size:12pt;color:#F37520;border-bottom:2px solid #F37520;padding-bottom:3pt;"><span style="font-weight:bold;">2.</span> INTERCAMBIO DE DOCUMENTACIÓN Y ACCESO A OBRA</h2>`;
+  html += `<h2 style="font-size:12pt;color:#E63027;border-bottom:2px solid #E63027;padding-bottom:3pt;"><span style="font-weight:bold;">2.</span> INTERCAMBIO DE DOCUMENTACIÓN Y ACCESO A OBRA</h2>`;
   const textoPunto2 = extra.texto_punto2 || "Se acuerda que las empresas que se relacionan a continuación deberán entregar la documentación necesaria para el acceso a la obra antes del inicio de los trabajos.";
   html += `<div class="section-text" style="font-size:9pt;text-align:justify;">${renderRichText(textoPunto2)}</div>`;
 
@@ -491,7 +491,7 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
   }
 
   // 3. Trabajos realizados y previstos + Riesgos
-  html += `<h2 style="font-size:12pt;color:#F37520;border-bottom:2px solid #F37520;padding-bottom:3pt;"><span style="font-weight:bold;">3.</span> TRABAJOS REALIZADOS Y PREVISTOS. ANÁLISIS DE RIESGOS Y MEDIDAS PREVENTIVAS</h2>`;
+  html += `<h2 style="font-size:12pt;color:#E63027;border-bottom:2px solid #E63027;padding-bottom:3pt;"><span style="font-weight:bold;">3.</span> TRABAJOS REALIZADOS Y PREVISTOS. ANÁLISIS DE RIESGOS Y MEDIDAS PREVENTIVAS</h2>`;
 
   // Texto introductorio del punto 3
   if (extra.texto_punto3) {
@@ -542,7 +542,7 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
   }
 
   // 4. Recurso preventivo
-  html += `<h2 style="font-size:12pt;color:#F37520;border-bottom:2px solid #F37520;padding-bottom:3pt;"><span style="font-weight:bold;">4.</span> RECURSO PREVENTIVO</h2>`;
+  html += `<h2 style="font-size:12pt;color:#E63027;border-bottom:2px solid #E63027;padding-bottom:3pt;"><span style="font-weight:bold;">4.</span> RECURSO PREVENTIVO</h2>`;
   if (extra.texto_recurso_preventivo) {
     html += `<div class="section-text" style="font-size:9pt;text-align:justify;">${renderRichText(extra.texto_recurso_preventivo)}</div>`;
   } else {
@@ -550,32 +550,32 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
   }
 
   // 5. Acuerdos generales (fallback to texto_legal for retrocompatibility)
-  html += `<h2 style="font-size:12pt;color:#F37520;border-bottom:2px solid #F37520;padding-bottom:3pt;"><span style="font-weight:bold;">5.</span> ACUERDOS GENERALES ADOPTADOS EN MATERIA DE PRL</h2>`;
+  html += `<h2 style="font-size:12pt;color:#E63027;border-bottom:2px solid #E63027;padding-bottom:3pt;"><span style="font-weight:bold;">5.</span> ACUERDOS GENERALES ADOPTADOS EN MATERIA DE PRL</h2>`;
   const textoP5 = extra.texto_acuerdos_generales || extra.texto_legal || "Se acuerda la aplicación de las medidas preventivas establecidas en la evaluación de riesgos y la planificación de la actividad preventiva de cada empresa, así como las medidas de coordinación que se estimen necesarias.";
   html += `<div class="legal-text" style="text-align:justify;">${renderRichText(textoP5)}</div>`;
 
   // 6. Formación e información
-  html += `<h2 style="font-size:12pt;color:#F37520;border-bottom:2px solid #F37520;padding-bottom:3pt;"><span style="font-weight:bold;">6.</span> FORMACIÓN E INFORMACIÓN</h2>`;
+  html += `<h2 style="font-size:12pt;color:#E63027;border-bottom:2px solid #E63027;padding-bottom:3pt;"><span style="font-weight:bold;">6.</span> FORMACIÓN E INFORMACIÓN</h2>`;
   const textoP6 = extra.texto_punto6 || "Cada empresa garantizará que sus trabajadores disponen de la formación e información necesaria en materia de prevención de riesgos laborales, conforme al Art. 18 y 19 de la Ley 31/1995.";
   html += `<div class="section-text" style="font-size:9pt;text-align:justify;">${renderRichText(textoP6)}</div>`;
 
   // 7. Control de maquinaria
-  html += `<h2 style="font-size:12pt;color:#F37520;border-bottom:2px solid #F37520;padding-bottom:3pt;"><span style="font-weight:bold;">7.</span> CONTROL DE MAQUINARIA, EQUIPOS DE TRABAJO, MEDIOS AUXILIARES Y CERTIFICADOS</h2>`;
+  html += `<h2 style="font-size:12pt;color:#E63027;border-bottom:2px solid #E63027;padding-bottom:3pt;"><span style="font-weight:bold;">7.</span> CONTROL DE MAQUINARIA, EQUIPOS DE TRABAJO, MEDIOS AUXILIARES Y CERTIFICADOS</h2>`;
   const textoP7 = extra.texto_punto7 || "Cada empresa será responsable de que la maquinaria, equipos de trabajo y medios auxiliares que emplee cumplan la normativa vigente y dispongan de la documentación correspondiente (marcado CE, revisiones periódicas, etc.).";
   html += `<div class="section-text" style="font-size:9pt;text-align:justify;">${renderRichText(textoP7)}</div>`;
 
   // 8. Protecciones colectivas
-  html += `<h2 style="font-size:12pt;color:#F37520;border-bottom:2px solid #F37520;padding-bottom:3pt;"><span style="font-weight:bold;">8.</span> PROTECCIONES COLECTIVAS</h2>`;
+  html += `<h2 style="font-size:12pt;color:#E63027;border-bottom:2px solid #E63027;padding-bottom:3pt;"><span style="font-weight:bold;">8.</span> PROTECCIONES COLECTIVAS</h2>`;
   const textoP8 = extra.texto_punto8 || "Se establecerán las protecciones colectivas necesarias (redes de seguridad, barandillas, líneas de vida, etc.) antes del inicio de los trabajos que las requieran.";
   html += `<div class="section-text" style="font-size:9pt;text-align:justify;">${renderRichText(textoP8)}</div>`;
 
   // 9. Protecciones individuales
-  html += `<h2 style="font-size:12pt;color:#F37520;border-bottom:2px solid #F37520;padding-bottom:3pt;"><span style="font-weight:bold;">9.</span> PROTECCIONES INDIVIDUALES</h2>`;
+  html += `<h2 style="font-size:12pt;color:#E63027;border-bottom:2px solid #E63027;padding-bottom:3pt;"><span style="font-weight:bold;">9.</span> PROTECCIONES INDIVIDUALES</h2>`;
   const textoP9 = extra.texto_punto9 || "Los trabajadores deberán utilizar los Equipos de Protección Individual (EPI) adecuados a los riesgos de su puesto de trabajo, conforme a la evaluación de riesgos realizada.";
   html += `<div class="section-text" style="font-size:9pt;text-align:justify;">${renderRichText(textoP9)}</div>`;
 
   // 10. Interferencias entre empresas
-  html += `<h2 style="font-size:12pt;color:#F37520;border-bottom:2px solid #F37520;padding-bottom:3pt;"><span style="font-weight:bold;">10.</span> INTERFERENCIAS ENTRE EMPRESAS</h2>`;
+  html += `<h2 style="font-size:12pt;color:#E63027;border-bottom:2px solid #E63027;padding-bottom:3pt;"><span style="font-weight:bold;">10.</span> INTERFERENCIAS ENTRE EMPRESAS</h2>`;
   // New format with texto_punto10 + procede
   if (extra.texto_punto10 !== undefined || extra.punto10_procede !== undefined) {
     if (extra.texto_punto10) {
@@ -602,7 +602,7 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
   }
 
   // 11. Interferencias con terceros
-  html += `<h2 style="font-size:12pt;color:#F37520;border-bottom:2px solid #F37520;padding-bottom:3pt;"><span style="font-weight:bold;">11.</span> INTERFERENCIAS CON TERCEROS</h2>`;
+  html += `<h2 style="font-size:12pt;color:#E63027;border-bottom:2px solid #E63027;padding-bottom:3pt;"><span style="font-weight:bold;">11.</span> INTERFERENCIAS CON TERCEROS</h2>`;
   if (extra.interferencias_terceros_aplica) {
     html += `<p style="font-size:9pt;"><strong>Sí se detectan interferencias con terceros.</strong></p>`;
     if (extra.interferencias_terceros_texto) {
@@ -613,7 +613,7 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
   }
 
   // 12. Medio ambiente
-  html += `<h2 style="font-size:12pt;color:#F37520;border-bottom:2px solid #F37520;padding-bottom:3pt;"><span style="font-weight:bold;">12.</span> MEDIO AMBIENTE</h2>`;
+  html += `<h2 style="font-size:12pt;color:#E63027;border-bottom:2px solid #E63027;padding-bottom:3pt;"><span style="font-weight:bold;">12.</span> MEDIO AMBIENTE</h2>`;
   if (extra.medio_ambiente_aplica) {
     html += `<p style="font-size:9pt;"><strong>Sí aplica.</strong></p>`;
     if (extra.medio_ambiente_texto) {
@@ -624,7 +624,7 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
   }
 
   // 13. Ruegos y sugerencias
-  html += `<h2 style="font-size:12pt;color:#F37520;border-bottom:2px solid #F37520;padding-bottom:3pt;"><span style="font-weight:bold;">13.</span> RUEGOS Y SUGERENCIAS</h2>`;
+  html += `<h2 style="font-size:12pt;color:#E63027;border-bottom:2px solid #E63027;padding-bottom:3pt;"><span style="font-weight:bold;">13.</span> RUEGOS Y SUGERENCIAS</h2>`;
   // New format with texto_punto13 + procede
   if (extra.texto_punto13 !== undefined || extra.punto13_procede !== undefined) {
     if (extra.texto_punto13) {
@@ -687,7 +687,7 @@ function templateActaReunionSimple(doc: any, extra: any, obra: any, cliente: any
   }
   html += `</table>`;
 
-  html += `<h2 style="font-size:11pt;margin-top:16pt;margin-bottom:6pt;border-bottom:2px solid #F37520;padding-bottom:3pt;">ASISTENTES</h2>`;
+  html += `<h2 style="font-size:11pt;margin-top:16pt;margin-bottom:6pt;border-bottom:2px solid #E63027;padding-bottom:3pt;">ASISTENTES</h2>`;
   if (asistentes.length > 0) {
     if (isSYS) {
       html += `<table><tr><th>Empresa</th><th>Nombre</th><th>Apellidos</th><th style="width:120pt;">Firma</th></tr>`;
@@ -704,7 +704,7 @@ function templateActaReunionSimple(doc: any, extra: any, obra: any, cliente: any
   }
 
   if (extra.excusados) {
-    html += `<h2 style="font-size:11pt;margin-top:16pt;margin-bottom:6pt;border-bottom:2px solid #F37520;padding-bottom:3pt;">EXCUSADOS / AUSENTES</h2>`;
+    html += `<h2 style="font-size:11pt;margin-top:16pt;margin-bottom:6pt;border-bottom:2px solid #E63027;padding-bottom:3pt;">EXCUSADOS / AUSENTES</h2>`;
     html += `<p style="font-size:9pt;">${renderRichText(extra.excusados)}</p>`;
   }
 
