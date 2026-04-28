@@ -3,17 +3,27 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Check, ChevronLeft, Loader2, Clock } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ChevronLeft, Loader2, Clock, MapPin, AlertTriangle, Navigation } from 'lucide-react';
 import { toast } from 'sonner';
 import { addDays, isAfter, format, differenceInSeconds } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import VisitaSecciones, { type SeccionId } from '@/components/visita/VisitaSecciones';
 import ChecklistBloque from '@/components/visita/ChecklistBloque';
 import SeccionIncidencias from '@/components/visita/SeccionIncidencias';
 import SeccionAmonestaciones from '@/components/visita/SeccionAmonestaciones';
 import SeccionObservaciones from '@/components/visita/SeccionObservaciones';
 import SeccionDatosGenerales from '@/components/visita/SeccionDatosGenerales';
+import MapPicker from '@/components/MapPicker';
+import { haversineDistance, formatDistance } from '@/lib/geo';
+
+type FinishGeoErrorKind = 'denied' | 'unavailable' | 'timeout';
+type FinishGeoState =
+  | { status: 'idle' }
+  | { status: 'requesting' }
+  | { status: 'error'; kind: FinishGeoErrorKind }
+  | { status: 'confirm'; lat: number; lng: number; obraLat: number; obraLng: number; distance: number }
+  | { status: 'saving' };
 
 const BLOQUE_LABELS: Record<string, string> = {
   EPIs: 'EPIs',
