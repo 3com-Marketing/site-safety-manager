@@ -1,100 +1,107 @@
-# Calendario semanal de visitas
+# Modal "Nueva visita" en dos opciones + Panel lateral con contadores
 
-Nueva pantalla aislada en `/admin/calendario` con vista de semana, pivot obra/técnico, modal de creación y panel lateral de detalle. No se modifica ninguna pantalla ni componente existente.
+Se modifica únicamente `src/pages/AdminCalendario.tsx`. Se reescriben los dos sub-componentes ya existentes en ese archivo (`NuevaVisitaDialog` y `VisitaDetalleSheet`) y se ajusta lo que la página les pasa por props. Ningún otro archivo se toca.
 
-## Layout
+## 1. Modal "Nueva visita" — flujo en dos opciones
 
-```text
-┌────────────────────────────────────────────────────────────────────────┐
-│  ‹  Semana 18 · 27 abr – 3 may  ›    [Hoy]    [Por obra ▼ Filtro ▼]   │
-│                                                                        │
-│  ● Realizada   ● Programada   ● Pendiente confirmar                    │
-│                                                                        │
-│  ┌────────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┐                │
-│  │ Obra   │ Lun │ Mar │ Mié │ Jue │ Vie │ Sáb │ Dom │                │
-│  ├────────┼─────┼─────┼─────┼─────┼─────┼─────┼─────┤                │
-│  │ Obra A │ ▣JL │     │ ▣MR │     │ ▣JL │     │     │                │
-│  │ tec... │     │     │     │     │     │     │     │                │
-│  └────────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┘                │
-└────────────────────────────────────────────────────────────────────────┘
-```
+Al pulsar `+` en una celda vacía se abre el modal con:
 
-- Cabecera con flechas ‹ ›, etiqueta "Semana N · dd MMM – dd MMM" en español, botón **Hoy**.
-- Toggle pivot `Por obra` / `Por técnico` con el mismo estilo activo naranja (`bg-primary text-primary-foreground`) ya usado en chips de filtro.
-- Desplegable contextual (`Select`) que cambia su contenido según el modo: lista de obras o lista de técnicos.
-- Leyenda de colores encima de la tabla.
-- Columna izquierda fija de 170px con nombre principal + subtexto secundario (técnicos asignados o obras asignadas, truncado).
-- Día actual con fondo `bg-orange-50` (naranja muy suave coherente con el resto de la app).
-- Chips coloreados por estado:
-  - Verde `bg-green-100 text-green-800` → realizada
-  - Azul `bg-blue-100 text-blue-800` → programada
-  - Amarillo `bg-yellow-100 text-yellow-800` → pendiente de confirmar
-- Tooltip en hover con nombre completo (técnico u obra según modo).
+- Título: "Nueva visita" + fecha precargada (ej: "Martes 28 de abril").
+- **Selector de modo** en dos chips arriba: `Desde la obra` / `Desde el técnico`.
+  - Si el calendario estaba en pivot `obra` con una obra filtrada → arranca en "Desde la obra" con la obra preseleccionada.
+  - Si estaba en pivot `técnico` con uno filtrado → arranca en "Desde el técnico" con ese técnico preseleccionado.
+  - El usuario puede cambiar de modo en cualquier momento.
 
-## Interacciones
+### Opción A — Desde la obra
+1. `Select` de obra (todas, ordenadas).
+2. Al elegir obra, lista de técnicos asignados a esa obra (`tecnicos_obras`). Cada técnico se muestra como tarjeta clicable con:
+   - Nombre completo.
+   - **Indicador de disponibilidad ese día** según las visitas existentes para ese técnico ese día (excluyendo `cancelada`):
+     - Verde · "Disponible" → 0 visitas
+     - Naranja · "1 visita ese día" → 1
+     - Rojo · "N visitas ese día" → ≥2
+3. El usuario hace clic en una tarjeta para seleccionar técnico.
+4. Si la obra no tiene técnicos asignados: mensaje "Esta obra no tiene técnicos asignados".
 
-- **Clic en nombre de obra** → `navigate('/admin/obras')` (la ficha por ID no existe; se usa la ruta de listado existente).
-- **Clic en nombre de técnico** → `navigate('/admin/tecnicos')`.
-- **Clic en celda vacía** → abre `Dialog` "Nueva visita" con fecha precargada y selectores de obra y técnico.
-- **Clic en chip existente** → abre `Sheet` lateral derecho con detalle de la visita y acciones Editar / Cancelar (sin abandonar el calendario).
+### Opción B — Desde el técnico
+1. `Select` de técnico.
+2. Al elegir técnico, lista de obras asignadas a ese técnico. Cada obra como tarjeta clicable con:
+   - Nombre.
+   - Contador "X visitas esta semana en esta obra" (visitas del técnico en esa obra durante la semana visible, excluyendo `cancelada`).
+3. El usuario hace clic en una tarjeta para seleccionar obra.
 
-## Aclaración importante sobre los datos
+### Campos comunes (debajo)
+- Hora (input `time`, default `09:00`).
+- Estado (default `programada`; opciones: programada, pendiente_confirmar, finalizada).
 
-El esquema actual de `visitas.estado` solo guarda `en_progreso` y `finalizada`. Para los tres estados pedidos (realizada / programada / pendiente confirmar) hay dos opciones:
+### Aviso de solape
+Si el técnico seleccionado ya tiene al menos una visita ese día (cualquier obra, excluyendo `cancelada`), banner amarillo encima del botón Crear:
+> "Este técnico ya tiene N visita(s) ese día." (informativo, no bloquea).
 
-1. **Recomendado**: ampliar `visitas.estado` con dos valores nuevos `programada` y `pendiente_confirmar`, manteniendo retrocompatibilidad. Mapeo visual:
-   - `finalizada` → verde (realizada)
-   - `programada` → azul
-   - `pendiente_confirmar` → amarillo
-   - `en_progreso` → verde con borde animado (visita activa hoy)
-2. **Sin tocar BD**: mostrar solo dos colores reales (verde finalizada / azul en_progreso) y dejar el amarillo como placeholder vacío hasta que decidas el modelo.
+### Confirmar
+- Validación: obra + técnico + técnico con `user_id`.
+- `INSERT` en `visitas` con `obra_id`, `usuario_id`, `fecha` (combinando día + hora), `estado`.
+- Toast de éxito + cerrar modal + `fetchVisitas()` (refresco sin recargar).
 
-El plan asume la opción 1 (migración no destructiva, solo añade valores aceptados).
+### Datos que necesita el modal (props añadidas)
+- `visitasSemana: Visita[]` (las ya cargadas para la semana, sirven para los contadores y el aviso del mismo día).
+- `tecnicosByObra: Record<string, string[]>`
+- `obrasByTecnico: Record<string, string[]>`
+- `tecByUserId: Map<string, Tecnico>` (para mapear visitas → técnico)
+- `ctx.modoInicial: 'obra' | 'tecnico'` (deducido del pivot actual)
 
-## Cambios técnicos
+## 2. Panel lateral de detalle (`VisitaDetalleSheet`)
 
-### Migración SQL
-- Si `visitas.estado` es columna `text`: no hace falta cambio de tipo, basta con permitir los nuevos valores en la app. No hay CHECK constraint a tocar.
-- Añadir índice `CREATE INDEX IF NOT EXISTS idx_visitas_fecha ON visitas(fecha);` para acelerar consultas semanales.
+Se rediseña el contenido del `Sheet` existente. Sigue siendo un `Sheet side="right"` de shadcn que ya cierra al clicar fuera o con la X.
 
-### Nuevo archivo `src/pages/AdminCalendario.tsx`
-- Estado: `weekStart` (lunes), `pivot: 'obra' | 'tecnico'`, `filtroId: string | 'todos'`, `selectedVisita`, `nuevaVisitaCtx`.
-- Carga en paralelo con `Promise.all`:
-  - `obras` con `clientes(nombre)`
-  - `tecnicos` (id, nombre, apellidos)
-  - `tecnicos_obras` (mapa N:N)
-  - `visitas` filtradas por `fecha >= weekStart AND fecha < weekStart+7d`, con join a `obras(nombre)` y `tecnicos` vía `usuario_id` → `tecnicos.user_id`.
-- Construye matriz `filas × 7 días` en `useMemo`, agrupando visitas por (filaId, díaIndex).
-- `date-fns` con locale `es` para semanas ISO (lunes inicio) y `getISOWeek` para "Semana N".
+### Cabecera
+- Título: "Detalle de visita".
+- Subtítulo: día + hora formateada en español.
 
-### Nuevos sub-componentes (dentro del mismo archivo, sin tocar `src/components/`)
-- `<LegendChips />`
-- `<WeekHeader />` flechas + Hoy + label
-- `<PivotToggle />`
-- `<CalendarGrid />` tabla de 8 columnas
-- `<VisitaChip />` con `Tooltip` (usa `@/components/ui/tooltip` ya existente)
-- `<NuevaVisitaDialog />` con `Dialog` + selects de obra y técnico, fecha precargada
-- `<VisitaDetalleSheet />` con `Sheet` lateral derecho (`side="right"`), botones Editar/Cancelar
+### Bloque de información
+- **Obra**: nombre + dirección (si está disponible en obras cargadas; si no, solo nombre).
+- **Técnico**: nombre completo.
+- **Estado**: chip con el color del estado.
+- **Fecha**: legible.
 
-### Ruta nueva en `src/App.tsx`
-- Añadir `<Route path="/admin/calendario" element={<AdminCalendario />} />`.
+### Contadores
+Se calculan a partir de `visitasSemana` ya cargadas:
+- **En esta obra esta semana**: nº de visitas del técnico en la misma obra durante la semana visible (excluyendo cancelada).
+- **Total esta semana**: nº de visitas del técnico esa semana en cualquier obra.
 
-### Nuevo tab en `src/components/admin/AdminLayout.tsx`
-- Añadir entrada `{ path: '/admin/calendario', label: 'Calendario', icon: CalendarDays }` al array `TABS`. Es el único cambio en componente compartido y es estrictamente aditivo (no altera comportamiento existente). Si prefieres cero cambios fuera del archivo nuevo, lo omitimos y el acceso es sólo por URL directa.
+Mostrar como dos pequeñas tarjetas con número grande y etiqueta debajo.
 
-### Acciones soportadas en el panel lateral
-- **Editar**: cambiar fecha, técnico, obra, estado.
-- **Cancelar**: `UPDATE visitas SET estado='pendiente_confirmar'` o `DELETE` (a confirmar contigo). Las RLS actuales permiten al admin actualizar cualquier visita (`Users can update own visitas` incluye `has_role(admin)`). No hay política DELETE, así que "cancelar" será un cambio de estado, no borrado.
+### Acciones según estado
+- `programada` o `pendiente_confirmar`:
+  - Editar fecha/hora (inputs date+time).
+  - Cambiar estado (Select con las opciones aplicables).
+  - Cancelar visita (botón rojo → UPDATE estado='cancelada').
+- `en_progreso`:
+  - Solo cambiar estado (a `finalizada` o `cancelada`).
+  - Sin edición de fecha (la visita está activa).
+- `finalizada`:
+  - Solo lectura + botón "Reabrir" (cambia a `en_progreso`) y botón "Cancelar visita".
+- `cancelada`:
+  - Solo lectura + botón "Restaurar como programada".
 
-## Archivos
+### Guardar
+- Botón principal `Guardar cambios` (visible solo si hay cambios pendientes en fecha/estado).
+- Tras guardar: toast + `fetchVisitas()` + cerrar panel.
 
-- **Nuevo**: `src/pages/AdminCalendario.tsx`
-- **Editado** (1 línea): `src/App.tsx` — añadir la ruta
-- **Editado** (1 entrada en array): `src/components/admin/AdminLayout.tsx` — añadir tab Calendario
-- **Migración**: índice en `visitas.fecha`
+### Datos que necesita el sheet (props añadidas)
+- `visitasSemana: Visita[]` (para los contadores).
 
-## Preguntas a confirmar antes de implementar
+## Cambios en la página principal
 
-1. ¿Apruebas ampliar los estados de visita a `programada` y `pendiente_confirmar`? (necesario para los 3 colores pedidos)
-2. ¿"Cancelar" desde el panel lateral debe borrar la visita o cambiarla a un estado tipo `cancelada`? (recomiendo añadir estado `cancelada` y filtrarla del calendario)
-3. ¿Añado el tab "Calendario" al menú admin o prefieres acceso solo por URL?
+Solo dos puntos:
+
+1. **`setNuevaCtx`** ahora también guarda `modoInicial: pivot` (el modo activo del calendario) para que el modal arranque en la opción correcta. La preselección de obra/técnico ya se hace pasando `r.id` cuando la fila pertenece al pivot.
+2. **JSX que renderiza `<NuevaVisitaDialog>` y `<VisitaDetalleSheet>`** pasa las nuevas props (`visitasSemana={visitas}`, `tecnicosByObra`, `obrasByTecnico`, `tecByUserId`).
+
+## Archivos modificados
+- `src/pages/AdminCalendario.tsx` (único archivo tocado)
+
+## Notas de UX
+- Tarjetas de técnico/obra estilo "selector grande" coherente con la directiva de la app (botones grandes, máx. 3 acciones por pantalla).
+- Indicadores de disponibilidad usan los mismos verdes/naranjas/rojos que la leyenda del calendario para mantener consistencia visual.
+- El aviso de solape no bloquea: el admin sigue siendo dueño de la decisión.

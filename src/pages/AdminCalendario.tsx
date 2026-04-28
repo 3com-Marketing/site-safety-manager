@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ChevronLeft, ChevronRight, Calendar as CalIcon, Plus, Trash2, Save } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalIcon, Plus, Trash2, Save, AlertTriangle, HardHat, User as UserIcon, Check } from 'lucide-react';
 import {
   addDays, startOfWeek, endOfWeek, format, isSameDay, getISOWeek, isSameWeek,
 } from 'date-fns';
@@ -60,7 +60,7 @@ export default function AdminCalendario() {
   const [loading, setLoading] = useState(true);
 
   const [selectedVisita, setSelectedVisita] = useState<Visita | null>(null);
-  const [nuevaCtx, setNuevaCtx] = useState<{ fecha: Date; obraId?: string; tecnicoId?: string } | null>(null);
+  const [nuevaCtx, setNuevaCtx] = useState<{ fecha: Date; obraId?: string; tecnicoId?: string; modoInicial: Pivot } | null>(null);
 
   const weekEnd = useMemo(() => endOfWeek(weekStart, { weekStartsOn: 1 }), [weekStart]);
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
@@ -324,8 +324,9 @@ export default function AdminCalendario() {
                               fecha: d,
                               obraId: pivot === 'obra' ? r.id : undefined,
                               tecnicoId: pivot === 'tecnico' ? r.id : undefined,
+                              modoInicial: pivot,
                             })}
-                            className="flex items-center justify-center rounded-md border border-dashed border-border/60 py-1 text-[11px] text-muted-foreground/60 opacity-0 hover:border-primary hover:text-primary group-hover:opacity-100 transition-opacity"
+                            className="flex items-center justify-center rounded-md border border-dashed border-border/60 py-1 text-[11px] text-muted-foreground/60 hover:border-primary hover:text-primary transition-colors"
                             style={{ opacity: items.length === 0 ? 1 : 0.35 }}
                             title="Nueva visita"
                           >
@@ -347,6 +348,10 @@ export default function AdminCalendario() {
         ctx={nuevaCtx}
         obras={obras}
         tecnicos={tecnicos}
+        tecnicosByObra={tecnicosByObra}
+        obrasByTecnico={obrasByTecnico}
+        tecByUserId={tecByUserId}
+        visitasSemana={visitas}
         onClose={() => setNuevaCtx(null)}
         onCreated={() => { setNuevaCtx(null); fetchVisitas(); }}
       />
@@ -357,6 +362,7 @@ export default function AdminCalendario() {
         obras={obras}
         tecnicos={tecnicos}
         tecByUserId={tecByUserId}
+        visitasSemana={visitas}
         onClose={() => setSelectedVisita(null)}
         onChanged={() => { setSelectedVisita(null); fetchVisitas(); }}
       />
