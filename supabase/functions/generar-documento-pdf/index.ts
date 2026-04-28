@@ -660,7 +660,7 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
   }
 
   // Firma
-  html += `<p style="margin-top:24pt;font-size:10pt;">En ${extra.localidad || "_______________"}, a ${fechaStr}.</p>`;
+  html += `<p style="margin-top:24pt;font-size:10pt;">En ${extra.lugar_firma || extra.localidad || "_______________"}, a ${fechaStr}.</p>`;
   html += firmaRecuadros();
 
   return html;
