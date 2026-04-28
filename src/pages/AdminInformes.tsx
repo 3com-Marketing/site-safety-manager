@@ -41,6 +41,7 @@ const ESTADO_CHIPS: { value: EstadoChip; label: string }[] = [
   { value: 'en_progreso', label: 'En progreso' },
   { value: 'pendiente_revision', label: 'Pendiente revisión' },
   { value: 'borrador', label: 'Borrador' },
+  { value: 'cerrado', label: 'Cerrado' },
 ];
 
 const HORAS_EXCEDIDO = 168;
