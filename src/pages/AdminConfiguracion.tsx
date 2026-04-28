@@ -225,31 +225,6 @@ export default function AdminConfiguracion() {
             <div><Label>Nº Colegiado</Label><Input value={config.num_colegiado} onChange={e => update('num_colegiado', e.target.value)} /></div>
           </CardContent>
         </Card>
-        {/* Datos mercantiles */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Landmark className="h-4 w-4" /> Datos Mercantiles
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div><Label>Registro Mercantil</Label><Input placeholder="Ej: Tomo X, Folio Y, Hoja Z" value={config.registro_mercantil} onChange={e => update('registro_mercantil', e.target.value)} /></div>
-          </CardContent>
-        </Card>
-
-        {/* Datos bancarios */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <CreditCard className="h-4 w-4" /> Datos Bancarios
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2"><Label>IBAN</Label><Input placeholder="ES00 0000 0000 0000 0000 0000" value={config.iban} onChange={e => update('iban', e.target.value)} /></div>
-            <div><Label>Banco</Label><Input value={config.banco} onChange={e => update('banco', e.target.value)} /></div>
-            <div><Label>SWIFT / BIC</Label><Input value={config.swift_bic} onChange={e => update('swift_bic', e.target.value)} /></div>
-          </CardContent>
-        </Card>
         {/* Plantillas de Documentos */}
         <Card>
           <CardHeader>
