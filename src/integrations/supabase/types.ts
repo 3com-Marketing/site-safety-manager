@@ -618,6 +618,8 @@ export type Database = {
           empresas_presentes: string | null
           estado: string
           fecha: string
+          firma_at: string | null
+          firma_url: string | null
           id: string
           notas_generales: string | null
           num_trabajadores: number | null
@@ -629,6 +631,8 @@ export type Database = {
           empresas_presentes?: string | null
           estado?: string
           fecha?: string
+          firma_at?: string | null
+          firma_url?: string | null
           id?: string
           notas_generales?: string | null
           num_trabajadores?: number | null
@@ -640,6 +644,8 @@ export type Database = {
           empresas_presentes?: string | null
           estado?: string
           fecha?: string
+          firma_at?: string | null
+          firma_url?: string | null
           id?: string
           notas_generales?: string | null
           num_trabajadores?: number | null
