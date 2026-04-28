@@ -94,6 +94,18 @@ export default function AdminInformeDetalle() {
 
   useEffect(() => { fetchData(); }, [id]);
 
+  useEffect(() => {
+    if (!user) { setFirmaPerfilUrl(null); return; }
+    (async () => {
+      const { data } = await supabase
+        .from('tecnicos')
+        .select('firma_url')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      setFirmaPerfilUrl((data as any)?.firma_url || null);
+    })();
+  }, [user]);
+
   const handleFieldChange = (incId: string, field: 'titulo' | 'descripcion', value: string) => {
     setEditedFields(prev => ({
       ...prev,
