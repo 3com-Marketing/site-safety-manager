@@ -779,11 +779,10 @@ function templateInforme(doc: any, extra: any, obra: any, cliente: any, safework
     <div class="cover">
       ${semana ? `<div class="cover-semana">SEMANA Nº ${semana.numero}, ${semana.texto}</div>` : ""}
       ${safeworkLogo ? `<img class="cover-logo" src="${safeworkLogo}" alt="Logo" />` : ""}
-      <div class="cover-label">SEGURIDAD Y SALUD LABORAL</div>
-      <div class="cover-line"></div>
       ${!isCSS && empresaContratista ? `<div class="cover-contratista">Empresa contratista: ${empresaContratista}</div>` : ""}
       <div class="cover-tipo">${tipoLabel}</div>
       <div class="cover-obra">${obraNombre}</div>
+      ${cliente?.logo_url ? `<img class="cover-cliente-logo" src="${cliente.logo_url}" alt="${cliente.nombre || ''}" />` : ""}
       <div class="cover-fecha">${fechaDoc}</div>
     </div>
   `;
