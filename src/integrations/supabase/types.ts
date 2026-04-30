@@ -887,6 +887,11 @@ export type Database = {
           estado: string
           fecha: string
           fecha_fin: string | null
+          firma_responsable_cargo: string | null
+          firma_responsable_nombre: string | null
+          firma_responsable_url: string | null
+          firma_tecnico_url: string | null
+          firmas_at: string | null
           id: string
           lat_fin: number | null
           lat_inicio: number | null
@@ -900,6 +905,11 @@ export type Database = {
           estado?: string
           fecha?: string
           fecha_fin?: string | null
+          firma_responsable_cargo?: string | null
+          firma_responsable_nombre?: string | null
+          firma_responsable_url?: string | null
+          firma_tecnico_url?: string | null
+          firmas_at?: string | null
           id?: string
           lat_fin?: number | null
           lat_inicio?: number | null
@@ -913,6 +923,11 @@ export type Database = {
           estado?: string
           fecha?: string
           fecha_fin?: string | null
+          firma_responsable_cargo?: string | null
+          firma_responsable_nombre?: string | null
+          firma_responsable_url?: string | null
+          firma_tecnico_url?: string | null
+          firmas_at?: string | null
           id?: string
           lat_fin?: number | null
           lat_inicio?: number | null
