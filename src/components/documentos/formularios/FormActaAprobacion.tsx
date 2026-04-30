@@ -199,7 +199,12 @@ export default function FormActaAprobacion({ documento, obraId, tipo, onSave, sa
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Coordinadora de actividades empresariales</Label>
-              <Input value={coordActividadesEmpresariales} onChange={e => setCoordActividadesEmpresariales(e.target.value)} />
+              <AutocompleteNombre
+                value={coordActividadesEmpresariales}
+                onChange={setCoordActividadesEmpresariales}
+                source="persona"
+                onSelect={(s) => { if (s.kind === 'persona') setCoordActividadesEmpresariales(personaFullName(s)); }}
+              />
             </div>
             <div className="space-y-2">
               <Label>Empresa Contratista Titular</Label>
