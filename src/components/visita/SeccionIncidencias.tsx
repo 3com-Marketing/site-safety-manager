@@ -83,7 +83,7 @@ export default function SeccionIncidencias({ informeId, visitaId, obraNombre, on
       .select('id')
       .single();
 
-    if (incError || !inc) { toast.error('Error al crear incidencia'); setUploading(false); return; }
+    if (incError || !inc) { console.error('Insert incidencia (foto):', incError); toast.error('Error al crear incidencia'); setUploading(false); return; }
 
     await supabase.from('fotos').insert({ incidencia_id: inc.id, url: urlData.publicUrl, etiqueta });
 
