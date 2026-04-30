@@ -15,7 +15,16 @@ import SeccionAmonestaciones from '@/components/visita/SeccionAmonestaciones';
 import SeccionObservaciones from '@/components/visita/SeccionObservaciones';
 import SeccionDatosGenerales from '@/components/visita/SeccionDatosGenerales';
 import MapPicker from '@/components/MapPicker';
+import FirmaPresenciaDialog from '@/components/visita/FirmaPresenciaDialog';
 import { haversineDistance, formatDistance } from '@/lib/geo';
+
+interface FirmasPresenciaResolved {
+  responsableNombre: string;
+  responsableCargo: string;
+  responsableUrl: string;
+  tecnicoUrl: string;
+  firmasAt: string;
+}
 
 type FinishGeoErrorKind = 'denied' | 'unavailable' | 'timeout';
 type FinishGeoState =
