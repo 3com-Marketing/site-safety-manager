@@ -117,6 +117,7 @@ export default function VisitaActiva() {
   const [firmasPayload, setFirmasPayload] = useState<FirmasPresenciaResolved | null>(null);
   const [tecnicoNombre, setTecnicoNombre] = useState('');
   const [firmaPerfilUrl, setFirmaPerfilUrl] = useState<string | null>(null);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   const finishing = finishGeo.status !== 'idle';
 
