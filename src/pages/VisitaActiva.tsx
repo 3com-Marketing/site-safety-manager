@@ -705,6 +705,15 @@ export default function VisitaActiva() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Firmas de presencia (paso obligatorio antes del cierre) */}
+      <FirmaPresenciaDialog
+        open={showFirmas}
+        onOpenChange={setShowFirmas}
+        tecnicoNombre={tecnicoNombre}
+        firmaPerfilUrl={firmaPerfilUrl}
+        onConfirm={handleFirmasConfirmed}
+      />
     </div>
   );
 }
