@@ -187,7 +187,7 @@ export default function VisitaActiva() {
 
     const { data: informe } = await supabase
       .from('informes')
-      .select('id')
+      .select('id, num_trabajadores, condiciones_climaticas, empresas_presentes, notas_generales')
       .eq('visita_id', id)
       .single();
 
@@ -197,6 +197,12 @@ export default function VisitaActiva() {
     }
 
     setInformeId(informe.id);
+    setDatosGeneralesCompletos(
+      informe.num_trabajadores != null ||
+      !!(informe.condiciones_climaticas || '').trim() ||
+      !!(informe.empresas_presentes || '').trim() ||
+      !!(informe.notas_generales || '').trim()
+    );
 
     await ensureBloques(informe.id);
 
