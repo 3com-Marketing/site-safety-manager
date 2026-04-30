@@ -12,6 +12,7 @@ import VoiceNoteDialog from './VoiceNoteDialog';
 interface Props {
   informeId: string;
   onBack: () => void;
+  onSaved?: () => void;
 }
 
 export default function SeccionDatosGenerales({ informeId, onBack }: Props) {
