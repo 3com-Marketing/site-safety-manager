@@ -111,6 +111,9 @@ export default function AdminInformes() {
   // filtros
   const [estadoChip, setEstadoChip] = useState<EstadoChip>('todos');
   const [obraFilter, setObraFilter] = useState<string>('todas');
+  const [tecnicoFilter, setTecnicoFilter] = useState<string>('todos');
+  const [tecnicos, setTecnicos] = useState<{ id: string; nombre: string; apellidos: string }[]>([]);
+  const [tecnicoObrasMap, setTecnicoObrasMap] = useState<Record<string, Set<string>>>({});
   const [sortMode, setSortMode] = useState<SortMode>('tiempo_desc');
   const [activeKpi, setActiveKpi] = useState<KpiKey | null>(null);
   const [showAllVisitas, setShowAllVisitas] = useState(false);
@@ -126,7 +129,7 @@ export default function AdminInformes() {
 
   useEffect(() => {
     const fetchAll = async () => {
-      const [informesRes, visitasRes, docsRes] = await Promise.all([
+      const [informesRes, visitasRes, docsRes, tecnicosRes, tecObrasRes] = await Promise.all([
         supabase
           .from('informes')
           .select('id, estado, fecha, visita_id, visitas(obra_id, obras(nombre), profiles!visitas_usuario_id_profiles_fkey(nombre))')
@@ -137,7 +140,17 @@ export default function AdminInformes() {
           .order('fecha', { ascending: false })
           .limit(100),
         supabase.from('documentos_obra').select('obra_id, tipo, estado'),
+        supabase.from('tecnicos').select('id, nombre, apellidos').order('nombre'),
+        supabase.from('tecnicos_obras').select('tecnico_id, obra_id'),
       ]);
+
+      setTecnicos((tecnicosRes.data || []) as any);
+      const tMap: Record<string, Set<string>> = {};
+      (tecObrasRes.data || []).forEach((row: any) => {
+        if (!tMap[row.tecnico_id]) tMap[row.tecnico_id] = new Set();
+        tMap[row.tecnico_id].add(row.obra_id);
+      });
+      setTecnicoObrasMap(tMap);
 
       const docsByObra: Record<string, { tipo: string; estado: string }[]> = {};
       (docsRes.data || []).forEach((d: any) => {
@@ -264,20 +277,34 @@ export default function AdminInformes() {
     return visitasHoy.filter(v => v.estado === 'finalizada' && !conInforme.has(v.id));
   }, [visitasHoy, informes]);
 
+  // Obras del técnico seleccionado (null = no filtro)
+  const obrasDelTecnico = useMemo(() => {
+    if (tecnicoFilter === 'todos') return null;
+    return tecnicoObrasMap[tecnicoFilter] || new Set<string>();
+  }, [tecnicoFilter, tecnicoObrasMap]);
+
+  // Reset obraFilter cuando cambia técnico (para evitar combinaciones imposibles)
+  useEffect(() => {
+    setObraFilter('todas');
+  }, [tecnicoFilter]);
+
   // Lista de obras para el desplegable
   const obrasOptions = useMemo(() => {
     const map = new Map<string, string>();
     visitas.forEach(v => { if (v.obra_id) map.set(v.obra_id, v.obra_nombre); });
     informes.forEach(i => { if (i.obra_id) map.set(i.obra_id, i.obra_nombre); });
-    return Array.from(map.entries())
+    let entries = Array.from(map.entries());
+    if (obrasDelTecnico) entries = entries.filter(([id]) => obrasDelTecnico.has(id));
+    return entries
       .map(([id, nombre]) => ({ id, nombre }))
       .sort((a, b) => a.nombre.localeCompare(b.nombre));
-  }, [visitas, informes]);
+  }, [visitas, informes, obrasDelTecnico]);
 
   // Filtrado columna visitas
   const visitasFiltradas = useMemo(() => {
     let base = visitasEnProgreso;
     if (estadoChip !== 'todos' && estadoChip !== 'en_progreso') return [];
+    if (obrasDelTecnico) base = base.filter(v => v.obra_id && obrasDelTecnico.has(v.obra_id));
     if (obraFilter !== 'todas') base = base.filter(v => v.obra_id === obraFilter);
     if (activeKpi === 'tiempo_excedido') {
       base = base.filter(v => minutesSince(v.fecha) / 60 > HORAS_EXCEDIDO);
@@ -287,7 +314,7 @@ export default function AdminInformes() {
     else if (sortMode === 'tiempo_asc') sorted.sort((a, b) => minutesSince(a.fecha) - minutesSince(b.fecha));
     else sorted.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
     return sorted;
-  }, [visitasEnProgreso, estadoChip, obraFilter, sortMode, activeKpi]);
+  }, [visitasEnProgreso, estadoChip, obraFilter, obrasDelTecnico, sortMode, activeKpi]);
 
   // Filtrado columna informes
   const informesFiltrados = useMemo(() => {
@@ -296,6 +323,7 @@ export default function AdminInformes() {
     if (estadoChip === 'pendiente_revision') base = base.filter(i => i.estado === 'pendiente_revision');
     else if (estadoChip === 'borrador') base = base.filter(i => i.estado === 'borrador');
     else if (estadoChip === 'cerrado') base = base.filter(i => i.estado === 'cerrado');
+    if (obrasDelTecnico) base = base.filter(i => i.obra_id && obrasDelTecnico.has(i.obra_id));
     if (obraFilter !== 'todas') base = base.filter(i => i.obra_id === obraFilter);
     if (activeKpi === 'cerrados_mes') {
       base = base.filter(i => i.estado === 'cerrado' && new Date(i.fecha) >= monthStart);
@@ -305,7 +333,7 @@ export default function AdminInformes() {
     else if (sortMode === 'tiempo_asc') sorted.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
     else sorted.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
     return sorted;
-  }, [informes, estadoChip, obraFilter, sortMode, activeKpi, monthStart]);
+  }, [informes, estadoChip, obraFilter, obrasDelTecnico, sortMode, activeKpi, monthStart]);
 
   const scrollToLists = () => {
     setTimeout(() => {
@@ -365,6 +393,13 @@ export default function AdminInformes() {
   const obraSelectActive = obraFilter !== 'todas';
   const obraSelectClass = `h-9 px-3 rounded-full text-sm font-medium border transition-colors focus:outline-none focus:ring-2 focus:ring-primary ${
     obraSelectActive
+      ? 'bg-[#fff7ed] border-[#fed7aa] text-[#c2410c]'
+      : 'bg-card border-border text-foreground hover:border-primary/40'
+  }`;
+
+  const tecnicoSelectActive = tecnicoFilter !== 'todos';
+  const tecnicoSelectClass = `h-9 px-3 rounded-full text-sm font-medium border transition-colors focus:outline-none focus:ring-2 focus:ring-primary ${
+    tecnicoSelectActive
       ? 'bg-[#fff7ed] border-[#fed7aa] text-[#c2410c]'
       : 'bg-card border-border text-foreground hover:border-primary/40'
   }`;
@@ -480,6 +515,19 @@ export default function AdminInformes() {
               </button>
             ))}
           </div>
+
+          <select
+            value={tecnicoFilter}
+            onChange={(e) => { setTecnicoFilter(e.target.value); setActiveKpi(null); }}
+            className={tecnicoSelectClass}
+          >
+            <option value="todos">Todos los técnicos</option>
+            {tecnicos.map(t => (
+              <option key={t.id} value={t.id}>
+                {t.nombre}{t.apellidos ? ` ${t.apellidos}` : ''}
+              </option>
+            ))}
+          </select>
 
           <select
             value={obraFilter}
