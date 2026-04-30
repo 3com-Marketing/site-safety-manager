@@ -421,7 +421,7 @@ export default function VisitaActiva() {
 
   // Build completion map for VisitaSecciones
   const completadas: Record<string, boolean> = {
-    datos_generales: false, // datos generales doesn't have a "completed" state for now
+    datos_generales: datosGeneralesCompletos,
   };
   bloques.forEach(b => {
     completadas[`bloque_${b.categoria}`] = b.estado === 'completado';
