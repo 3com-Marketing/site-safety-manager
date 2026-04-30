@@ -8,6 +8,16 @@ import { toast } from 'sonner';
 import { addDays, isAfter, format, differenceInSeconds } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import VisitaSecciones, { type SeccionId } from '@/components/visita/VisitaSecciones';
 import ChecklistBloque from '@/components/visita/ChecklistBloque';
 import SeccionIncidencias from '@/components/visita/SeccionIncidencias';
