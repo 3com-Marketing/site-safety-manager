@@ -1,47 +1,35 @@
-## Diagnóstico
+## Causa del «Error al guardar» en Incidencias
 
-El diálogo de firmas **sí está conectado** correctamente:
-
-- `finishVisita()` ejecuta `setShowFirmas(true)` y `<FirmaPresenciaDialog open={showFirmas}>` está montado al final del JSX.
-- Solo se dispara desde el botón verde **"FINALIZAR VISITA"** (y sus variantes "FINALIZAR" / "Finalizar visita ahora" cuando estás dentro de una sección).
-
-El problema real es de UX en la barra inferior de `VisitaActiva.tsx`:
+La tabla `incidencias` en la base de datos tiene una restricción que solo permite estas categorías:
 
 ```
-┌─────────────────────┬─────────────────────┐
-│  Guardar y salir    │  FINALIZAR VISITA   │
-│  (gris, navega /)   │  (verde, abre firmas)│
-└─────────────────────┴─────────────────────┘
+EPIs · orden_limpieza · altura · señalizacion · maquinaria
 ```
 
-Al estar el botón izquierdo etiquetado **"Guardar y salir"**, transmite que ese flujo cierra la visita guardando los cambios. En realidad solo navega al home dejando la visita en estado `en_curso` (sin disparar el diálogo de firmas, sin pedir GPS, sin marcar como `finalizada`). Por eso el usuario percibe que «guardamos y no sale nada» — pulsa el botón equivocado, le devuelve al home y la visita sigue abierta sin firmas.
+Pero la nueva sección **Incidencias** (la que muestra los botones Foto / Nota por voz / Nota) inserta cada registro con `categoria: 'general'`. Esa categoría no está permitida por la restricción, así que la base de datos rechaza la inserción y por eso aparece el toast «Error al guardar».
 
-En la grabación de sesión se ve exactamente eso: tras editar Amonestaciones/Observaciones aparece un `unload event` y vuelve a TechHome con "INICIAR VISITA" — comportamiento de "Guardar y salir", no de finalizar.
+Confirmado revisando:
 
-## Cambios propuestos
+- `src/components/visita/SeccionIncidencias.tsx` líneas 82, 103, 121 → todas insertan `categoria: 'general'`.
+- `pg_constraint`: `incidencias_categoria_check CHECK (categoria IN ('EPIs','orden_limpieza','altura','señalizacion','maquinaria'))`.
 
-Solo se toca `src/pages/VisitaActiva.tsx`. **No se modifica** `FirmaPresenciaDialog`, ni `persistFinish`, ni el flujo de firmas/GPS.
+## Solución
 
-1. **Renombrar el botón izquierdo** para eliminar la palabra "Guardar":
-   - `Guardar y salir` → `Salir sin finalizar`
-   - Añadir un pequeño texto secundario o tooltip: «La visita queda como borrador. Para cerrarla pulsa FINALIZAR VISITA.»
+Una sola migración: eliminar la restricción de categoría de la tabla `incidencias`. Las categorías quedan como texto libre, igual que ya ocurre con `amonestaciones` y `observaciones` (que no tienen este check y por eso sí guardan bien desde sus secciones equivalentes).
 
-2. **Reforzar visualmente el CTA "FINALIZAR VISITA"**:
-   - Mantenerlo verde y en negrita.
-   - En la vista de secciones, darle más peso (por ejemplo `flex-[2]` frente a `flex-1` del botón "Salir sin finalizar"), para que sea claramente la acción principal.
+```sql
+ALTER TABLE public.incidencias
+  DROP CONSTRAINT IF EXISTS incidencias_categoria_check;
+```
 
-3. **Confirmación al salir sin finalizar** (opcional, mismo botón):
-   - Antes de `navigate('/')`, abrir un `AlertDialog` con: «La visita queda guardada como borrador y aparecerá en "Visitas recientes". No se ha cerrado ni firmado. ¿Salir igualmente?» con botones `Salir` / `Continuar visita`.
-   - Esto evita que el usuario crea que ha cerrado la visita.
+No hay cambios de código en el frontend ni en otras tablas. No se afectan datos existentes ni reglas de acceso (RLS).
 
-4. **(Verificación)** Confirmar que el diálogo de firmas se abre correctamente al pulsar el botón verde. Si sigue sin aparecer tras este cambio, añadir un `console.log` en `finishVisita` para diagnosticar (las trazas se enviarán automáticamente en el próximo mensaje del usuario).
+## Mejora adicional (opcional, recomendada)
 
-## Lo que NO se cambia
+En los tres `catch` del componente, mostrar el mensaje real del error de Supabase en consola para que en el futuro este tipo de problema se diagnostique más rápido:
 
-- `FirmaPresenciaDialog.tsx` — ya funciona y muestra los 3 pasos (Responsable → Técnico → Resumen).
-- `persistFinish`, `startGeoFlow`, `handleFirmasConfirmed` — la cadena finalizar → firmas → GPS → guardar sigue intacta.
-- Migraciones de BBDD ni edge function del PDF.
+```ts
+if (error) { console.error('Insert incidencia:', error); toast.error('Error al guardar'); return; }
+```
 
-## Resultado esperado
-
-Al pulsar el botón verde **FINALIZAR VISITA**, se abre el diálogo de firmas como hasta ahora. El botón gris ya no se llamará "Guardar y salir" y, si se pulsa, mostrará una confirmación dejando claro que la visita queda como borrador y no se ha cerrado.
+Esto solo añade trazas, no cambia el comportamiento visible.

@@ -83,7 +83,7 @@ export default function SeccionIncidencias({ informeId, visitaId, obraNombre, on
       .select('id')
       .single();
 
-    if (incError || !inc) { toast.error('Error al crear incidencia'); setUploading(false); return; }
+    if (incError || !inc) { console.error('Insert incidencia (foto):', incError); toast.error('Error al crear incidencia'); setUploading(false); return; }
 
     await supabase.from('fotos').insert({ incidencia_id: inc.id, url: urlData.publicUrl, etiqueta });
 
@@ -105,7 +105,7 @@ export default function SeccionIncidencias({ informeId, visitaId, obraNombre, on
       normativa: voice.normativa || '',
     });
 
-    if (error) { toast.error('Error al guardar'); return; }
+    if (error) { console.error('Insert incidencia (voz):', error); toast.error('Error al guardar'); return; }
     toast.success('Incidencia guardada');
     voice.closeDialog();
     await fetchIncidencias();
@@ -122,7 +122,7 @@ export default function SeccionIncidencias({ informeId, visitaId, obraNombre, on
       descripcion: manualNoteText.trim(),
     });
 
-    if (error) { toast.error('Error al guardar'); return; }
+    if (error) { console.error('Insert incidencia (manual):', error); toast.error('Error al guardar'); return; }
     toast.success('Incidencia guardada');
     setManualNoteText('');
     setShowManualNote(false);

@@ -1,0 +1,1 @@
+ALTER TABLE public.incidencias DROP CONSTRAINT IF EXISTS incidencias_categoria_check;
