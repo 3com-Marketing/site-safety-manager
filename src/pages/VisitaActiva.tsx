@@ -8,6 +8,16 @@ import { toast } from 'sonner';
 import { addDays, isAfter, format, differenceInSeconds } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import VisitaSecciones, { type SeccionId } from '@/components/visita/VisitaSecciones';
 import ChecklistBloque from '@/components/visita/ChecklistBloque';
 import SeccionIncidencias from '@/components/visita/SeccionIncidencias';
@@ -107,6 +117,7 @@ export default function VisitaActiva() {
   const [firmasPayload, setFirmasPayload] = useState<FirmasPresenciaResolved | null>(null);
   const [tecnicoNombre, setTecnicoNombre] = useState('');
   const [firmaPerfilUrl, setFirmaPerfilUrl] = useState<string | null>(null);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   const finishing = finishGeo.status !== 'idle';
 
@@ -524,21 +535,27 @@ export default function VisitaActiva() {
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                onClick={() => navigate(isAdminMode ? '/admin' : '/')}
+                onClick={() => {
+                  if (isAdminMode || isFinalized) {
+                    navigate(isAdminMode ? '/admin' : '/');
+                  } else {
+                    setShowExitConfirm(true);
+                  }
+                }}
                 className={`h-14 ${isFinalized || isAdminMode ? 'w-full' : 'flex-1'} text-base font-semibold gap-2`}
               >
                 <ArrowLeft className="h-5 w-5" />
-                {isAdminMode ? 'Volver a admin' : 'Guardar y salir'}
+                {isAdminMode ? 'Volver a admin' : isFinalized ? 'Salir' : 'Salir sin finalizar'}
               </Button>
               {!isFinalized && !isAdminMode && (
                 <Button
                   onClick={finishVisita}
                   disabled={finishing}
                   variant="default"
-                  className="h-14 flex-1 text-base font-bold gap-2 bg-success hover:bg-success/90 text-success-foreground"
+                  className="h-14 flex-[2] text-base font-bold gap-2 bg-success hover:bg-success/90 text-success-foreground shadow-lg ring-2 ring-success/30"
                 >
                   {finishing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Check className="h-5 w-5" />}
-                  {finishing ? 'Finalizando...' : 'FINALIZAR VISITA'}
+                  {finishing ? 'Finalizando...' : 'FINALIZAR Y FIRMAR'}
                 </Button>
               )}
             </div>
@@ -714,6 +731,37 @@ export default function VisitaActiva() {
         firmaPerfilUrl={firmaPerfilUrl}
         onConfirm={handleFirmasConfirmed}
       />
+
+      {/* Confirmación al salir sin finalizar */}
+      <AlertDialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              La visita no se ha cerrado
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">
+                La visita quedará guardada como borrador y aparecerá en «Visitas recientes». No se ha finalizado ni firmado.
+              </span>
+              <span className="block font-semibold text-foreground">
+                Para cerrarla definitivamente pulsa <span className="text-success">FINALIZAR Y FIRMAR</span> y completa las firmas de presencia.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continuar visita</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowExitConfirm(false);
+                navigate('/');
+              }}
+            >
+              Salir como borrador
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
