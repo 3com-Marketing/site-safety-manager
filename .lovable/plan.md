@@ -1,35 +1,48 @@
-## Causa del «Error al guardar» en Incidencias
+## Problema
 
-La tabla `incidencias` en la base de datos tiene una restricción que solo permite estas categorías:
+En la pantalla de progreso de la visita, la sección **"Datos generales"** siempre aparece como **"Sin completar"**, incluso después de pulsar "Guardar datos" y recibir el toast de confirmación. El resto de secciones (EPIs, incidencias, etc.) sí reflejan su estado correctamente.
 
+## Causa
+
+En `src/pages/VisitaActiva.tsx` (línea 417), el mapa de completados tiene este valor fijo:
+
+```ts
+datos_generales: false, // datos generales doesn't have a "completed" state for now
 ```
-EPIs · orden_limpieza · altura · señalizacion · maquinaria
-```
 
-Pero la nueva sección **Incidencias** (la que muestra los botones Foto / Nota por voz / Nota) inserta cada registro con `categoria: 'general'`. Esa categoría no está permitida por la restricción, así que la base de datos rechaza la inserción y por eso aparece el toast «Error al guardar».
+Nunca se actualiza, por lo que no importa lo que el usuario rellene: la sección siempre se muestra como pendiente.
 
-Confirmado revisando:
-
-- `src/components/visita/SeccionIncidencias.tsx` líneas 82, 103, 121 → todas insertan `categoria: 'general'`.
-- `pg_constraint`: `incidencias_categoria_check CHECK (categoria IN ('EPIs','orden_limpieza','altura','señalizacion','maquinaria'))`.
+Los datos de esta sección se guardan directamente en la tabla `informes` (campos `num_trabajadores`, `condiciones_climaticas`, `empresas_presentes`, `notas_generales`), no en `checklist_bloques`.
 
 ## Solución
 
-Una sola migración: eliminar la restricción de categoría de la tabla `incidencias`. Las categorías quedan como texto libre, igual que ya ocurre con `amonestaciones` y `observaciones` (que no tienen este check y por eso sí guardan bien desde sus secciones equivalentes).
+Considerar **"Datos generales" como completado** cuando exista al menos un dato relevante guardado en el informe. Criterio:
 
-```sql
-ALTER TABLE public.incidencias
-  DROP CONSTRAINT IF EXISTS incidencias_categoria_check;
-```
+- `num_trabajadores` no nulo, **o**
+- `condiciones_climaticas` con texto no vacío, **o**
+- `empresas_presentes` con texto no vacío, **o**
+- `notas_generales` con texto no vacío.
 
-No hay cambios de código en el frontend ni en otras tablas. No se afectan datos existentes ni reglas de acceso (RLS).
+(Basta con uno; así un técnico que solo informe meteorología o solo nº de trabajadores también la verá como completada.)
 
-## Mejora adicional (opcional, recomendada)
+### Cambios concretos
 
-En los tres `catch` del componente, mostrar el mensaje real del error de Supabase en consola para que en el futuro este tipo de problema se diagnostique más rápido:
+1. **`src/pages/VisitaActiva.tsx`**
+   - Asegurar que el `informe` cargado incluye los 4 campos (`num_trabajadores`, `condiciones_climaticas`, `empresas_presentes`, `notas_generales`). Si ya están en el select del informe, no hace falta tocarlo; si no, ampliarlo.
+   - Reemplazar la línea hardcodeada por:
+     ```ts
+     datos_generales: Boolean(
+       informe?.num_trabajadores != null ||
+       informe?.condiciones_climaticas?.trim() ||
+       informe?.empresas_presentes?.trim() ||
+       informe?.notas_generales?.trim()
+     ),
+     ```
+   - Tras guardar en `SeccionDatosGenerales`, ya volvemos a la lista de secciones y `fetchData()` se dispara desde el padre (verificar; si no, llamar `fetchData` al volver para refrescar el estado de completado).
 
-```ts
-if (error) { console.error('Insert incidencia:', error); toast.error('Error al guardar'); return; }
-```
+2. **`src/components/visita/SeccionDatosGenerales.tsx`**
+   - Añadir prop opcional `onSaved?: () => void` y llamarla tras un guardado correcto, para que el padre refresque el `informe` y el progreso (8 de 9 → 9 de 9).
 
-Esto solo añade trazas, no cambia el comportamiento visible.
+## Resultado esperado
+
+Tras pulsar "Guardar datos" en Datos generales y volver al listado, la sección aparecerá con el check verde "Completado" y el progreso de la visita avanzará correctamente.

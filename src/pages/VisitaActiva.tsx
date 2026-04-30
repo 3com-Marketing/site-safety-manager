@@ -99,6 +99,7 @@ export default function VisitaActiva() {
   const isAdminMode = location.pathname.startsWith('/admin/');
 
   const [informeId, setInformeId] = useState<string | null>(null);
+  const [datosGeneralesCompletos, setDatosGeneralesCompletos] = useState(false);
   const [obraNombre, setObraNombre] = useState('');
   const [obraLat, setObraLat] = useState<number | null>(null);
   const [obraLng, setObraLng] = useState<number | null>(null);
@@ -187,7 +188,7 @@ export default function VisitaActiva() {
 
     const { data: informe } = await supabase
       .from('informes')
-      .select('id')
+      .select('id, num_trabajadores, condiciones_climaticas, empresas_presentes, notas_generales')
       .eq('visita_id', id)
       .single();
 
@@ -197,6 +198,12 @@ export default function VisitaActiva() {
     }
 
     setInformeId(informe.id);
+    setDatosGeneralesCompletos(
+      informe.num_trabajadores != null ||
+      !!(informe.condiciones_climaticas || '').trim() ||
+      !!(informe.empresas_presentes || '').trim() ||
+      !!(informe.notas_generales || '').trim()
+    );
 
     await ensureBloques(informe.id);
 
@@ -414,7 +421,7 @@ export default function VisitaActiva() {
 
   // Build completion map for VisitaSecciones
   const completadas: Record<string, boolean> = {
-    datos_generales: false, // datos generales doesn't have a "completed" state for now
+    datos_generales: datosGeneralesCompletos,
   };
   bloques.forEach(b => {
     completadas[`bloque_${b.categoria}`] = b.estado === 'completado';
@@ -495,7 +502,7 @@ export default function VisitaActiva() {
         )}
 
         {view.type === 'step' && view.stepId === 'datos_generales' && informeId && (
-          <SeccionDatosGenerales informeId={informeId} onBack={handleBack} />
+          <SeccionDatosGenerales informeId={informeId} onBack={handleBack} onSaved={fetchData} />
         )}
 
         {view.type === 'step' && view.stepId.startsWith('bloque_') && currentBloque && (
