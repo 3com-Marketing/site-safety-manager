@@ -28,7 +28,7 @@ serve(async (req) => {
     // Fetch informe with related data
     const { data: informe, error: infError } = await supabase
       .from("informes")
-      .select("*, visitas(fecha, obras(nombre, direccion, clientes(nombre)), profiles:usuario_id(nombre, email))")
+      .select("*, visitas(fecha, estado, firma_responsable_url, firma_responsable_nombre, firma_responsable_cargo, firma_tecnico_url, firmas_at, obras(nombre, direccion, clientes(nombre)), profiles:usuario_id(nombre, email))")
       .eq("id", informe_id)
       .single();
 
