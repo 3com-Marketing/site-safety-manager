@@ -271,7 +271,16 @@ export default function AdminTecnicos() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label>DNI / NIE</Label><Input value={form.dni} onChange={e => setForm({ ...form, dni: e.target.value })} /></div>
-              <div><Label>Código de técnico</Label><Input value={form.codigo_tecnico} onChange={e => setForm({ ...form, codigo_tecnico: e.target.value })} /></div>
+              <div>
+                <Label>Código {isCoord ? 'de coordinador' : 'de técnico'}</Label>
+                {editId ? (
+                  <Input value={form.codigo_tecnico} readOnly disabled className="bg-muted text-muted-foreground" />
+                ) : (
+                  <div className="flex h-10 items-center rounded-md border border-dashed border-border bg-muted/40 px-3 text-sm text-muted-foreground">
+                    Se generará automáticamente ({isCoord ? 'COORD-XXXX' : 'TEC-XXXX'})
+                  </div>
+                )}
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label>Titulación</Label><Input value={form.titulacion} onChange={e => setForm({ ...form, titulacion: e.target.value })} placeholder="Ej: Ingeniera Técnica Industrial" /></div>
