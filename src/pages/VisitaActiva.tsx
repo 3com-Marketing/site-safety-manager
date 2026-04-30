@@ -160,6 +160,20 @@ export default function VisitaActiva() {
     setObraLat(obra?.latitud ?? null);
     setObraLng(obra?.longitud ?? null);
 
+    if (user) {
+      const { data: tec } = await supabase
+        .from('tecnicos')
+        .select('nombre, apellidos, firma_url')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (tec) {
+        setTecnicoNombre(`${tec.nombre || ''} ${tec.apellidos || ''}`.trim() || (user.email ?? ''));
+        setFirmaPerfilUrl(tec.firma_url || null);
+      } else {
+        setTecnicoNombre(user.email ?? '');
+      }
+    }
+
     const { data: informe } = await supabase
       .from('informes')
       .select('id')
