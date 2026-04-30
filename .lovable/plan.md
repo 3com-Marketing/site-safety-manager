@@ -1,46 +1,47 @@
-# Texto legal de presencia visible antes de las dos firmas
+## Diagnóstico
 
-## Contexto
+El diálogo de firmas **sí está conectado** correctamente:
 
-El plan previo ya añade un paso modal `FirmaPresenciaDialog` con dos firmas en orden (responsable + técnico) antes de cerrar la visita. Faltaba dejar explícito **dónde y cómo** se muestra el texto legal para que sea claramente visible y legible para ambos firmantes.
+- `finishVisita()` ejecuta `setShowFirmas(true)` y `<FirmaPresenciaDialog open={showFirmas}>` está montado al final del JSX.
+- Solo se dispara desde el botón verde **"FINALIZAR VISITA"** (y sus variantes "FINALIZAR" / "Finalizar visita ahora" cuando estás dentro de una sección).
 
-Este plan acota únicamente esa parte. El resto del flujo de cierre, los componentes existentes y el resto del diálogo no se tocan respecto al plan ya aprobado.
+El problema real es de UX en la barra inferior de `VisitaActiva.tsx`:
 
-## Dónde aparece el texto legal
+```
+┌─────────────────────┬─────────────────────┐
+│  Guardar y salir    │  FINALIZAR VISITA   │
+│  (gris, navega /)   │  (verde, abre firmas)│
+└─────────────────────┴─────────────────────┘
+```
 
-El texto legal completo se muestra **dos veces, siempre antes de firmar**:
+Al estar el botón izquierdo etiquetado **"Guardar y salir"**, transmite que ese flujo cierra la visita guardando los cambios. En realidad solo navega al home dejando la visita en estado `en_curso` (sin disparar el diálogo de firmas, sin pedir GPS, sin marcar como `finalizada`). Por eso el usuario percibe que «guardamos y no sale nada» — pulsa el botón equivocado, le devuelve al home y la visita sigue abierta sin firmas.
 
-1. **Paso 1 — Responsable de la empresa**: el texto aparece en la parte superior del paso, antes de los campos de nombre/cargo y del canvas. El responsable lo lee antes de firmar.
-2. **Paso 2 — Técnico**: se vuelve a mostrar el mismo texto en la parte superior, antes de la opción de firma guardada / canvas. El técnico también lo confirma con su firma.
+En la grabación de sesión se ve exactamente eso: tras editar Amonestaciones/Observaciones aparece un `unload event` y vuelve a TechHome con "INICIAR VISITA" — comportamiento de "Guardar y salir", no de finalizar.
 
-En el **paso 3 — Resumen** se muestra una versión compacta del texto (misma redacción, sin recortes) acompañando las dos firmas, para que quede claro qué se está confirmando al pulsar «Cerrar visita».
+## Cambios propuestos
 
-## Cómo se presenta visualmente
+Solo se toca `src/pages/VisitaActiva.tsx`. **No se modifica** `FirmaPresenciaDialog`, ni `persistFinish`, ni el flujo de firmas/GPS.
 
-Para garantizar legibilidad en tablet (audiencia principal) y en escritorio:
+1. **Renombrar el botón izquierdo** para eliminar la palabra "Guardar":
+   - `Guardar y salir` → `Salir sin finalizar`
+   - Añadir un pequeño texto secundario o tooltip: «La visita queda como borrador. Para cerrarla pulsa FINALIZAR VISITA.»
 
-- Bloque destacado dentro de un recuadro propio (borde sutil + fondo `bg-muted/30`).
-- Tamaño de fuente **base 14px** (no «letra pequeña»), interlineado holgado (`leading-relaxed`).
-- Encabezado breve **«Antes de firmar, lea este texto:»** sobre el bloque, en `font-semibold`.
-- Ancho máximo legible (`max-w-prose`) y padding generoso (`p-4`).
-- Scroll interno solo si el viewport es muy bajo; nunca colapsado/oculto detrás de un acordeón.
-- Texto seleccionable (no `select-none`) para que pueda copiarse si se quiere.
+2. **Reforzar visualmente el CTA "FINALIZAR VISITA"**:
+   - Mantenerlo verde y en negrita.
+   - En la vista de secciones, darle más peso (por ejemplo `flex-[2]` frente a `flex-1` del botón "Salir sin finalizar"), para que sea claramente la acción principal.
 
-El texto exacto es el que ya proporcionaste en el mensaje original («Las firmas que figuran a continuación acreditan únicamente la presencia del técnico…»). Se guarda como constante en el componente para reutilizarlo en los tres lugares (paso 1, paso 2, resumen) y también en el PDF.
+3. **Confirmación al salir sin finalizar** (opcional, mismo botón):
+   - Antes de `navigate('/')`, abrir un `AlertDialog` con: «La visita queda guardada como borrador y aparecerá en "Visitas recientes". No se ha cerrado ni firmado. ¿Salir igualmente?» con botones `Salir` / `Continuar visita`.
+   - Esto evita que el usuario crea que ha cerrado la visita.
 
-## Cambios concretos respecto al plan ya aprobado
+4. **(Verificación)** Confirmar que el diálogo de firmas se abre correctamente al pulsar el botón verde. Si sigue sin aparecer tras este cambio, añadir un `console.log` en `finishVisita` para diagnosticar (las trazas se enviarán automáticamente en el próximo mensaje del usuario).
 
-Solo afectan al archivo nuevo `src/components/visita/FirmaPresenciaDialog.tsx`:
+## Lo que NO se cambia
 
-- Constante `TEXTO_LEGAL_PRESENCIA` en la cabecera del archivo.
-- Subcomponente local `<TextoLegalPresencia />` que renderiza el bloque destacado descrito arriba.
-- Se invoca en los tres pasos del wizard (`responsable`, `tecnico`, `resumen`).
+- `FirmaPresenciaDialog.tsx` — ya funciona y muestra los 3 pasos (Responsable → Técnico → Resumen).
+- `persistFinish`, `startGeoFlow`, `handleFirmasConfirmed` — la cadena finalizar → firmas → GPS → guardar sigue intacta.
+- Migraciones de BBDD ni edge function del PDF.
 
-En el PDF (`supabase/functions/generar-pdf/index.ts`) se reutiliza la misma cadena (duplicada como constante en el edge function, ya que no hay módulos compartidos cliente/servidor) con tamaño 10–11pt y borde, tal como ya estaba previsto.
+## Resultado esperado
 
-## Garantías
-
-- El texto legal **siempre** es visible antes de cada firma; no se puede firmar sin tenerlo en pantalla.
-- No queda oculto en tooltips, acordeones ni modales secundarios.
-- Misma redacción literal en cliente y en PDF.
-- Ningún componente existente (`FirmaCapture`, `FirmaSelector`, `ConfirmarFirmaDialog`, formularios de documentos) se modifica.
+Al pulsar el botón verde **FINALIZAR VISITA**, se abre el diálogo de firmas como hasta ahora. El botón gris ya no se llamará "Guardar y salir" y, si se pulsa, mostrará una confirmación dejando claro que la visita queda como borrador y no se ha cerrado.
