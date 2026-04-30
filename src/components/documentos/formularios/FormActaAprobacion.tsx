@@ -218,7 +218,12 @@ export default function FormActaAprobacion({ documento, obraId, tipo, onSave, sa
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Coordinador SS durante la Obra</Label>
-              <Input value={coordSSObra} onChange={e => setCoordSSObra(e.target.value)} />
+              <AutocompleteNombre
+                value={coordSSObra}
+                onChange={setCoordSSObra}
+                source="persona"
+                onSelect={(s) => { if (s.kind === 'persona') setCoordSSObra(personaFullName(s)); }}
+              />
             </div>
             <div className="space-y-2">
               <Label>Empresa Contratista Titular del Plan</Label>
