@@ -294,6 +294,7 @@ export default function VisitaActiva() {
 
   const startGeoFlow = async (firmas: FirmasPresenciaResolved) => {
     if (!id || !informeId) return;
+    setFirmasPayload(firmas);
 
     if (!navigator.geolocation) {
       setFinishGeo({ status: 'error', kind: 'unavailable' });
@@ -323,7 +324,7 @@ export default function VisitaActiva() {
           const dist = haversineDistance(tecLat, tecLng, obraLat, obraLng);
           setFinishGeo({ status: 'confirm', lat: tecLat, lng: tecLng, obraLat, obraLng, distance: dist });
         } else {
-          persistFinish(tecLat, tecLng);
+          persistFinish(tecLat, tecLng, firmas);
         }
       },
       (err) => {
@@ -334,6 +335,62 @@ export default function VisitaActiva() {
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
     );
+  };
+
+  /** Disparado por el botón FINALIZAR. Abre primero el diálogo de firmas. */
+  const finishVisita = () => {
+    if (!id || !informeId) return;
+    if (firmasPayload) {
+      // Si ya hay firmas (p.ej. usuario reintenta tras error GPS), salta directamente al GPS.
+      startGeoFlow(firmasPayload);
+      return;
+    }
+    setShowFirmas(true);
+  };
+
+  /** Sube los blobs y arranca el flujo de GPS con las firmas. */
+  const handleFirmasConfirmed = async (payload: {
+    responsableNombre: string;
+    responsableCargo: string;
+    responsableBlob: Blob;
+    tecnicoUseStored?: boolean;
+    tecnicoBlob?: Blob;
+    firmasAt: string;
+  }) => {
+    if (!id) throw new Error('Sin visita');
+
+    const ts = Date.now();
+    // Subir firma del responsable (siempre nueva)
+    const resPath = `firmas-visitas/${id}_responsable_${ts}.png`;
+    const { error: resErr } = await supabase.storage.from('logos')
+      .upload(resPath, payload.responsableBlob, { contentType: 'image/png', upsert: true });
+    if (resErr) throw resErr;
+    const resUrl = supabase.storage.from('logos').getPublicUrl(resPath).data.publicUrl;
+
+    // Firma del técnico: o reutiliza la de perfil o sube la dibujada
+    let tecUrl: string;
+    if (payload.tecnicoUseStored && firmaPerfilUrl) {
+      tecUrl = firmaPerfilUrl;
+    } else if (payload.tecnicoBlob) {
+      const tecPath = `firmas-visitas/${id}_tecnico_${ts}.png`;
+      const { error: tecErr } = await supabase.storage.from('logos')
+        .upload(tecPath, payload.tecnicoBlob, { contentType: 'image/png', upsert: true });
+      if (tecErr) throw tecErr;
+      tecUrl = supabase.storage.from('logos').getPublicUrl(tecPath).data.publicUrl;
+    } else {
+      throw new Error('Falta la firma del técnico');
+    }
+
+    const resolved: FirmasPresenciaResolved = {
+      responsableNombre: payload.responsableNombre,
+      responsableCargo: payload.responsableCargo,
+      responsableUrl: resUrl,
+      tecnicoUrl: tecUrl,
+      firmasAt: payload.firmasAt,
+    };
+
+    setShowFirmas(false);
+    await startGeoFlow(resolved);
   };
 
   const handleSelectSeccion = (seccionId: SeccionId) => {
