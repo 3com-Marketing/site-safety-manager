@@ -103,6 +103,10 @@ export default function VisitaActiva() {
   const [editableUntil, setEditableUntil] = useState<Date | null>(null);
   const [fechaInicio, setFechaInicio] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const [showFirmas, setShowFirmas] = useState(false);
+  const [firmasPayload, setFirmasPayload] = useState<FirmasPresenciaResolved | null>(null);
+  const [tecnicoNombre, setTecnicoNombre] = useState('');
+  const [firmaPerfilUrl, setFirmaPerfilUrl] = useState<string | null>(null);
 
   const finishing = finishGeo.status !== 'idle';
 
