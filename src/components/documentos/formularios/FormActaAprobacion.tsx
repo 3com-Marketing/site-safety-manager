@@ -9,6 +9,10 @@ import type { Documento } from '@/hooks/useDocumentosObra';
 import type { Json } from '@/integrations/supabase/types';
 import FirmaSelector from '@/components/documentos/FirmaSelector';
 import { useFirmaPerfilUrl, uploadFirmaDocumento } from '@/components/documentos/useFirmaPerfil';
+import AutocompleteNombre from '@/components/documentos/AutocompleteNombre';
+
+const personaFullName = (s: any) =>
+  `${s.nombre || ''}${s.apellidos ? ' ' + s.apellidos : ''}`.trim();
 
 interface Props {
   documento?: Documento | null;
