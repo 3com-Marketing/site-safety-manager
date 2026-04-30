@@ -165,7 +165,11 @@ export default function AdminTecnicos() {
       }
     }
 
-    toast.success(editId ? 'Actualizado' : 'Creado');
+    if (editId) {
+      toast.success('Actualizado');
+    } else {
+      toast.success(codigoGenerado ? `Creado con código ${codigoGenerado}` : 'Creado');
+    }
     setDialogOpen(false);
     fetchData();
   };
