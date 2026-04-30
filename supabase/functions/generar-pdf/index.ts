@@ -212,7 +212,44 @@ ${informe.notas_generales ? `<p><strong>Notas generales:</strong> ${informe.nota
       }
     }
 
+    // Firmas de presencia
+    const TEXTO_LEGAL_PRESENCIA = `Las firmas que figuran a continuación acreditan únicamente la presencia del técnico en obra el día y la hora indicados, y la entrega del presente documento al responsable de la empresa para su conocimiento. No implican aceptación, conformidad ni reconocimiento del contenido del informe por parte del firmante. Las observaciones, incidencias o amonestaciones recogidas en el informe son responsabilidad exclusiva del técnico que lo emite, conforme a sus competencias profesionales y a la normativa de prevención de riesgos laborales aplicable. La firma del responsable de la empresa indica que ha recibido copia o acceso al documento y que ha sido informado de los extremos contenidos en él, sin que ello suponga renuncia a presentar alegaciones o aclaraciones por los cauces que estime oportunos.`;
+
+    const tieneFirmas = !!(visita?.firma_responsable_url && visita?.firma_tecnico_url && visita?.firmas_at);
+    const fmtFH = (iso: string) => new Date(iso).toLocaleString("es-ES", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    const firmaBox = (titulo: string, nombre: string, sub: string, url: string | null, when: string | null) => `
+      <div style="border:1px solid #ddd;border-radius:6pt;padding:10pt;flex:1;">
+        <div style="font-size:8pt;color:#888;text-transform:uppercase;letter-spacing:0.5pt;">${titulo}</div>
+        <div style="font-weight:bold;margin-top:2pt;">${nombre || "—"}</div>
+        ${sub ? `<div style="font-size:9pt;color:#555;">${sub}</div>` : ""}
+        <div style="height:90pt;display:flex;align-items:center;justify-content:center;border:1px dashed #e0e0e0;border-radius:4pt;margin-top:6pt;background:#fafafa;">
+          ${url ? `<img src="${url}" style="max-height:80pt;max-width:90%;object-fit:contain;" />` : `<span style="color:#999;font-style:italic;font-size:9pt;">Pendiente de firma</span>`}
+        </div>
+        <div style="font-size:8pt;color:#666;margin-top:4pt;">${when ? fmtFH(when) : "—"}</div>
+      </div>
+    `;
+
     html += `
+<h2>6. Firmas de presencia</h2>
+<div style="border:1px solid #ddd;background:#f8f8f8;border-radius:4pt;padding:10pt;font-size:10pt;line-height:1.5;color:#333;page-break-inside:avoid;">${TEXTO_LEGAL_PRESENCIA}</div>
+<div style="display:flex;gap:12pt;margin-top:10pt;page-break-inside:avoid;">
+  ${firmaBox(
+    "Responsable de la empresa",
+    visita?.firma_responsable_nombre || "",
+    visita?.firma_responsable_cargo || "",
+    tieneFirmas ? visita.firma_responsable_url : null,
+    tieneFirmas ? visita.firmas_at : null,
+  )}
+  ${firmaBox(
+    "Técnico",
+    tecnico?.nombre || "",
+    "",
+    tieneFirmas ? visita.firma_tecnico_url : null,
+    tieneFirmas ? visita.firmas_at : null,
+  )}
+</div>
+${!tieneFirmas ? `<p class="empty" style="margin-top:6pt;">Las firmas de presencia se recogerán al finalizar la visita.</p>` : ""}
+
 <div class="footer">
   <p>SafeWork · Informe generado automáticamente · ${fechaInforme}</p>
 </div>
