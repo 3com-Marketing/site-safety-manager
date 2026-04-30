@@ -1,93 +1,46 @@
-# Paso de firma de presencia al cerrar la visita
+# Texto legal de presencia visible antes de las dos firmas
 
-## Resumen
+## Contexto
 
-Antes de marcar una visita como `finalizada`, se intercala un nuevo paso modal con dos firmas obligatorias en orden: **Responsable de la empresa** y **Técnico**. Solo cuando ambas estén confirmadas se ejecuta el cierre real (GPS + update en BD). Las firmas se guardan asociadas a la visita y se imprimen al final del PDF del informe.
+El plan previo ya añade un paso modal `FirmaPresenciaDialog` con dos firmas en orden (responsable + técnico) antes de cerrar la visita. Faltaba dejar explícito **dónde y cómo** se muestra el texto legal para que sea claramente visible y legible para ambos firmantes.
 
-No se toca ningún otro paso del flujo, ni `FirmaCapture`, ni `FirmaSelector`, ni `ConfirmarFirmaDialog`. Se crea un componente nuevo dedicado.
+Este plan acota únicamente esa parte. El resto del flujo de cierre, los componentes existentes y el resto del diálogo no se tocan respecto al plan ya aprobado.
 
----
+## Dónde aparece el texto legal
 
-## 1. Base de datos
+El texto legal completo se muestra **dos veces, siempre antes de firmar**:
 
-Añadir columnas a la tabla `visitas`:
+1. **Paso 1 — Responsable de la empresa**: el texto aparece en la parte superior del paso, antes de los campos de nombre/cargo y del canvas. El responsable lo lee antes de firmar.
+2. **Paso 2 — Técnico**: se vuelve a mostrar el mismo texto en la parte superior, antes de la opción de firma guardada / canvas. El técnico también lo confirma con su firma.
 
-- `firma_responsable_url text` — PNG transparente en storage
-- `firma_responsable_nombre text`
-- `firma_responsable_cargo text`
-- `firma_tecnico_url text` — PNG transparente
-- `firmas_at timestamptz` — momento exacto del cierre firmado
+En el **paso 3 — Resumen** se muestra una versión compacta del texto (misma redacción, sin recortes) acompañando las dos firmas, para que quede claro qué se está confirmando al pulsar «Cerrar visita».
 
-Storage: reutilizar bucket `logos` con prefijo `firmas-visitas/{visita_id}_{rol}_{timestamp}.png` (políticas ya cubren a usuarios autenticados con el patrón existente; si hace falta, se añade política específica para ese prefijo).
+## Cómo se presenta visualmente
 
-Las RLS ya permiten al técnico dueño actualizar su visita (`Users can update own visitas`), así que no se añaden nuevas políticas en `visitas`.
+Para garantizar legibilidad en tablet (audiencia principal) y en escritorio:
 
-## 2. Nuevo componente `FirmaPresenciaDialog`
+- Bloque destacado dentro de un recuadro propio (borde sutil + fondo `bg-muted/30`).
+- Tamaño de fuente **base 14px** (no «letra pequeña»), interlineado holgado (`leading-relaxed`).
+- Encabezado breve **«Antes de firmar, lea este texto:»** sobre el bloque, en `font-semibold`.
+- Ancho máximo legible (`max-w-prose`) y padding generoso (`p-4`).
+- Scroll interno solo si el viewport es muy bajo; nunca colapsado/oculto detrás de un acordeón.
+- Texto seleccionable (no `select-none`) para que pueda copiarse si se quiere.
 
-Ruta: `src/components/visita/FirmaPresenciaDialog.tsx`.
+El texto exacto es el que ya proporcionaste en el mensaje original («Las firmas que figuran a continuación acreditan únicamente la presencia del técnico…»). Se guarda como constante en el componente para reutilizarlo en los tres lugares (paso 1, paso 2, resumen) y también en el PDF.
 
-Diálogo modal a pantalla completa en tablet con tres estados internos (`step`):
+## Cambios concretos respecto al plan ya aprobado
 
-1. **`responsable`**
-   - Texto legal completo destacado (no en letra pequeña, ~13–14pt, con borde sutil).
-   - Inputs obligatorios: *Nombre y apellidos* y *Cargo* del responsable.
-   - Canvas táctil (reutiliza la lógica de trazado ya escrita en `FirmaCapture` / `FirmaSelector` mediante una pequeña utilidad compartida nueva `signatureCanvas.ts`, **sin modificar** los componentes existentes).
-   - Botones: «Borrar» y «Confirmar firma» (deshabilitado hasta que haya nombre + cargo + trazo).
-   - Al confirmar → genera PNG con fondo transparente y pasa al paso 2.
+Solo afectan al archivo nuevo `src/components/visita/FirmaPresenciaDialog.tsx`:
 
-2. **`tecnico`**
-   - Muestra el nombre del técnico autenticado (no editable, leído de `tecnicos`/`profiles`).
-   - Si tiene `firma_url` en su perfil: dos opciones lado a lado: *«Usar mi firma guardada»* (preview) y *«Firmar ahora»* (canvas).
-   - Si no tiene: solo canvas + aviso «Puedes guardar una firma en tu perfil para agilizar este paso».
-   - Botones: «Borrar» y «Confirmar firma».
-   - Al confirmar → pasa al paso 3.
+- Constante `TEXTO_LEGAL_PRESENCIA` en la cabecera del archivo.
+- Subcomponente local `<TextoLegalPresencia />` que renderiza el bloque destacado descrito arriba.
+- Se invoca en los tres pasos del wizard (`responsable`, `tecnico`, `resumen`).
 
-3. **`resumen`**
-   - Muestra ambas firmas en miniatura, nombre + cargo del responsable, nombre del técnico, y fecha + hora actuales (timestamp del momento exacto del cierre).
-   - Botón principal: **«Cerrar visita»** que dispara el callback `onConfirm({ responsableNombre, responsableCargo, responsableBlob, tecnicoBlob | tecnicoUrl, firmasAt })`.
-   - Botón secundario «Volver» que regresa al paso anterior por si quieren rehacer una firma.
-
-El diálogo no se puede cerrar con la X mientras el paso esté en curso (excepto botón explícito «Cancelar» que vuelve al estado previo de la visita sin guardar nada).
-
-## 3. Integración en `VisitaActiva.tsx`
-
-Cambios mínimos en `src/pages/VisitaActiva.tsx`:
-
-- Añadir estado `showFirmaPresencia: boolean`.
-- En `finishVisita()`: en lugar de pedir GPS directamente, abrir el diálogo `FirmaPresenciaDialog`.
-- Cuando el diálogo emite `onConfirm(firmasPayload)`:
-  1. Subir blobs al bucket `logos/firmas-visitas/...` y obtener URLs públicas.
-  2. Continuar el flujo GPS existente (`finishVisita` original) con un parámetro extra `firmasPayload`.
-  3. En `persistFinish()` (única función modificada en lógica), incluir en el `update` de `visitas` los nuevos campos: `firma_responsable_url`, `firma_responsable_nombre`, `firma_responsable_cargo`, `firma_tecnico_url`, `firmas_at`.
-
-No se altera ningún otro paso ni componente.
-
-## 4. PDF del informe (`supabase/functions/generar-pdf/index.ts`)
-
-Añadir, justo antes del `</body>`, una sección **«Firmas de presencia»**:
-
-- Carga `visitas` ya viene en la query existente; ampliar el `select` para traer los nuevos campos (`firma_responsable_url`, `firma_responsable_nombre`, `firma_responsable_cargo`, `firma_tecnico_url`, `firmas_at`) y el nombre del técnico.
-- Si la visita está cerrada y existen firmas → bloque con:
-  - Texto legal completo (mismo wording, ~10–11pt, con borde).
-  - Recuadro «Responsable de la empresa»: imagen `firma_responsable_url`, nombre, cargo, fecha y hora (`firmas_at`).
-  - Recuadro «Técnico»: imagen `firma_tecnico_url`, nombre, fecha y hora.
-- Si no existen firmas (PDF generado antes del cierre): mismo bloque pero los recuadros muestran **«Pendiente de firma»** en gris. La generación nunca falla por falta de firmas.
-
-## Archivos a crear / editar
-
-**Crear**
-- `src/components/visita/FirmaPresenciaDialog.tsx`
-- `src/components/visita/signatureCanvas.ts` (helpers compartidos: `removeWhiteBackground`, `drawOnCanvas`)
-- Migración SQL con las 5 columnas nuevas en `visitas`.
-
-**Editar**
-- `src/pages/VisitaActiva.tsx` (intercalar el diálogo antes de `persistFinish` y añadir campos al `update`).
-- `supabase/functions/generar-pdf/index.ts` (sección «Firmas de presencia» al final + ampliar `select`).
+En el PDF (`supabase/functions/generar-pdf/index.ts`) se reutiliza la misma cadena (duplicada como constante en el edge function, ya que no hay módulos compartidos cliente/servidor) con tamaño 10–11pt y borde, tal como ya estaba previsto.
 
 ## Garantías
 
-- Imposible avanzar al paso 2 sin nombre + cargo + firma trazada del responsable.
-- Imposible cerrar la visita sin la firma del técnico confirmada.
-- La firma guardada del perfil **no se modifica nunca** desde este flujo (solo se reutiliza copiándola).
-- El timestamp `firmas_at` se fija al pulsar «Cerrar visita» en el resumen, no antes.
-- El PDF sigue generándose aunque no haya firmas (estado «Pendiente de firma»).
+- El texto legal **siempre** es visible antes de cada firma; no se puede firmar sin tenerlo en pantalla.
+- No queda oculto en tooltips, acordeones ni modales secundarios.
+- Misma redacción literal en cliente y en PDF.
+- Ningún componente existente (`FirmaCapture`, `FirmaSelector`, `ConfirmarFirmaDialog`, formularios de documentos) se modifica.
