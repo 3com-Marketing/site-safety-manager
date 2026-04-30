@@ -277,20 +277,34 @@ export default function AdminInformes() {
     return visitasHoy.filter(v => v.estado === 'finalizada' && !conInforme.has(v.id));
   }, [visitasHoy, informes]);
 
+  // Obras del técnico seleccionado (null = no filtro)
+  const obrasDelTecnico = useMemo(() => {
+    if (tecnicoFilter === 'todos') return null;
+    return tecnicoObrasMap[tecnicoFilter] || new Set<string>();
+  }, [tecnicoFilter, tecnicoObrasMap]);
+
+  // Reset obraFilter cuando cambia técnico (para evitar combinaciones imposibles)
+  useEffect(() => {
+    setObraFilter('todas');
+  }, [tecnicoFilter]);
+
   // Lista de obras para el desplegable
   const obrasOptions = useMemo(() => {
     const map = new Map<string, string>();
     visitas.forEach(v => { if (v.obra_id) map.set(v.obra_id, v.obra_nombre); });
     informes.forEach(i => { if (i.obra_id) map.set(i.obra_id, i.obra_nombre); });
-    return Array.from(map.entries())
+    let entries = Array.from(map.entries());
+    if (obrasDelTecnico) entries = entries.filter(([id]) => obrasDelTecnico.has(id));
+    return entries
       .map(([id, nombre]) => ({ id, nombre }))
       .sort((a, b) => a.nombre.localeCompare(b.nombre));
-  }, [visitas, informes]);
+  }, [visitas, informes, obrasDelTecnico]);
 
   // Filtrado columna visitas
   const visitasFiltradas = useMemo(() => {
     let base = visitasEnProgreso;
     if (estadoChip !== 'todos' && estadoChip !== 'en_progreso') return [];
+    if (obrasDelTecnico) base = base.filter(v => v.obra_id && obrasDelTecnico.has(v.obra_id));
     if (obraFilter !== 'todas') base = base.filter(v => v.obra_id === obraFilter);
     if (activeKpi === 'tiempo_excedido') {
       base = base.filter(v => minutesSince(v.fecha) / 60 > HORAS_EXCEDIDO);
