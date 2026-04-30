@@ -431,7 +431,12 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
         </div>
         <div className="space-y-2">
           <Label>Promotor</Label>
-          <Input value={promotor} onChange={e => setPromotor(e.target.value)} />
+          <AutocompleteNombre
+            value={promotor}
+            onChange={setPromotor}
+            source="cliente"
+            onSelect={(s) => { if (s.kind === 'cliente') setPromotor(s.nombre || ''); }}
+          />
         </div>
         <div className="space-y-2">
           <Label>Lugar de reunión</Label>
