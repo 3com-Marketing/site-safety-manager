@@ -54,10 +54,15 @@ export default function SeccionDatosGenerales({ informeId, onBack, onSaved }: Pr
       notas_generales: notas,
     }).eq('id', informeId);
 
-    if (error) toast.error('Error al guardar');
-    else toast.success('Datos guardados');
+    if (error) {
+      console.error('Save datos generales:', error);
+      toast.error('Error al guardar');
+    } else {
+      toast.success('Datos guardados');
+      onSaved?.();
+    }
     setSaving(false);
-  }, [informeId, numTrabajadores, condiciones, empresas, notas]);
+  }, [informeId, numTrabajadores, condiciones, empresas, notas, onSaved]);
 
   const openVoiceForField = (field: string) => {
     setActiveField(field);
