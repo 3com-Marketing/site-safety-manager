@@ -15,7 +15,16 @@ import SeccionAmonestaciones from '@/components/visita/SeccionAmonestaciones';
 import SeccionObservaciones from '@/components/visita/SeccionObservaciones';
 import SeccionDatosGenerales from '@/components/visita/SeccionDatosGenerales';
 import MapPicker from '@/components/MapPicker';
+import FirmaPresenciaDialog from '@/components/visita/FirmaPresenciaDialog';
 import { haversineDistance, formatDistance } from '@/lib/geo';
+
+interface FirmasPresenciaResolved {
+  responsableNombre: string;
+  responsableCargo: string;
+  responsableUrl: string;
+  tecnicoUrl: string;
+  firmasAt: string;
+}
 
 type FinishGeoErrorKind = 'denied' | 'unavailable' | 'timeout';
 type FinishGeoState =
@@ -94,6 +103,10 @@ export default function VisitaActiva() {
   const [editableUntil, setEditableUntil] = useState<Date | null>(null);
   const [fechaInicio, setFechaInicio] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const [showFirmas, setShowFirmas] = useState(false);
+  const [firmasPayload, setFirmasPayload] = useState<FirmasPresenciaResolved | null>(null);
+  const [tecnicoNombre, setTecnicoNombre] = useState('');
+  const [firmaPerfilUrl, setFirmaPerfilUrl] = useState<string | null>(null);
 
   const finishing = finishGeo.status !== 'idle';
 
@@ -147,6 +160,20 @@ export default function VisitaActiva() {
     setObraLat(obra?.latitud ?? null);
     setObraLng(obra?.longitud ?? null);
 
+    if (user) {
+      const { data: tec } = await supabase
+        .from('tecnicos')
+        .select('nombre, apellidos, firma_url')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (tec) {
+        setTecnicoNombre(`${tec.nombre || ''} ${tec.apellidos || ''}`.trim() || (user.email ?? ''));
+        setFirmaPerfilUrl(tec.firma_url || null);
+      } else {
+        setTecnicoNombre(user.email ?? '');
+      }
+    }
+
     const { data: informe } = await supabase
       .from('informes')
       .select('id')
@@ -196,7 +223,7 @@ export default function VisitaActiva() {
     setObservacionesCount(obsCount || 0);
 
     setLoading(false);
-  }, [id, navigate, isAdminMode]);
+  }, [id, navigate, isAdminMode, user]);
 
   const ensureBloques = async (informeId: string) => {
     const { data: existing } = await supabase
@@ -234,11 +261,27 @@ export default function VisitaActiva() {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const persistFinish = async (lat: number | null, lng: number | null) => {
+  const persistFinish = async (lat: number | null, lng: number | null, firmas?: FirmasPresenciaResolved | null) => {
     if (!id || !informeId) return;
+    const payload = firmas ?? firmasPayload;
+    if (!payload) {
+      toast.error('Faltan las firmas de presencia');
+      setFinishGeo({ status: 'idle' });
+      return;
+    }
     setFinishGeo({ status: 'saving' });
     try {
-      await supabase.from('visitas').update({ estado: 'finalizada', lat_fin: lat, lng_fin: lng, fecha_fin: new Date().toISOString() } as any).eq('id', id);
+      await supabase.from('visitas').update({
+        estado: 'finalizada',
+        lat_fin: lat,
+        lng_fin: lng,
+        fecha_fin: new Date().toISOString(),
+        firma_responsable_url: payload.responsableUrl,
+        firma_responsable_nombre: payload.responsableNombre,
+        firma_responsable_cargo: payload.responsableCargo,
+        firma_tecnico_url: payload.tecnicoUrl,
+        firmas_at: payload.firmasAt,
+      } as any).eq('id', id);
       await supabase.from('informes').update({ estado: 'pendiente_revision' }).eq('id', informeId);
       toast.success('Visita finalizada');
       navigate(isAdminMode ? '/admin' : '/');
@@ -249,8 +292,9 @@ export default function VisitaActiva() {
     }
   };
 
-  const finishVisita = async () => {
+  const startGeoFlow = async (firmas: FirmasPresenciaResolved) => {
     if (!id || !informeId) return;
+    setFirmasPayload(firmas);
 
     if (!navigator.geolocation) {
       setFinishGeo({ status: 'error', kind: 'unavailable' });
@@ -280,7 +324,7 @@ export default function VisitaActiva() {
           const dist = haversineDistance(tecLat, tecLng, obraLat, obraLng);
           setFinishGeo({ status: 'confirm', lat: tecLat, lng: tecLng, obraLat, obraLng, distance: dist });
         } else {
-          persistFinish(tecLat, tecLng);
+          persistFinish(tecLat, tecLng, firmas);
         }
       },
       (err) => {
@@ -291,6 +335,62 @@ export default function VisitaActiva() {
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
     );
+  };
+
+  /** Disparado por el botón FINALIZAR. Abre primero el diálogo de firmas. */
+  const finishVisita = () => {
+    if (!id || !informeId) return;
+    if (firmasPayload) {
+      // Si ya hay firmas (p.ej. usuario reintenta tras error GPS), salta directamente al GPS.
+      startGeoFlow(firmasPayload);
+      return;
+    }
+    setShowFirmas(true);
+  };
+
+  /** Sube los blobs y arranca el flujo de GPS con las firmas. */
+  const handleFirmasConfirmed = async (payload: {
+    responsableNombre: string;
+    responsableCargo: string;
+    responsableBlob: Blob;
+    tecnicoUseStored?: boolean;
+    tecnicoBlob?: Blob;
+    firmasAt: string;
+  }) => {
+    if (!id) throw new Error('Sin visita');
+
+    const ts = Date.now();
+    // Subir firma del responsable (siempre nueva)
+    const resPath = `firmas-visitas/${id}_responsable_${ts}.png`;
+    const { error: resErr } = await supabase.storage.from('logos')
+      .upload(resPath, payload.responsableBlob, { contentType: 'image/png', upsert: true });
+    if (resErr) throw resErr;
+    const resUrl = supabase.storage.from('logos').getPublicUrl(resPath).data.publicUrl;
+
+    // Firma del técnico: o reutiliza la de perfil o sube la dibujada
+    let tecUrl: string;
+    if (payload.tecnicoUseStored && firmaPerfilUrl) {
+      tecUrl = firmaPerfilUrl;
+    } else if (payload.tecnicoBlob) {
+      const tecPath = `firmas-visitas/${id}_tecnico_${ts}.png`;
+      const { error: tecErr } = await supabase.storage.from('logos')
+        .upload(tecPath, payload.tecnicoBlob, { contentType: 'image/png', upsert: true });
+      if (tecErr) throw tecErr;
+      tecUrl = supabase.storage.from('logos').getPublicUrl(tecPath).data.publicUrl;
+    } else {
+      throw new Error('Falta la firma del técnico');
+    }
+
+    const resolved: FirmasPresenciaResolved = {
+      responsableNombre: payload.responsableNombre,
+      responsableCargo: payload.responsableCargo,
+      responsableUrl: resUrl,
+      tecnicoUrl: tecUrl,
+      firmasAt: payload.firmasAt,
+    };
+
+    setShowFirmas(false);
+    await startGeoFlow(resolved);
   };
 
   const handleSelectSeccion = (seccionId: SeccionId) => {
@@ -605,6 +705,15 @@ export default function VisitaActiva() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Firmas de presencia (paso obligatorio antes del cierre) */}
+      <FirmaPresenciaDialog
+        open={showFirmas}
+        onOpenChange={setShowFirmas}
+        tecnicoNombre={tecnicoNombre}
+        firmaPerfilUrl={firmaPerfilUrl}
+        onConfirm={handleFirmasConfirmed}
+      />
     </div>
   );
 }
