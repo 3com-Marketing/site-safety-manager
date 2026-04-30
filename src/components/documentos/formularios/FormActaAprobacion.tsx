@@ -144,7 +144,12 @@ export default function FormActaAprobacion({ documento, obraId, tipo, onSave, sa
         </div>
         <div className="space-y-2">
           <Label>Promotor</Label>
-          <Input value={promotor} onChange={e => setPromotor(e.target.value)} />
+          <AutocompleteNombre
+            value={promotor}
+            onChange={setPromotor}
+            source="cliente"
+            onSelect={(s) => { if (s.kind === 'cliente') setPromotor(s.nombre || ''); }}
+          />
         </div>
       </div>
 
@@ -152,19 +157,39 @@ export default function FormActaAprobacion({ documento, obraId, tipo, onSave, sa
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Autor del Proyecto</Label>
-          <Input value={autorProyecto} onChange={e => setAutorProyecto(e.target.value)} />
+          <AutocompleteNombre
+            value={autorProyecto}
+            onChange={setAutorProyecto}
+            source="persona"
+            onSelect={(s) => { if (s.kind === 'persona') setAutorProyecto(personaFullName(s)); }}
+          />
         </div>
         <div className="space-y-2">
           <Label>Coordinador SS durante el Proyecto</Label>
-          <Input value={coordSSProyecto} onChange={e => setCoordSSProyecto(e.target.value)} />
+          <AutocompleteNombre
+            value={coordSSProyecto}
+            onChange={setCoordSSProyecto}
+            source="persona"
+            onSelect={(s) => { if (s.kind === 'persona') setCoordSSProyecto(personaFullName(s)); }}
+          />
         </div>
         <div className="space-y-2">
           <Label>Autor del Estudio SS / Básico</Label>
-          <Input value={autorEstudioSS} onChange={e => setAutorEstudioSS(e.target.value)} />
+          <AutocompleteNombre
+            value={autorEstudioSS}
+            onChange={setAutorEstudioSS}
+            source="persona"
+            onSelect={(s) => { if (s.kind === 'persona') setAutorEstudioSS(personaFullName(s)); }}
+          />
         </div>
         <div className="space-y-2">
           <Label>Director de obra</Label>
-          <Input value={directorObra} onChange={e => setDirectorObra(e.target.value)} />
+          <AutocompleteNombre
+            value={directorObra}
+            onChange={setDirectorObra}
+            source="persona"
+            onSelect={(s) => { if (s.kind === 'persona') setDirectorObra(personaFullName(s)); }}
+          />
         </div>
       </div>
 
