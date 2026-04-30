@@ -173,7 +173,17 @@ export default function FormInforme({ documento, obraId, tipo, onSave, saving, d
         </div>
         <div className="space-y-2">
           <Label>Nombre del técnico</Label>
-          <Input value={nombreTecnico} onChange={e => setNombreTecnico(e.target.value)} />
+          <AutocompleteNombre
+            value={nombreTecnico}
+            onChange={setNombreTecnico}
+            source="tecnico"
+            placeholder="Empieza a escribir un nombre…"
+            onSelect={(s) => {
+              if (s.kind === 'persona') {
+                setNombreTecnico(`${s.nombre || ''}${s.apellidos ? ' ' + s.apellidos : ''}`.trim());
+              }
+            }}
+          />
         </div>
         {isAT && (
           <div className="space-y-2">
