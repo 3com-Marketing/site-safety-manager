@@ -1,31 +1,45 @@
+# Trazabilidad geográfica en el detalle de informe (admin)
+
 ## Problema
 
-En el diálogo de firmas de presencia, el usuario no encuentra un botón claro de **"Firmar"**. Los botones actuales del paso 1 (responsable) y paso 2 (técnico) están etiquetados como **"Siguiente: …"**, lo que da la sensación de que aún no se ha firmado nada y el usuario no sabe cómo confirmar.
+En `/admin/informe/:id` (página `AdminInformeDetalle.tsx`) no aparece la sección de **Trazabilidad geográfica** (mapas de inicio/fin, coordenadas, duración, distancia a la obra). Esa información sí existe en `/admin/visita/:id` (`AdminVisitaDetalle.tsx`), pero el flujo de revisión de informes pendientes entra por el detalle de informe, no por el de visita, así que el revisor no la ve.
 
-Además, en el paso del técnico, si tiene firma guardada, el botón "Siguiente: Resumen" aparece **deshabilitado** hasta que elige una opción, sin un mensaje claro de qué hacer.
+Los datos están disponibles en la tabla `visitas` (`lat_inicio`, `lng_inicio`, `lat_fin`, `lng_fin`, `fecha`, `fecha_fin`) y en `obras` (`latitud`, `longitud`), pero `AdminInformeDetalle` actualmente solo carga `visitas(id, obras(nombre), profiles(nombre))`.
 
 ## Solución
 
-Renombrar los CTAs para que comuniquen explícitamente la acción de firmar y reforzar visualmente el botón de avance.
+Replicar el bloque "Trazabilidad" de `AdminVisitaDetalle` dentro de `AdminInformeDetalle`, justo encima de "Datos Generales".
 
-### Cambios concretos en `src/components/visita/FirmaPresenciaDialog.tsx`
+### Cambios en `src/pages/AdminInformeDetalle.tsx`
 
-1. **Paso 1 — Responsable**: cambiar el botón
-   - De: `Siguiente: Firma del técnico`
-   - A: **`Firmar y continuar`** (con icono `PenLine`, fondo `bg-primary`, texto en negrita).
+1. **Ampliar el SELECT** del informe para traer también los campos GPS y temporales de la visita y las coordenadas de la obra:
+   ```
+   visitas(
+     id, fecha, fecha_fin,
+     lat_inicio, lng_inicio, lat_fin, lng_fin,
+     obras(nombre, latitud, longitud)
+   )
+   ```
 
-2. **Paso 2 — Técnico (modo dibujar)**: cambiar el botón
-   - De: `Siguiente: Resumen`
-   - A: **`Firmar y continuar`** (mismo estilo reforzado).
+2. **Añadir imports**:
+   - `MapPin`, `Clock` de `lucide-react`
+   - `differenceInMinutes`, `differenceInHours` de `date-fns`
+   - `MapPicker` desde `@/components/MapPicker`
+   - `haversineDistance`, `formatDistance` desde `@/lib/geo`
 
-3. **Paso 2 — Técnico (modo firma guardada elegida)**: el botón mostrará **`Continuar al resumen`** (ya hay firma, no se "firma" de nuevo).
+3. **Renderizar un `<Collapsible defaultOpen>`** "Trazabilidad" antes de "Datos Generales", con la misma estructura que en `AdminVisitaDetalle`:
+   - Tarjeta de duración total (si hay `fecha` + `fecha_fin`).
+   - Dos columnas (Inicio / Fin) cada una con: timestamp formateado, `MapPicker` readOnly mostrando marcador del punto + marcador de la obra, coordenadas en texto pequeño y distancia a la obra (`haversineDistance` + `formatDistance`).
+   - Mensajes "Sin coordenadas GPS" / "Visita no finalizada" para los casos sin datos.
 
-4. **Paso 2 — Técnico (modo `choose`, aún sin elegir)**: en lugar de un botón deshabilitado silencioso, mostrar un texto guía: *"Selecciona una opción de firma para continuar"* y mantener el botón oculto hasta elegir, o como tooltip explicativo.
+4. **Sin cambios** en lógica de guardado, firma ni edición. Solo lectura.
 
-5. **Paso 3 — Resumen**: el botón final ya dice **`Cerrar visita`**, lo dejamos pero añadimos el icono de firma para coherencia visual.
+## Detalles técnicos
 
-### Resultado esperado
+- Reutilizamos componentes ya existentes (`MapPicker`, helpers de `lib/geo`), por lo que no se añaden dependencias.
+- La sección es de solo lectura, no afecta a las RLS ni al schema.
+- No se toca `AdminVisitaDetalle`.
 
-El técnico verá en cada paso un CTA claro: **"Firmar y continuar"** en los pasos donde dibuja, y **"Cerrar visita"** al final. Ya no habrá ambigüedad sobre dónde se firma.
+## Resultado esperado
 
-No hay cambios de base de datos ni de otros componentes.
+Al abrir un informe pendiente desde el listado de admin, el revisor verá la trazabilidad geográfica (mapas inicio/fin, distancia a la obra y duración) en la parte superior, antes de los Datos Generales.
