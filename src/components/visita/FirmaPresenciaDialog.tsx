@@ -281,8 +281,8 @@ export default function FirmaPresenciaDialog({
 
             <div className="flex justify-between gap-2 pt-2">
               <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>Cancelar</Button>
-              <Button onClick={goTecnico} className="gap-2">
-                Siguiente: Firma del técnico
+              <Button onClick={goTecnico} className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
+                <PenLine className="h-4 w-4" /> Firmar y continuar
               </Button>
             </div>
           </div>

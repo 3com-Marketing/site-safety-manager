@@ -1,48 +1,31 @@
 ## Problema
 
-En la pantalla de progreso de la visita, la sección **"Datos generales"** siempre aparece como **"Sin completar"**, incluso después de pulsar "Guardar datos" y recibir el toast de confirmación. El resto de secciones (EPIs, incidencias, etc.) sí reflejan su estado correctamente.
+En el diálogo de firmas de presencia, el usuario no encuentra un botón claro de **"Firmar"**. Los botones actuales del paso 1 (responsable) y paso 2 (técnico) están etiquetados como **"Siguiente: …"**, lo que da la sensación de que aún no se ha firmado nada y el usuario no sabe cómo confirmar.
 
-## Causa
-
-En `src/pages/VisitaActiva.tsx` (línea 417), el mapa de completados tiene este valor fijo:
-
-```ts
-datos_generales: false, // datos generales doesn't have a "completed" state for now
-```
-
-Nunca se actualiza, por lo que no importa lo que el usuario rellene: la sección siempre se muestra como pendiente.
-
-Los datos de esta sección se guardan directamente en la tabla `informes` (campos `num_trabajadores`, `condiciones_climaticas`, `empresas_presentes`, `notas_generales`), no en `checklist_bloques`.
+Además, en el paso del técnico, si tiene firma guardada, el botón "Siguiente: Resumen" aparece **deshabilitado** hasta que elige una opción, sin un mensaje claro de qué hacer.
 
 ## Solución
 
-Considerar **"Datos generales" como completado** cuando exista al menos un dato relevante guardado en el informe. Criterio:
+Renombrar los CTAs para que comuniquen explícitamente la acción de firmar y reforzar visualmente el botón de avance.
 
-- `num_trabajadores` no nulo, **o**
-- `condiciones_climaticas` con texto no vacío, **o**
-- `empresas_presentes` con texto no vacío, **o**
-- `notas_generales` con texto no vacío.
+### Cambios concretos en `src/components/visita/FirmaPresenciaDialog.tsx`
 
-(Basta con uno; así un técnico que solo informe meteorología o solo nº de trabajadores también la verá como completada.)
+1. **Paso 1 — Responsable**: cambiar el botón
+   - De: `Siguiente: Firma del técnico`
+   - A: **`Firmar y continuar`** (con icono `PenLine`, fondo `bg-primary`, texto en negrita).
 
-### Cambios concretos
+2. **Paso 2 — Técnico (modo dibujar)**: cambiar el botón
+   - De: `Siguiente: Resumen`
+   - A: **`Firmar y continuar`** (mismo estilo reforzado).
 
-1. **`src/pages/VisitaActiva.tsx`**
-   - Asegurar que el `informe` cargado incluye los 4 campos (`num_trabajadores`, `condiciones_climaticas`, `empresas_presentes`, `notas_generales`). Si ya están en el select del informe, no hace falta tocarlo; si no, ampliarlo.
-   - Reemplazar la línea hardcodeada por:
-     ```ts
-     datos_generales: Boolean(
-       informe?.num_trabajadores != null ||
-       informe?.condiciones_climaticas?.trim() ||
-       informe?.empresas_presentes?.trim() ||
-       informe?.notas_generales?.trim()
-     ),
-     ```
-   - Tras guardar en `SeccionDatosGenerales`, ya volvemos a la lista de secciones y `fetchData()` se dispara desde el padre (verificar; si no, llamar `fetchData` al volver para refrescar el estado de completado).
+3. **Paso 2 — Técnico (modo firma guardada elegida)**: el botón mostrará **`Continuar al resumen`** (ya hay firma, no se "firma" de nuevo).
 
-2. **`src/components/visita/SeccionDatosGenerales.tsx`**
-   - Añadir prop opcional `onSaved?: () => void` y llamarla tras un guardado correcto, para que el padre refresque el `informe` y el progreso (8 de 9 → 9 de 9).
+4. **Paso 2 — Técnico (modo `choose`, aún sin elegir)**: en lugar de un botón deshabilitado silencioso, mostrar un texto guía: *"Selecciona una opción de firma para continuar"* y mantener el botón oculto hasta elegir, o como tooltip explicativo.
 
-## Resultado esperado
+5. **Paso 3 — Resumen**: el botón final ya dice **`Cerrar visita`**, lo dejamos pero añadimos el icono de firma para coherencia visual.
 
-Tras pulsar "Guardar datos" en Datos generales y volver al listado, la sección aparecerá con el check verde "Completado" y el progreso de la visita avanzará correctamente.
+### Resultado esperado
+
+El técnico verá en cada paso un CTA claro: **"Firmar y continuar"** en los pasos donde dibuja, y **"Cerrar visita"** al final. Ya no habrá ambigüedad sobre dónde se firma.
+
+No hay cambios de base de datos ni de otros componentes.
