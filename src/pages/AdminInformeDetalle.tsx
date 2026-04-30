@@ -4,14 +4,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, CheckCircle, FileDown, Save, Loader2, Scale, ChevronDown } from 'lucide-react';
+import { ArrowLeft, CheckCircle, FileDown, Save, Loader2, Scale, ChevronDown, Clock, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, differenceInHours, differenceInMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import FotoViewer from '@/components/visita/FotoViewer';
 import EditableTextWithAI from '@/components/visita/EditableTextWithAI';
 import ConfirmarFirmaDialog from '@/components/informes/ConfirmarFirmaDialog';
+import MapPicker from '@/components/MapPicker';
+import { haversineDistance, formatDistance } from '@/lib/geo';
 import { useAuth } from '@/lib/auth';
 
 const CATEGORIAS: Record<string, string> = {
@@ -71,7 +73,7 @@ export default function AdminInformeDetalle() {
 
     const { data: inf } = await supabase
       .from('informes')
-      .select('id, estado, fecha, num_trabajadores, condiciones_climaticas, empresas_presentes, notas_generales, visitas(id, obras(nombre), profiles!visitas_usuario_id_profiles_fkey(nombre))')
+      .select('id, estado, fecha, num_trabajadores, condiciones_climaticas, empresas_presentes, notas_generales, visitas(id, fecha, fecha_fin, lat_inicio, lng_inicio, lat_fin, lng_fin, obras(nombre, latitud, longitud), profiles!visitas_usuario_id_profiles_fkey(nombre))')
       .eq('id', id)
       .single();
 
