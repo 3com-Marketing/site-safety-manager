@@ -116,23 +116,26 @@ export default function AdminTecnicos() {
   };
 
   const handleSave = async () => {
-    const payload: any = {
+    // codigo_tecnico se autogenera en el INSERT (trigger DB) y no se modifica en UPDATE
+    const basePayload: any = {
       nombre: form.nombre, apellidos: form.apellidos, dni: form.dni,
       direccion: form.direccion, telefono: form.telefono, movil: form.movil,
-      email: form.email, codigo_tecnico: form.codigo_tecnico,
+      email: form.email,
       titulacion: form.titulacion, num_colegiado: form.num_colegiado,
       empresa: form.empresa, cif_empresa: form.cif_empresa,
       notas: form.notas, user_id: form.user_id || null, tipo: form.tipo,
     };
 
     let tecnicoId = editId;
+    let codigoGenerado: string | null = null;
     if (editId) {
-      const { error } = await supabase.from('tecnicos').update(payload).eq('id', editId);
+      const { error } = await supabase.from('tecnicos').update(basePayload).eq('id', editId);
       if (error) { toast.error('Error al actualizar'); return; }
     } else {
-      const { data, error } = await supabase.from('tecnicos').insert(payload).select('id').single();
+      const { data, error } = await supabase.from('tecnicos').insert(basePayload).select('id, codigo_tecnico').single();
       if (error || !data) { toast.error('Error al crear'); return; }
       tecnicoId = data.id;
+      codigoGenerado = (data as any).codigo_tecnico || null;
     }
 
     await supabase.from('tecnicos_obras').delete().eq('tecnico_id', tecnicoId!);
@@ -162,7 +165,11 @@ export default function AdminTecnicos() {
       }
     }
 
-    toast.success(editId ? 'Actualizado' : 'Creado');
+    if (editId) {
+      toast.success('Actualizado');
+    } else {
+      toast.success(codigoGenerado ? `Creado con código ${codigoGenerado}` : 'Creado');
+    }
     setDialogOpen(false);
     fetchData();
   };
@@ -264,7 +271,16 @@ export default function AdminTecnicos() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label>DNI / NIE</Label><Input value={form.dni} onChange={e => setForm({ ...form, dni: e.target.value })} /></div>
-              <div><Label>Código de técnico</Label><Input value={form.codigo_tecnico} onChange={e => setForm({ ...form, codigo_tecnico: e.target.value })} /></div>
+              <div>
+                <Label>Código {isCoord ? 'de coordinador' : 'de técnico'}</Label>
+                {editId ? (
+                  <Input value={form.codigo_tecnico} readOnly disabled className="bg-muted text-muted-foreground" />
+                ) : (
+                  <div className="flex h-10 items-center rounded-md border border-dashed border-border bg-muted/40 px-3 text-sm text-muted-foreground">
+                    Se generará automáticamente ({isCoord ? 'COORD-XXXX' : 'TEC-XXXX'})
+                  </div>
+                )}
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label>Titulación</Label><Input value={form.titulacion} onChange={e => setForm({ ...form, titulacion: e.target.value })} placeholder="Ej: Ingeniera Técnica Industrial" /></div>
@@ -318,12 +334,25 @@ export default function AdminTecnicos() {
                 <p className="text-xs text-muted-foreground">No hay obras creadas</p>
               ) : (
                 <div className="space-y-2 max-h-40 overflow-y-auto rounded-lg border border-border p-3">
-                  {obras.map(o => (
-                    <label key={o.id} className="flex items-center gap-2 cursor-pointer">
-                      <Checkbox checked={selectedObras.includes(o.id)} onCheckedChange={() => toggleObra(o.id)} />
-                      <span className="text-sm">{o.nombre}</span>
-                    </label>
-                  ))}
+                  {obras.map(o => {
+                    // Otros técnicos/coordinadores del MISMO tipo que ya tienen esta obra (excluyendo el que se edita)
+                    const otrosAsignados = tecnicos
+                      .filter(t => (t.tipo || 'tecnico') === form.tipo && t.id !== editId && (tecnicoObras[t.id] || []).includes(o.id))
+                      .map(t => `${t.nombre} ${t.apellidos || ''}`.trim());
+                    return (
+                      <label key={o.id} className="flex items-start gap-2 cursor-pointer">
+                        <Checkbox className="mt-0.5" checked={selectedObras.includes(o.id)} onCheckedChange={() => toggleObra(o.id)} />
+                        <span className="text-sm flex-1">
+                          {o.nombre}
+                          {otrosAsignados.length > 0 && (
+                            <span className="ml-2 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">
+                              Ya asignada a: {otrosAsignados.join(', ')}
+                            </span>
+                          )}
+                        </span>
+                      </label>
+                    );
+                  })}
                 </div>
               )}
             </div>

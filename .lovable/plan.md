@@ -1,55 +1,87 @@
-# Filtro por Técnico/Coordinador en el Dashboard
+## Objetivo
 
-## Problema
+Cada técnico/coordinador recibe automáticamente un **código único e irrepetible** al darse de alta, con formato `TEC-0001` o `COORD-0001`. Además, al asignar obras, mostrar un aviso si una obra ya tiene otro técnico/coordinador (sin bloquear).
 
-En `/admin` (página `AdminInformes.tsx`) ya existe un desplegable de **Obra**, pero no hay forma de filtrar por **técnico/coordinador**. El admin necesita poder seleccionar a un técnico y ver únicamente las obras de su portfolio (las que tiene asignadas en `tecnicos_obras`), junto con las visitas e informes asociados.
+## Cambios
 
-## Solución
+### 1. Base de datos (migración)
 
-Añadir un nuevo `<select>` "Técnico" en la barra de filtros, justo al lado del de "Obras", con el mismo estilo (chip naranja cuando está activo). Cuando se selecciona un técnico:
+**Nueva secuencia + función + trigger** para generar el código en el alta:
 
-1. El desplegable de **Obras** se reduce automáticamente a las obras del portfolio de ese técnico (tabla `tecnicos_obras`).
-2. Las listas de **Visitas en progreso** e **Informes** se filtran para mostrar solo las correspondientes a esas obras.
-3. La opción "Todos los técnicos" restaura el comportamiento actual.
+```sql
+-- Secuencias separadas por tipo
+CREATE SEQUENCE IF NOT EXISTS public.tecnicos_codigo_tec_seq START 1;
+CREATE SEQUENCE IF NOT EXISTS public.tecnicos_codigo_coord_seq START 1;
 
-## Cambios en `src/pages/AdminInformes.tsx`
+-- Función que asigna el código si está vacío
+CREATE OR REPLACE FUNCTION public.assign_codigo_tecnico()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.codigo_tecnico IS NULL OR NEW.codigo_tecnico = '' THEN
+    IF NEW.tipo = 'coordinador' THEN
+      NEW.codigo_tecnico := 'COORD-' || LPAD(nextval('public.tecnicos_codigo_coord_seq')::text, 4, '0');
+    ELSE
+      NEW.codigo_tecnico := 'TEC-' || LPAD(nextval('public.tecnicos_codigo_tec_seq')::text, 4, '0');
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
 
-1. **Cargar técnicos y sus asignaciones** en el `useEffect` de fetch inicial:
-   - `supabase.from('tecnicos').select('id, nombre, apellidos').order('nombre')`
-   - `supabase.from('tecnicos_obras').select('tecnico_id, obra_id')` para construir un mapa `tecnicoId → Set<obraId>`.
+CREATE TRIGGER trg_assign_codigo_tecnico
+  BEFORE INSERT ON public.tecnicos
+  FOR EACH ROW EXECUTE FUNCTION public.assign_codigo_tecnico();
 
-2. **Nuevo estado**: `tecnicoFilter` (`string`, default `'todos'`), `tecnicos` y `tecnicoObrasMap`.
+-- Backfill de los registros existentes que no tengan código
+-- (UPDATE en bloque, ordenado por created_at, generando TEC-XXXX / COORD-XXXX)
 
-3. **Nuevo `useMemo` `obrasDelTecnico`**: si `tecnicoFilter !== 'todos'`, devuelve el `Set<obraId>` del técnico; en otro caso `null`.
+-- Índice único parcial (ignora cadenas vacías históricas)
+CREATE UNIQUE INDEX IF NOT EXISTS tecnicos_codigo_unique
+  ON public.tecnicos (codigo_tecnico)
+  WHERE codigo_tecnico <> '';
 
-4. **Ajustar `obrasOptions`**: si hay técnico seleccionado, filtrar las opciones a solo las obras de ese técnico.
+-- Avanzar las secuencias para que el siguiente nextval no choque con backfill
+SELECT setval('public.tecnicos_codigo_tec_seq',
+  GREATEST(1, (SELECT COALESCE(MAX(NULLIF(regexp_replace(codigo_tecnico, '\D','','g'),''))::int, 0)
+               FROM public.tecnicos WHERE codigo_tecnico LIKE 'TEC-%')));
+SELECT setval('public.tecnicos_codigo_coord_seq',
+  GREATEST(1, (SELECT COALESCE(MAX(NULLIF(regexp_replace(codigo_tecnico, '\D','','g'),''))::int, 0)
+               FROM public.tecnicos WHERE codigo_tecnico LIKE 'COORD-%')));
+```
 
-5. **Ajustar `visitasFiltradas` e `informesFiltrados`**: añadir un filtro extra `if (obrasDelTecnico) base = base.filter(x => x.obra_id && obrasDelTecnico.has(x.obra_id))`.
+### 2. `src/pages/AdminTecnicos.tsx`
 
-6. **Resetear `obraFilter` a `'todas'`** automáticamente cuando cambie `tecnicoFilter`, para evitar combinaciones imposibles (obra que no pertenece al técnico).
+- **Quitar** el input editable "Código de técnico" del diálogo de creación. Lo reemplaza un texto informativo: *"Se generará automáticamente al guardar (TEC-XXXX / COORD-XXXX)."*
+- En **edición**, el campo se muestra como **solo lectura** (no se puede modificar).
+- Al guardar (insert), no enviar `codigo_tecnico` (lo asigna el trigger). Tras crear, refrescar para mostrar el código generado y mostrar `toast.success` con el código asignado: *"Creado con código TEC-0007"*.
+- En el listado y la ficha (`Eye`), seguir mostrando el código tal cual.
 
-7. **Render del desplegable** en la barra de filtros (línea ~484, antes del select de obras):
-   ```tsx
-   <select
-     value={tecnicoFilter}
-     onChange={(e) => { setTecnicoFilter(e.target.value); setActiveKpi(null); }}
-     className={tecnicoSelectClass}
-   >
-     <option value="todos">Todos los técnicos</option>
-     {tecnicos.map(t => (
-       <option key={t.id} value={t.id}>{t.nombre} {t.apellidos}</option>
-     ))}
-   </select>
-   ```
-   Con la misma clase chip que el de obras (naranja cuando activo).
+### 3. Aviso de duplicado en asignación de obras
+
+En el mismo diálogo (sección "Obras asignadas"), al marcar una obra que ya está vinculada a otro técnico/coordinador del mismo `tipo`:
+
+- Junto a esa obra, mostrar un badge ámbar pequeño: *"Ya asignada a: Juan Pérez"*.
+- No bloquea el guardado. Cuando varios marcan la misma obra, todos quedan vinculados.
+- También aplica en `src/pages/AdminObras.tsx` (sección de asignación de técnicos en el alta de obra): badge ámbar en los técnicos que ya están en otra obra... no, ahí no aplica (la regla es por obra). Se omite.
 
 ## Detalles técnicos
 
-- No se tocan tablas, RLS ni schema. Solo lectura.
-- `tecnicos_obras` ya es legible por `authenticated` (policy "Authenticated can view tecnicos_obras").
-- El filtro es client-side sobre los datos ya cargados, igual que el de obras actual; no añade peticiones extra durante la interacción.
-- Se mantiene el realtime de visitas (no afectado).
+- El trigger es `BEFORE INSERT` y solo asigna si el campo viene vacío, así no rompe inserts existentes ni el backfill.
+- Las secuencias son por tipo, así los `TEC-` y `COORD-` no comparten contador.
+- El índice es parcial (`WHERE codigo_tecnico <> ''`) para tolerar registros antiguos sin código durante el backfill, aunque el backfill rellena todos.
+- RLS: no cambia. `tecnicos` ya tiene "Admins can manage tecnicos" y SELECT abierto a authenticated.
+- No se toca `tecnicos.tipo` ni `tecnicos_obras` (el "perfil doble" y la "vista de coordinador para vincular obras" quedan fuera de este cambio, según tu selección).
+
+## Lo que NO se incluye
+
+- Perfil doble (mismo usuario actuando como técnico en una obra y coordinador en otra).
+- Pantalla específica de coordinador para autovincular obras.
+- Bloqueo de asignación múltiple por obra.
+
+Si más adelante quieres alguno de estos puntos, abrimos un plan aparte: el de "perfil doble" requiere mover el `tipo` a `tecnicos_obras` y es un refactor más amplio.
 
 ## Resultado esperado
 
-En el dashboard `/admin`, junto al filtro "Todas las obras" aparece un nuevo selector "Todos los técnicos". Al elegir un técnico, las obras del desplegable y las listas de visitas/informes se reducen al portfolio de ese técnico.
+1. Crear un nuevo técnico → al guardar aparece `TEC-0008` (o el siguiente). Crear coordinador → `COORD-0003`. No se puede editar a mano.
+2. Editar un técnico ya existente → su código se ve en gris, no editable.
+3. Al asignar obras, si marcas una que ya tiene otro técnico del mismo rol, ves "Ya asignada a: Nombre"; puedes guardar igual.
