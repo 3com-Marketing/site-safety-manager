@@ -203,7 +203,19 @@ export default function FormActaNombramiento({ documento, obraId, tipo, onSave, 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Nombre / Razón Social</Label>
-          <Input value={nombrePromotor} onChange={e => setNombrePromotor(e.target.value)} />
+          <AutocompleteNombre
+            value={nombrePromotor}
+            onChange={setNombrePromotor}
+            source="cliente"
+            placeholder="Empieza a escribir el nombre del promotor…"
+            onSelect={(s) => {
+              if (s.kind === 'cliente') {
+                setNombrePromotor(s.nombre || '');
+                if (s.cif) setCifPromotor(s.cif);
+                if (s.ciudad) setDomicilioPromotor(s.ciudad);
+              }
+            }}
+          />
         </div>
         <div className="space-y-2">
           <Label>CIF</Label>
