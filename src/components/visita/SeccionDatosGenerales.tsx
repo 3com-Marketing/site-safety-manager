@@ -15,7 +15,7 @@ interface Props {
   onSaved?: () => void;
 }
 
-export default function SeccionDatosGenerales({ informeId, onBack }: Props) {
+export default function SeccionDatosGenerales({ informeId, onBack, onSaved }: Props) {
   const [numTrabajadores, setNumTrabajadores] = useState<number | ''>('');
   const [condiciones, setCondiciones] = useState('');
   const [empresas, setEmpresas] = useState('');
