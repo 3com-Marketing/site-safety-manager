@@ -397,6 +397,13 @@ export default function AdminInformes() {
       : 'bg-card border-border text-foreground hover:border-primary/40'
   }`;
 
+  const tecnicoSelectActive = tecnicoFilter !== 'todos';
+  const tecnicoSelectClass = `h-9 px-3 rounded-full text-sm font-medium border transition-colors focus:outline-none focus:ring-2 focus:ring-primary ${
+    tecnicoSelectActive
+      ? 'bg-[#fff7ed] border-[#fed7aa] text-[#c2410c]'
+      : 'bg-card border-border text-foreground hover:border-primary/40'
+  }`;
+
   if (loading) {
     return (
       <AdminLayout>
