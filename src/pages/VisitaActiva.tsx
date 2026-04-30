@@ -535,21 +535,27 @@ export default function VisitaActiva() {
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                onClick={() => navigate(isAdminMode ? '/admin' : '/')}
+                onClick={() => {
+                  if (isAdminMode || isFinalized) {
+                    navigate(isAdminMode ? '/admin' : '/');
+                  } else {
+                    setShowExitConfirm(true);
+                  }
+                }}
                 className={`h-14 ${isFinalized || isAdminMode ? 'w-full' : 'flex-1'} text-base font-semibold gap-2`}
               >
                 <ArrowLeft className="h-5 w-5" />
-                {isAdminMode ? 'Volver a admin' : 'Guardar y salir'}
+                {isAdminMode ? 'Volver a admin' : isFinalized ? 'Salir' : 'Salir sin finalizar'}
               </Button>
               {!isFinalized && !isAdminMode && (
                 <Button
                   onClick={finishVisita}
                   disabled={finishing}
                   variant="default"
-                  className="h-14 flex-1 text-base font-bold gap-2 bg-success hover:bg-success/90 text-success-foreground"
+                  className="h-14 flex-[2] text-base font-bold gap-2 bg-success hover:bg-success/90 text-success-foreground shadow-lg ring-2 ring-success/30"
                 >
                   {finishing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Check className="h-5 w-5" />}
-                  {finishing ? 'Finalizando...' : 'FINALIZAR VISITA'}
+                  {finishing ? 'Finalizando...' : 'FINALIZAR Y FIRMAR'}
                 </Button>
               )}
             </div>
