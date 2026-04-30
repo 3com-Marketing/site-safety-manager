@@ -731,6 +731,37 @@ export default function VisitaActiva() {
         firmaPerfilUrl={firmaPerfilUrl}
         onConfirm={handleFirmasConfirmed}
       />
+
+      {/* Confirmación al salir sin finalizar */}
+      <AlertDialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              La visita no se ha cerrado
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">
+                La visita quedará guardada como borrador y aparecerá en «Visitas recientes». No se ha finalizado ni firmado.
+              </span>
+              <span className="block font-semibold text-foreground">
+                Para cerrarla definitivamente pulsa <span className="text-success">FINALIZAR Y FIRMAR</span> y completa las firmas de presencia.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continuar visita</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowExitConfirm(false);
+                navigate('/');
+              }}
+            >
+              Salir como borrador
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
