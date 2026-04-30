@@ -122,7 +122,7 @@ export default function SeccionIncidencias({ informeId, visitaId, obraNombre, on
       descripcion: manualNoteText.trim(),
     });
 
-    if (error) { toast.error('Error al guardar'); return; }
+    if (error) { console.error('Insert incidencia (manual):', error); toast.error('Error al guardar'); return; }
     toast.success('Incidencia guardada');
     setManualNoteText('');
     setShowManualNote(false);
