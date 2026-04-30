@@ -111,6 +111,9 @@ export default function AdminInformes() {
   // filtros
   const [estadoChip, setEstadoChip] = useState<EstadoChip>('todos');
   const [obraFilter, setObraFilter] = useState<string>('todas');
+  const [tecnicoFilter, setTecnicoFilter] = useState<string>('todos');
+  const [tecnicos, setTecnicos] = useState<{ id: string; nombre: string; apellidos: string }[]>([]);
+  const [tecnicoObrasMap, setTecnicoObrasMap] = useState<Record<string, Set<string>>>({});
   const [sortMode, setSortMode] = useState<SortMode>('tiempo_desc');
   const [activeKpi, setActiveKpi] = useState<KpiKey | null>(null);
   const [showAllVisitas, setShowAllVisitas] = useState(false);
