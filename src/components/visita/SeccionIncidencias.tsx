@@ -105,7 +105,7 @@ export default function SeccionIncidencias({ informeId, visitaId, obraNombre, on
       normativa: voice.normativa || '',
     });
 
-    if (error) { toast.error('Error al guardar'); return; }
+    if (error) { console.error('Insert incidencia (voz):', error); toast.error('Error al guardar'); return; }
     toast.success('Incidencia guardada');
     voice.closeDialog();
     await fetchIncidencias();
