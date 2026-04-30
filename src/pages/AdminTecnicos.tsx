@@ -334,12 +334,25 @@ export default function AdminTecnicos() {
                 <p className="text-xs text-muted-foreground">No hay obras creadas</p>
               ) : (
                 <div className="space-y-2 max-h-40 overflow-y-auto rounded-lg border border-border p-3">
-                  {obras.map(o => (
-                    <label key={o.id} className="flex items-center gap-2 cursor-pointer">
-                      <Checkbox checked={selectedObras.includes(o.id)} onCheckedChange={() => toggleObra(o.id)} />
-                      <span className="text-sm">{o.nombre}</span>
-                    </label>
-                  ))}
+                  {obras.map(o => {
+                    // Otros técnicos/coordinadores del MISMO tipo que ya tienen esta obra (excluyendo el que se edita)
+                    const otrosAsignados = tecnicos
+                      .filter(t => (t.tipo || 'tecnico') === form.tipo && t.id !== editId && (tecnicoObras[t.id] || []).includes(o.id))
+                      .map(t => `${t.nombre} ${t.apellidos || ''}`.trim());
+                    return (
+                      <label key={o.id} className="flex items-start gap-2 cursor-pointer">
+                        <Checkbox className="mt-0.5" checked={selectedObras.includes(o.id)} onCheckedChange={() => toggleObra(o.id)} />
+                        <span className="text-sm flex-1">
+                          {o.nombre}
+                          {otrosAsignados.length > 0 && (
+                            <span className="ml-2 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">
+                              Ya asignada a: {otrosAsignados.join(', ')}
+                            </span>
+                          )}
+                        </span>
+                      </label>
+                    );
+                  })}
                 </div>
               )}
             </div>
