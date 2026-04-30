@@ -314,7 +314,7 @@ export default function AdminInformes() {
     else if (sortMode === 'tiempo_asc') sorted.sort((a, b) => minutesSince(a.fecha) - minutesSince(b.fecha));
     else sorted.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
     return sorted;
-  }, [visitasEnProgreso, estadoChip, obraFilter, sortMode, activeKpi]);
+  }, [visitasEnProgreso, estadoChip, obraFilter, obrasDelTecnico, sortMode, activeKpi]);
 
   // Filtrado columna informes
   const informesFiltrados = useMemo(() => {
@@ -323,6 +323,7 @@ export default function AdminInformes() {
     if (estadoChip === 'pendiente_revision') base = base.filter(i => i.estado === 'pendiente_revision');
     else if (estadoChip === 'borrador') base = base.filter(i => i.estado === 'borrador');
     else if (estadoChip === 'cerrado') base = base.filter(i => i.estado === 'cerrado');
+    if (obrasDelTecnico) base = base.filter(i => i.obra_id && obrasDelTecnico.has(i.obra_id));
     if (obraFilter !== 'todas') base = base.filter(i => i.obra_id === obraFilter);
     if (activeKpi === 'cerrados_mes') {
       base = base.filter(i => i.estado === 'cerrado' && new Date(i.fecha) >= monthStart);
@@ -332,7 +333,7 @@ export default function AdminInformes() {
     else if (sortMode === 'tiempo_asc') sorted.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
     else sorted.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
     return sorted;
-  }, [informes, estadoChip, obraFilter, sortMode, activeKpi, monthStart]);
+  }, [informes, estadoChip, obraFilter, obrasDelTecnico, sortMode, activeKpi, monthStart]);
 
   const scrollToLists = () => {
     setTimeout(() => {
