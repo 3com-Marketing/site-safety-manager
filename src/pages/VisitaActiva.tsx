@@ -261,11 +261,27 @@ export default function VisitaActiva() {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const persistFinish = async (lat: number | null, lng: number | null) => {
+  const persistFinish = async (lat: number | null, lng: number | null, firmas?: FirmasPresenciaResolved | null) => {
     if (!id || !informeId) return;
+    const payload = firmas ?? firmasPayload;
+    if (!payload) {
+      toast.error('Faltan las firmas de presencia');
+      setFinishGeo({ status: 'idle' });
+      return;
+    }
     setFinishGeo({ status: 'saving' });
     try {
-      await supabase.from('visitas').update({ estado: 'finalizada', lat_fin: lat, lng_fin: lng, fecha_fin: new Date().toISOString() } as any).eq('id', id);
+      await supabase.from('visitas').update({
+        estado: 'finalizada',
+        lat_fin: lat,
+        lng_fin: lng,
+        fecha_fin: new Date().toISOString(),
+        firma_responsable_url: payload.responsableUrl,
+        firma_responsable_nombre: payload.responsableNombre,
+        firma_responsable_cargo: payload.responsableCargo,
+        firma_tecnico_url: payload.tecnicoUrl,
+        firmas_at: payload.firmasAt,
+      } as any).eq('id', id);
       await supabase.from('informes').update({ estado: 'pendiente_revision' }).eq('id', informeId);
       toast.success('Visita finalizada');
       navigate(isAdminMode ? '/admin' : '/');
@@ -276,7 +292,7 @@ export default function VisitaActiva() {
     }
   };
 
-  const finishVisita = async () => {
+  const startGeoFlow = async (firmas: FirmasPresenciaResolved) => {
     if (!id || !informeId) return;
 
     if (!navigator.geolocation) {
