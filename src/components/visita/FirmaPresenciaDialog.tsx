@@ -281,8 +281,8 @@ export default function FirmaPresenciaDialog({
 
             <div className="flex justify-between gap-2 pt-2">
               <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>Cancelar</Button>
-              <Button onClick={goTecnico} className="gap-2">
-                Siguiente: Firma del técnico
+              <Button onClick={goTecnico} className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
+                <PenLine className="h-4 w-4" /> Firmar y continuar
               </Button>
             </div>
           </div>
@@ -349,13 +349,25 @@ export default function FirmaPresenciaDialog({
               </div>
             )}
 
+            {tecMode === 'choose' && (
+              <p className="text-xs text-muted-foreground text-center">
+                Selecciona una opción de firma para continuar
+              </p>
+            )}
+
             <div className="flex justify-between gap-2 pt-2">
               <Button variant="outline" onClick={goResponsable} disabled={submitting} className="gap-2">
                 <ArrowLeft className="h-4 w-4" /> Volver
               </Button>
-              <Button onClick={goResumen} className="gap-2" disabled={tecMode === 'choose'}>
-                Siguiente: Resumen
-              </Button>
+              {tecMode !== 'choose' && (
+                <Button
+                  onClick={goResumen}
+                  className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+                >
+                  <PenLine className="h-4 w-4" />
+                  {tecMode === 'draw' ? 'Firmar y continuar' : 'Continuar al resumen'}
+                </Button>
+              )}
             </div>
           </div>
         )}
