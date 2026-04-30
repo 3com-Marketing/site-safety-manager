@@ -9,6 +9,7 @@ import type { Documento } from '@/hooks/useDocumentosObra';
 import type { Json } from '@/integrations/supabase/types';
 import FirmaSelector from '@/components/documentos/FirmaSelector';
 import { useFirmaPerfilUrl, uploadFirmaDocumento } from '@/components/documentos/useFirmaPerfil';
+import AutocompleteNombre from '@/components/documentos/AutocompleteNombre';
 
 interface Props {
   documento?: Documento | null;
@@ -202,7 +203,19 @@ export default function FormActaNombramiento({ documento, obraId, tipo, onSave, 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Nombre / Razón Social</Label>
-          <Input value={nombrePromotor} onChange={e => setNombrePromotor(e.target.value)} />
+          <AutocompleteNombre
+            value={nombrePromotor}
+            onChange={setNombrePromotor}
+            source="cliente"
+            placeholder="Empieza a escribir el nombre del promotor…"
+            onSelect={(s) => {
+              if (s.kind === 'cliente') {
+                setNombrePromotor(s.nombre || '');
+                if (s.cif) setCifPromotor(s.cif);
+                if (s.ciudad) setDomicilioPromotor(s.ciudad);
+              }
+            }}
+          />
         </div>
         <div className="space-y-2">
           <Label>CIF</Label>
@@ -219,7 +232,25 @@ export default function FormActaNombramiento({ documento, obraId, tipo, onSave, 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Nombre y apellidos</Label>
-          <Input value={nombreCoordinador} onChange={e => setNombreCoordinador(e.target.value)} />
+          <AutocompleteNombre
+            value={nombreCoordinador}
+            onChange={setNombreCoordinador}
+            source="coordinador"
+            placeholder="Empieza a escribir un coordinador…"
+            onSelect={(s) => {
+              if (s.kind === 'persona') {
+                setNombreCoordinador(`${s.nombre || ''}${s.apellidos ? ' ' + s.apellidos : ''}`.trim());
+                if (s.dni) setDniCoordinador(s.dni);
+                const tit = [s.titulacion, s.num_colegiado].filter(Boolean).join(' / ');
+                if (tit) setTitulacionColegiado(tit);
+                if (s.empresa) setEmpresaCoordinacion(s.empresa);
+                if (s.cif_empresa) setCifEmpresa(s.cif_empresa);
+                if (s.direccion) setDomicilioEmpresa(s.direccion);
+                if (s.movil || s.telefono) setMovilCoordinador(s.movil || s.telefono || '');
+                if (s.email) setEmailCoordinador(s.email);
+              }
+            }}
+          />
         </div>
         <div className="space-y-2">
           <Label>DNI</Label>

@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 import FirmaSelector from '@/components/documentos/FirmaSelector';
 import { useFirmaPerfilUrl, uploadFirmaDocumento } from '@/components/documentos/useFirmaPerfil';
+import AutocompleteNombre from '@/components/documentos/AutocompleteNombre';
 
 interface Props {
   documento?: DocumentoConRelaciones | null;
@@ -430,7 +431,12 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
         </div>
         <div className="space-y-2">
           <Label>Promotor</Label>
-          <Input value={promotor} onChange={e => setPromotor(e.target.value)} />
+          <AutocompleteNombre
+            value={promotor}
+            onChange={setPromotor}
+            source="cliente"
+            onSelect={(s) => { if (s.kind === 'cliente') setPromotor(s.nombre || ''); }}
+          />
         </div>
         <div className="space-y-2">
           <Label>Lugar de reunión</Label>
@@ -470,7 +476,24 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
           </div>
         ))}
         <div className="grid grid-cols-6 gap-2">
-          <Input placeholder="Nombre" value={nuevoAsistente.nombre} onChange={e => setNuevoAsistente(p => ({ ...p, nombre: e.target.value }))} />
+          <AutocompleteNombre
+            value={nuevoAsistente.nombre}
+            onChange={(v) => setNuevoAsistente(p => ({ ...p, nombre: v }))}
+            source="persona"
+            placeholder="Nombre"
+            onSelect={(s) => {
+              if (s.kind === 'persona') {
+                setNuevoAsistente(p => ({
+                  ...p,
+                  nombre: s.nombre || p.nombre,
+                  apellidos: s.apellidos || p.apellidos,
+                  cargo: s.titulacion || p.cargo,
+                  empresa: s.empresa || p.empresa,
+                  dni_nie: s.dni || p.dni_nie,
+                }));
+              }
+            }}
+          />
           <Input placeholder="Apellidos" value={nuevoAsistente.apellidos} onChange={e => setNuevoAsistente(p => ({ ...p, apellidos: e.target.value }))} />
           <Input placeholder="Cargo" value={nuevoAsistente.cargo} onChange={e => setNuevoAsistente(p => ({ ...p, cargo: e.target.value }))} />
           <Input placeholder="Empresa" value={nuevoAsistente.empresa} onChange={e => setNuevoAsistente(p => ({ ...p, empresa: e.target.value }))} />

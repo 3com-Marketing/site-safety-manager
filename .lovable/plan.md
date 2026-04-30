@@ -1,87 +1,86 @@
-## Objetivo
+# Autocompletado inteligente en formularios de documentos
 
-Cada técnico/coordinador recibe automáticamente un **código único e irrepetible** al darse de alta, con formato `TEC-0001` o `COORD-0001`. Además, al asignar obras, mostrar un aviso si una obra ya tiene otro técnico/coordinador (sin bloquear).
+Añadir sugerencias en vivo en los campos de nombre (técnico, coordinador, promotor, autores, directores...) dentro de los formularios de informes/actas. Al seleccionar una sugerencia, se rellenan automáticamente todos los datos asociados, dejando los campos editables.
 
-## Cambios
+## Comportamiento
 
-### 1. Base de datos (migración)
+- Sugerencias **desde el primer carácter**, máx. 8 resultados, con debounce 150 ms.
+- Cada sugerencia muestra: **nombre + dato identificativo** (código `TEC-0001`/`COORD-0001` y nº de obras asignadas; para promotores, CIF y ciudad).
+- Al elegir, se **rellenan todos los campos relacionados** del bloque (datos personales, empresa, contacto, titulación, firma...).
+- Los campos rellenados quedan **editables** sin perder la sugerencia.
+- Para campos de "rol por obra" (coordinador vs técnico), se filtra por `tipo` cuando aplica; si no aplica, se muestran ambos.
 
-**Nueva secuencia + función + trigger** para generar el código en el alta:
+## Fuentes de datos
 
-```sql
--- Secuencias separadas por tipo
-CREATE SEQUENCE IF NOT EXISTS public.tecnicos_codigo_tec_seq START 1;
-CREATE SEQUENCE IF NOT EXISTS public.tecnicos_codigo_coord_seq START 1;
+- **Personas (técnicos / coordinadores)** → tabla `tecnicos`. Búsqueda por `nombre`, `apellidos`, `codigo_tecnico`, `email` (`ilike`).
+- **Promotor / Razón social** → tabla `clientes` (búsqueda por `nombre`, `cif`).
 
--- Función que asigna el código si está vacío
-CREATE OR REPLACE FUNCTION public.assign_codigo_tecnico()
-RETURNS trigger LANGUAGE plpgsql AS $$
-BEGIN
-  IF NEW.codigo_tecnico IS NULL OR NEW.codigo_tecnico = '' THEN
-    IF NEW.tipo = 'coordinador' THEN
-      NEW.codigo_tecnico := 'COORD-' || LPAD(nextval('public.tecnicos_codigo_coord_seq')::text, 4, '0');
-    ELSE
-      NEW.codigo_tecnico := 'TEC-' || LPAD(nextval('public.tecnicos_codigo_tec_seq')::text, 4, '0');
-    END IF;
-  END IF;
-  RETURN NEW;
-END;
-$$;
+Sin migraciones de BD: las RLS actuales ya permiten lectura a usuarios autenticados.
 
-CREATE TRIGGER trg_assign_codigo_tecnico
-  BEFORE INSERT ON public.tecnicos
-  FOR EACH ROW EXECUTE FUNCTION public.assign_codigo_tecnico();
+## Componentes nuevos
 
--- Backfill de los registros existentes que no tengan código
--- (UPDATE en bloque, ordenado por created_at, generando TEC-XXXX / COORD-XXXX)
+`src/components/documentos/AutocompleteNombre.tsx`
+- Wrapper sobre un `Input` con un popover de sugerencias (basado en `Command` de shadcn ya disponible).
+- Props:
+  - `value`, `onChange(text)` — control normal del input.
+  - `source: 'tecnico' | 'coordinador' | 'persona' | 'cliente'` — define tabla y filtro `tipo`.
+  - `onSelect(payload)` — recibe el registro completo seleccionado para que el formulario rellene sus campos.
+  - `placeholder`, `id`, `className`.
+- Lógica: `useEffect` con debounce dispara `supabase.from('tecnicos').select(...).or('nombre.ilike.%x%,apellidos.ilike.%x%,codigo_tecnico.ilike.%x%').limit(8)` (o `clientes` según source). Se omite la búsqueda si el texto coincide exactamente con la última selección (evita reabrir el popover tras autorrelleno).
+- Cada item: línea 1 `Nombre Apellidos` · línea 2 (muted): código + email/obras / o CIF + ciudad.
 
--- Índice único parcial (ignora cadenas vacías históricas)
-CREATE UNIQUE INDEX IF NOT EXISTS tecnicos_codigo_unique
-  ON public.tecnicos (codigo_tecnico)
-  WHERE codigo_tecnico <> '';
+`src/hooks/useAutocompletePersonas.ts` (helper opcional)
+- Encapsula el query con React Query (`['ac-personas', source, q]`, `staleTime: 30s`).
 
--- Avanzar las secuencias para que el siguiente nextval no choque con backfill
-SELECT setval('public.tecnicos_codigo_tec_seq',
-  GREATEST(1, (SELECT COALESCE(MAX(NULLIF(regexp_replace(codigo_tecnico, '\D','','g'),''))::int, 0)
-               FROM public.tecnicos WHERE codigo_tecnico LIKE 'TEC-%')));
-SELECT setval('public.tecnicos_codigo_coord_seq',
-  GREATEST(1, (SELECT COALESCE(MAX(NULLIF(regexp_replace(codigo_tecnico, '\D','','g'),''))::int, 0)
-               FROM public.tecnicos WHERE codigo_tecnico LIKE 'COORD-%')));
-```
+## Integración en los formularios
 
-### 2. `src/pages/AdminTecnicos.tsx`
+En cada formulario, se sustituye el `Input` por `AutocompleteNombre` en los campos de nombre, y se añade un handler que rellena el resto de campos del bloque con los datos del registro elegido. El usuario podrá modificar después cualquier valor.
 
-- **Quitar** el input editable "Código de técnico" del diálogo de creación. Lo reemplaza un texto informativo: *"Se generará automáticamente al guardar (TEC-XXXX / COORD-XXXX)."*
-- En **edición**, el campo se muestra como **solo lectura** (no se puede modificar).
-- Al guardar (insert), no enviar `codigo_tecnico` (lo asigna el trigger). Tras crear, refrescar para mostrar el código generado y mostrar `toast.success` con el código asignado: *"Creado con código TEC-0007"*.
-- En el listado y la ficha (`Eye`), seguir mostrando el código tal cual.
+### `FormInforme.tsx`
+- Campo: **Nombre del técnico** → `source='tecnico'`. Al seleccionar:
+  - `nombre_tecnico` ← `nombre + apellidos`
+  - (no hay más campos en este form, pero se guarda el `tecnico_id` en `datos_extra.tecnico_id` para futuras consultas).
 
-### 3. Aviso de duplicado en asignación de obras
+### `FormActaNombramiento.tsx`
+- **Nombre y apellidos (Coordinador/a)** → `source='coordinador'`. Rellena: `dni`, `titulacion`/`num_colegiado` → `titulacion_colegiado`, `empresa` → `empresa_coordinacion`, `cif_empresa`, `direccion` → `domicilio_empresa`, `movil`, `email`.
+- **Nombre / Razón Social (Promotor)** → `source='cliente'`. Rellena: `cif_promotor`, `domicilio_promotor` ← `ciudad`.
 
-En el mismo diálogo (sección "Obras asignadas"), al marcar una obra que ya está vinculada a otro técnico/coordinador del mismo `tipo`:
+### `FormActaAprobacion.tsx`
+- **Promotor** → `source='cliente'`.
+- **Autor del Proyecto / Coord. SS Proyecto / Autor Estudio SS / Director de obra / Coord. SS Obra / Coord. actividades empresariales** → `source='persona'` (sin filtro por tipo). Solo rellena el texto del campo (son cadenas libres en `datos_extra`); incluye apellidos cuando existan.
 
-- Junto a esa obra, mostrar un badge ámbar pequeño: *"Ya asignada a: Juan Pérez"*.
-- No bloquea el guardado. Cuando varios marcan la misma obra, todos quedan vinculados.
-- También aplica en `src/pages/AdminObras.tsx` (sección de asignación de técnicos en el alta de obra): badge ámbar en los técnicos que ya están en otra obra... no, ahí no aplica (la regla es por obra). Se omite.
+### `FormActaReunion.tsx`
+- **Promotor** → `source='cliente'`.
+- En el sub-formulario "Añadir asistente" (`nuevoAsistente.nombre`) → `source='persona'`. Rellena `apellidos`, `cargo` (titulación), `empresa`, `dni_nie` ← `dni`.
 
 ## Detalles técnicos
 
-- El trigger es `BEFORE INSERT` y solo asigna si el campo viene vacío, así no rompe inserts existentes ni el backfill.
-- Las secuencias son por tipo, así los `TEC-` y `COORD-` no comparten contador.
-- El índice es parcial (`WHERE codigo_tecnico <> ''`) para tolerar registros antiguos sin código durante el backfill, aunque el backfill rellena todos.
-- RLS: no cambia. `tecnicos` ya tiene "Admins can manage tecnicos" y SELECT abierto a authenticated.
-- No se toca `tecnicos.tipo` ni `tecnicos_obras` (el "perfil doble" y la "vista de coordinador para vincular obras" quedan fuera de este cambio, según tu selección).
+- Consulta tipo (técnicos):
+  ```ts
+  let q = supabase.from('tecnicos')
+    .select('id, nombre, apellidos, codigo_tecnico, email, dni, titulacion, num_colegiado, empresa, cif_empresa, direccion, movil, telefono, tipo')
+    .limit(8);
+  if (source === 'coordinador') q = q.eq('tipo', 'coordinador');
+  if (source === 'tecnico') q = q.eq('tipo', 'tecnico');
+  q = q.or(`nombre.ilike.%${esc}%,apellidos.ilike.%${esc}%,codigo_tecnico.ilike.%${esc}%,email.ilike.%${esc}%`);
+  ```
+  Escapado básico de `%` y `,` en `esc`.
+- Consulta clientes:
+  ```ts
+  supabase.from('clientes').select('id, nombre, cif, ciudad, email, telefono')
+    .or(`nombre.ilike.%${esc}%,cif.ilike.%${esc}%`).limit(8);
+  ```
+- Para mostrar "obras asignadas" en la sugerencia de un técnico, se hace un segundo lote ligero: `supabase.from('tecnicos_obras').select('tecnico_id').in('tecnico_id', ids)` y se cuenta; cacheado por React Query.
+- El popover se cierra al seleccionar, al perder foco, o con `Esc`. No bloquea la escritura libre (si el usuario escribe un nombre que no existe, simplemente no selecciona ninguna sugerencia y el valor queda como texto).
+- Accesibilidad: navegación con flechas y `Enter`, `aria-autocomplete="list"`.
 
-## Lo que NO se incluye
+## Archivos a modificar / crear
 
-- Perfil doble (mismo usuario actuando como técnico en una obra y coordinador en otra).
-- Pantalla específica de coordinador para autovincular obras.
-- Bloqueo de asignación múltiple por obra.
+- **Crear**: `src/components/documentos/AutocompleteNombre.tsx`
+- **Crear**: `src/hooks/useAutocompletePersonas.ts`
+- **Editar**: `src/components/documentos/formularios/FormInforme.tsx`
+- **Editar**: `src/components/documentos/formularios/FormActaNombramiento.tsx`
+- **Editar**: `src/components/documentos/formularios/FormActaAprobacion.tsx`
+- **Editar**: `src/components/documentos/formularios/FormActaReunion.tsx`
 
-Si más adelante quieres alguno de estos puntos, abrimos un plan aparte: el de "perfil doble" requiere mover el `tipo` a `tecnicos_obras` y es un refactor más amplio.
-
-## Resultado esperado
-
-1. Crear un nuevo técnico → al guardar aparece `TEC-0008` (o el siguiente). Crear coordinador → `COORD-0003`. No se puede editar a mano.
-2. Editar un técnico ya existente → su código se ve en gris, no editable.
-3. Al asignar obras, si marcas una que ya tiene otro técnico del mismo rol, ves "Ya asignada a: Nombre"; puedes guardar igual.
+Sin cambios de BD, sin nuevas dependencias.
