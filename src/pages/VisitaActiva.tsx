@@ -99,6 +99,7 @@ export default function VisitaActiva() {
   const isAdminMode = location.pathname.startsWith('/admin/');
 
   const [informeId, setInformeId] = useState<string | null>(null);
+  const [datosGeneralesCompletos, setDatosGeneralesCompletos] = useState(false);
   const [obraNombre, setObraNombre] = useState('');
   const [obraLat, setObraLat] = useState<number | null>(null);
   const [obraLng, setObraLng] = useState<number | null>(null);
