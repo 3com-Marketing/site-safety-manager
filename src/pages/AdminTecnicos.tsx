@@ -116,23 +116,26 @@ export default function AdminTecnicos() {
   };
 
   const handleSave = async () => {
-    const payload: any = {
+    // codigo_tecnico se autogenera en el INSERT (trigger DB) y no se modifica en UPDATE
+    const basePayload: any = {
       nombre: form.nombre, apellidos: form.apellidos, dni: form.dni,
       direccion: form.direccion, telefono: form.telefono, movil: form.movil,
-      email: form.email, codigo_tecnico: form.codigo_tecnico,
+      email: form.email,
       titulacion: form.titulacion, num_colegiado: form.num_colegiado,
       empresa: form.empresa, cif_empresa: form.cif_empresa,
       notas: form.notas, user_id: form.user_id || null, tipo: form.tipo,
     };
 
     let tecnicoId = editId;
+    let codigoGenerado: string | null = null;
     if (editId) {
-      const { error } = await supabase.from('tecnicos').update(payload).eq('id', editId);
+      const { error } = await supabase.from('tecnicos').update(basePayload).eq('id', editId);
       if (error) { toast.error('Error al actualizar'); return; }
     } else {
-      const { data, error } = await supabase.from('tecnicos').insert(payload).select('id').single();
+      const { data, error } = await supabase.from('tecnicos').insert(basePayload).select('id, codigo_tecnico').single();
       if (error || !data) { toast.error('Error al crear'); return; }
       tecnicoId = data.id;
+      codigoGenerado = (data as any).codigo_tecnico || null;
     }
 
     await supabase.from('tecnicos_obras').delete().eq('tecnico_id', tecnicoId!);
