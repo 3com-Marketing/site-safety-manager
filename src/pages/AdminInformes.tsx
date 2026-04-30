@@ -517,6 +517,19 @@ export default function AdminInformes() {
           </div>
 
           <select
+            value={tecnicoFilter}
+            onChange={(e) => { setTecnicoFilter(e.target.value); setActiveKpi(null); }}
+            className={tecnicoSelectClass}
+          >
+            <option value="todos">Todos los técnicos</option>
+            {tecnicos.map(t => (
+              <option key={t.id} value={t.id}>
+                {t.nombre}{t.apellidos ? ` ${t.apellidos}` : ''}
+              </option>
+            ))}
+          </select>
+
+          <select
             value={obraFilter}
             onChange={(e) => { setObraFilter(e.target.value); setActiveKpi(null); }}
             className={obraSelectClass}
