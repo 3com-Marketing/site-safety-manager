@@ -129,7 +129,7 @@ export default function AdminInformes() {
 
   useEffect(() => {
     const fetchAll = async () => {
-      const [informesRes, visitasRes, docsRes] = await Promise.all([
+      const [informesRes, visitasRes, docsRes, tecnicosRes, tecObrasRes] = await Promise.all([
         supabase
           .from('informes')
           .select('id, estado, fecha, visita_id, visitas(obra_id, obras(nombre), profiles!visitas_usuario_id_profiles_fkey(nombre))')
@@ -140,7 +140,17 @@ export default function AdminInformes() {
           .order('fecha', { ascending: false })
           .limit(100),
         supabase.from('documentos_obra').select('obra_id, tipo, estado'),
+        supabase.from('tecnicos').select('id, nombre, apellidos').order('nombre'),
+        supabase.from('tecnicos_obras').select('tecnico_id, obra_id'),
       ]);
+
+      setTecnicos((tecnicosRes.data || []) as any);
+      const tMap: Record<string, Set<string>> = {};
+      (tecObrasRes.data || []).forEach((row: any) => {
+        if (!tMap[row.tecnico_id]) tMap[row.tecnico_id] = new Set();
+        tMap[row.tecnico_id].add(row.obra_id);
+      });
+      setTecnicoObrasMap(tMap);
 
       const docsByObra: Record<string, { tipo: string; estado: string }[]> = {};
       (docsRes.data || []).forEach((d: any) => {
