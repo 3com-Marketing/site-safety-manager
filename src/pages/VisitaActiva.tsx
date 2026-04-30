@@ -502,7 +502,7 @@ export default function VisitaActiva() {
         )}
 
         {view.type === 'step' && view.stepId === 'datos_generales' && informeId && (
-          <SeccionDatosGenerales informeId={informeId} onBack={handleBack} />
+          <SeccionDatosGenerales informeId={informeId} onBack={handleBack} onSaved={fetchData} />
         )}
 
         {view.type === 'step' && view.stepId.startsWith('bloque_') && currentBloque && (
