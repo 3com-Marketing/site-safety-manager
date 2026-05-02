@@ -504,7 +504,7 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
 
         <Button variant="ghost" size="sm" onClick={() => setShowSigns(!showSigns)} className="h-8 text-xs gap-1 px-2">
           🚧 <span className="hidden sm:inline">Señales</span>
-          {!isMobile && (showSigns ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />)}
+          {!isTabletOrBelow && (showSigns ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />)}
         </Button>
 
         <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0 text-white hover:text-white">
