@@ -62,12 +62,16 @@ export default function AdminSenales() {
           <TabsList>
             <TabsTrigger value="categorias">Categorías</TabsTrigger>
             <TabsTrigger value="senales">Señales</TabsTrigger>
+            <TabsTrigger value="importar">Importar</TabsTrigger>
           </TabsList>
           <TabsContent value="categorias" className="mt-4">
             <CategoriasManager />
           </TabsContent>
           <TabsContent value="senales" className="mt-4">
             <SenalesManager />
+          </TabsContent>
+          <TabsContent value="importar" className="mt-4">
+            <ImportarRepositorio />
           </TabsContent>
         </Tabs>
       </div>
