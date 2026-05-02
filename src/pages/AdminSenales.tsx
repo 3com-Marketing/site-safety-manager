@@ -15,13 +15,14 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Pencil, Trash2, ChevronUp, ChevronDown, Upload, TrafficCone } from 'lucide-react';
+import { Plus, Pencil, Trash2, ChevronUp, ChevronDown, Upload, TrafficCone, ImageOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useSignoCategorias, useSignosObra,
   type SignoCategoria, type SignoObraDB,
 } from '@/hooks/useSignosObra';
+import ImportarRepositorio from '@/components/admin/senales/ImportarRepositorio';
 
 export default function AdminSenales() {
   const { user, roles, loading: authLoading } = useAuth();
