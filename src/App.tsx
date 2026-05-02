@@ -55,6 +55,7 @@ const App = () => (
             <Route path="/documento/:id" element={<TechDocumentoDetalle />} />
             <Route path="/admin/configuracion" element={<AdminConfiguracion />} />
             <Route path="/admin/calendario" element={<AdminCalendario />} />
+            <Route path="/admin/senales" element={<AdminSenales />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           </ErrorBoundary>
