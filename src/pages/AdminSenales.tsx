@@ -15,13 +15,14 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Pencil, Trash2, ChevronUp, ChevronDown, Upload, TrafficCone } from 'lucide-react';
+import { Plus, Pencil, Trash2, ChevronUp, ChevronDown, Upload, TrafficCone, ImageOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useSignoCategorias, useSignosObra,
   type SignoCategoria, type SignoObraDB,
 } from '@/hooks/useSignosObra';
+import ImportarRepositorio from '@/components/admin/senales/ImportarRepositorio';
 
 export default function AdminSenales() {
   const { user, roles, loading: authLoading } = useAuth();
@@ -61,12 +62,16 @@ export default function AdminSenales() {
           <TabsList>
             <TabsTrigger value="categorias">Categorías</TabsTrigger>
             <TabsTrigger value="senales">Señales</TabsTrigger>
+            <TabsTrigger value="importar">Importar</TabsTrigger>
           </TabsList>
           <TabsContent value="categorias" className="mt-4">
             <CategoriasManager />
           </TabsContent>
           <TabsContent value="senales" className="mt-4">
             <SenalesManager />
+          </TabsContent>
+          <TabsContent value="importar" className="mt-4">
+            <ImportarRepositorio />
           </TabsContent>
         </Tabs>
       </div>
@@ -432,7 +437,9 @@ function SenalesManager() {
 
   const senalesFiltradas = filtroCat === 'todas'
     ? signos
-    : signos.filter(s => s.categoria_id === filtroCat);
+    : filtroCat === '__sin_imagen__'
+      ? signos.filter(s => !s.imagen_url)
+      : signos.filter(s => s.categoria_id === filtroCat);
 
   const sortedSenales = [...senalesFiltradas].sort((a, b) => a.orden - b.orden);
 
@@ -444,6 +451,7 @@ function SenalesManager() {
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todas">Todas las categorías</SelectItem>
+              <SelectItem value="__sin_imagen__">⚠ Sin imagen (pendientes)</SelectItem>
               {categorias.map(c => (
                 <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>
               ))}
@@ -465,7 +473,14 @@ function SenalesManager() {
               <Card key={s.id} className={!s.activa ? 'opacity-60' : ''}>
                 <CardContent className="p-3 space-y-2">
                   <div className="aspect-square bg-muted rounded-md flex items-center justify-center overflow-hidden">
-                    <img src={s.imagen_url} alt={s.nombre} className="w-20 h-20 object-contain" />
+                    {s.imagen_url ? (
+                      <img src={s.imagen_url} alt={s.nombre} className="w-20 h-20 object-contain" />
+                    ) : (
+                      <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                        <ImageOff className="h-6 w-6" />
+                        <span className="text-[10px]">Sin imagen</span>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <p className="text-sm font-medium truncate">{s.nombre}</p>
