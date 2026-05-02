@@ -1,103 +1,71 @@
-# Importación de repositorio de señales (JSON + imágenes masivas)
+## Objetivo
 
-Se añade un flujo en dos pasos en **Admin → Repositorio de señales**:
+Mejorar la usabilidad del panel lateral "Señales de obra" del editor de fotos sin tocar nada de las herramientas de dibujo, deshacer/rehacer, eliminar ni guardar. Solo se modifica el panel de señales y su layout.
 
-1. **Importar JSON** → crea categorías y señales (sin imagen aún), guardando el nombre del archivo original como referencia para el emparejamiento posterior.
-2. **Importar imágenes en lote** → el admin selecciona muchas imágenes a la vez; el sistema las empareja automáticamente con las señales por nombre de archivo, sube las emparejadas a Storage y muestra una bandeja "Sin emparejar" con asignación manual.
+## Cambios
 
-Las funciones existentes (crear, editar, eliminar, toggle, gestión de categorías, editor de fotos) **no cambian**.
+### 1. Panel desktop más ancho y mejor distribuido (`FotoEditor.tsx`)
 
----
+- Ampliar el panel lateral de `w-48` (192px) a `w-72` (288px) en desktop, y a `w-80` (320px) en pantallas grandes (`lg:w-80`).
+- Ajustar `getCanvasSize()` para usar el nuevo ancho cuando el panel está abierto (288/320 en lugar de 192).
+- Cambiar la cuadrícula de señales de `grid-cols-3` a `grid-cols-3` con celdas más grandes (imagen 14×14 en vez de 10×10, texto a `text-[11px]`) para que se lean bien.
+- Sustituir los chips de categoría horizontales por una **lista vertical de categorías estilo "pestañas verticales"** en una columna estrecha a la izquierda del panel (≈ 90px), y la cuadrícula de señales ocupa el resto. Cada categoría es un botón apilado con scroll vertical si hay muchas. Esto da más espacio útil que los chips horizontales actuales.
+- Añadir al principio de la lista de categorías una opción **"Todas"** (icono `LayoutGrid`) que cuando está seleccionada agrupa las señales por categoría con un encabezado sticky por grupo y permite scroll vertical continuo por todo el repositorio.
+- El contenedor de la cuadrícula usa `overflow-y-auto` con `max-h` calculado por flex para garantizar scroll vertical fluido.
+- Añadir un buscador opcional arriba (input pequeño) que filtra por `nombre` dentro de la categoría seleccionada o en "Todas". Mejora drásticamente el descubrimiento cuando hay decenas de señales.
 
-## 1. Cambio de base de datos
-
-Añadir una columna a `signos_obra` para conservar el nombre original del archivo del JSON; es la clave para el emparejamiento automático y para reasignar imágenes más tarde.
-
-```sql
-ALTER TABLE public.signos_obra
-  ADD COLUMN archivo_original text;
-
-CREATE INDEX idx_signos_obra_archivo_original
-  ON public.signos_obra (lower(archivo_original));
-```
-
-Sin valor por defecto: las señales existentes (seed inicial) se quedan en `NULL`, lo cual es correcto.
-
----
-
-## 2. Nueva pestaña "Importar" en `AdminSenales.tsx`
-
-Pestaña adicional junto a "Categorías" y "Señales", con dos bloques:
-
-### 2.1 Importar JSON
-
-- `Textarea` o `<input type="file" accept=".json">` para pegar/cargar el JSON.
-- Validación del esquema: `categorias[]` con `nombre/orden/activa`, `señales[]` con `nombre/categoria_id/archivo_original/activa`. Tolerar el campo `pendientes_de_revision` (se ignora silenciosamente).
-- **Vista previa** antes de importar: tabla con N categorías y M señales, marcando cuáles ya existen (por nombre, case-insensitive) — esas se omiten.
-- Al confirmar:
-  - Insertar categorías nuevas (las existentes por nombre se reutilizan; obtener su `id` real de la BD).
-  - Construir mapa `categoria_id_json → categoria_id_uuid`.
-  - Insertar señales con `imagen_url = ''` (placeholder), `archivo_original`, `activa`, y `categoria_id` mapeado. Las que ya existan por `nombre` (case-insensitive) se omiten.
-  - **Marcadas como inactivas automáticamente** mientras `imagen_url` esté vacío, para que no aparezcan rotas en el editor del técnico hasta tener imagen.
-- Toast con resumen: `X categorías creadas, Y señales creadas, Z omitidas`.
-
-### 2.2 Importar imágenes en lote
-
-- `<input type="file" multiple accept="image/*">` (PNG/JPG/SVG/GIF/WEBP).
-- Al seleccionar archivos, sin subir aún, mostrar un panel con tres listas:
-  - **Emparejadas automáticamente** (verde): coincidencia exacta `archivo_original` ↔ `file.name` (case-insensitive, normalizando espacios/guiones), o coincidencia única tras normalización agresiva (quitar acentos, espacios → `_`, etc.).
-  - **Sin emparejar** (ámbar): mostrar el nombre del archivo + `Select` para asignar manualmente a una señal existente (filtrable). Opción "Omitir".
-  - **Conflicto** (rojo): mismo nombre coincide con varias señales — `Select` para elegir.
-- Botón **"Subir y emparejar (N)"**:
-  - Para cada par (señal → archivo): subir a `signos-obra/{senal_id}/{timestamp}_{nombre}.{ext}`, obtener `publicUrl`, `UPDATE signos_obra SET imagen_url = ..., activa = true WHERE id = ...`.
-  - Barra de progreso simple (`X / N`).
-  - Si la señal ya tenía imagen previa de Storage, se sustituye y el archivo viejo se elimina del bucket (igual que en el flujo individual existente).
-- Toast resumen: `N emparejadas, M sin asignar`.
-
-Tras la importación, la pestaña "Señales" muestra todo automáticamente (React Query invalidate).
-
-### 2.3 Bandeja "Sin emparejar" persistente
-
-En la pestaña **Señales**, añadir un filtro rápido **"Sin imagen"** (`imagen_url = '' OR NULL`) para que el admin pueda subir manualmente las que se quedaron pendientes en cualquier momento desde el botón de edición existente, sin necesidad de relanzar la importación masiva.
-
----
-
-## 3. Lógica de emparejamiento
+Estructura desktop resultante:
 
 ```text
-normalize(name) = lowercase
-                  → quitar extensión
-                  → quitar acentos (NFD + remove combining marks)
-                  → reemplazar [espacios, _, -] por '-'
-                  → colapsar guiones repetidos
++--------+-----------------------------+
+| Cat A  |  [buscar...]                |
+| Cat B  |  ┌──┐ ┌──┐ ┌──┐             |
+| Cat C  |  │  │ │  │ │  │   scroll ↕  |
+| Todas  |  └──┘ └──┘ └──┘             |
+| ...    |  ...                        |
++--------+-----------------------------+
 ```
 
-Coincidencia: `normalize(file.name) === normalize(senal.archivo_original)`.
+### 2. Modo "Todas" (vista agrupada con scroll vertical)
 
-Si hay >1 candidato → conflicto. Si 0 → sin emparejar.
+- Cuando `selectedCatId === '__all__'`, en lugar de filtrar por categoría se renderiza una lista vertical de secciones, una por categoría activa, cada una con su título sticky (`sticky top-0 bg-card z-10`) y debajo la cuadrícula de señales de esa categoría.
+- Funciona igual en desktop, tablet y móvil.
 
----
+### 3. Responsive tablet (nuevo breakpoint)
 
-## 4. Archivos
+Actualmente `useIsMobile` solo distingue <768px (móvil) vs resto (desktop). En tablet (768–1024px) el panel lateral de 288px deja muy poco canvas.
 
-**Modificar**
-- `src/pages/AdminSenales.tsx` — nueva pestaña "Importar" con dos secciones.
-- `src/hooks/useSignosObra.ts` — añadir `archivo_original` al tipo `SignoObraDB`.
+- Añadir un hook ligero `useIsTabletOrMobile` (o reutilizar `useIsMobile` con un segundo breakpoint local en `FotoEditor`) que detecte `< 1024px`.
+- En ese rango, el panel de señales se abre como **bottom sheet a pantalla casi completa** (`h-[85vh]`), no como panel lateral. Así el canvas queda íntegro detrás y el panel es totalmente usable a pulgar.
+- En el bottom sheet se aplica el mismo layout nuevo: columna izquierda de categorías (más estrecha, `w-20`), cuadrícula a la derecha con scroll vertical, opción "Todas" y buscador. En móviles muy estrechos (<480px) las categorías se colapsan a un `Select` desplegable arriba para no robar espacio.
 
-**Crear**
-- `src/components/admin/senales/ImportarRepositorio.tsx` — toda la lógica de importación (JSON + imágenes).
-- `src/lib/signosMatching.ts` — helper `normalize()` y `matchFiles()` (testeable).
-- Migración SQL en `supabase/migrations/` para añadir la columna y el índice.
+### 4. Botones táctiles más grandes
 
-**No se modifica**
-- `FotoEditor.tsx`, gestión de categorías/señales existente, `App.tsx`, `AdminLayout.tsx`.
+- Botones de categoría: `min-h-11` (44px) en móvil/tablet siguiendo la guía de UX táctil del proyecto.
+- Botones de señal: padding `p-2`, área táctil ≥ 56×56.
+- Al pulsar una señal en móvil/tablet el sheet se cierra (ya existe ese comportamiento, se mantiene); en desktop el panel permanece abierto.
 
----
+### 5. Lo que NO se toca
 
-## Detalles técnicos
+- Toolbar de herramientas (`TOOLS`, `COLORS`, `STROKE_WIDTHS`).
+- Lógica de dibujo (`onMouseDown/Move/Up`, `path:created`).
+- `undo`, `redo`, `deleteSelected`, listener de teclado.
+- `addSign` (carga de SVG/raster).
+- `handleSave` y subida a `incidencia-fotos`.
+- Hooks `useSignoCategorias`, `useSignosObra` y la BD.
 
-- El JSON pegado se procesa client-side; los inserts a Supabase van por lotes (`.insert([...])`) en una sola llamada por tabla.
-- Las señales sin imagen se insertan con `activa = false` para evitar tarjetas rotas en el editor del técnico; al subir su imagen pasan a `activa = true` automáticamente (a menos que el admin las desactive manualmente luego).
-- La normalización de nombres se prueba contra los 71 ejemplos del JSON: variantes como `"desvio_provisional-removebg-preview (1).png"` y `"barandilla_tipo_ayto.-removebg-preview (1).png"` quedan emparejables si el archivo subido tiene el mismo nombre exacto. Variaciones (renombrados manualmente) caen a "Sin emparejar" para asignación a mano.
-- El bucket `signos-obra` ya existe y es público (creado en la migración previa). No se requieren cambios de Storage ni RLS.
-- Reimportar el mismo JSON es seguro: se omiten duplicados por nombre.
+## Detalle técnico
+
+Archivos a modificar:
+
+- `src/components/visita/FotoEditor.tsx`
+  - Reemplazar el bloque del panel desktop (líneas ~511–560) y del bottom sheet móvil (líneas ~563–613) por el nuevo layout descrito.
+  - Actualizar `getCanvasSize()` para el nuevo ancho.
+  - Añadir estado local `query` (string) para el buscador y constante `ALL_ID = '__all__'`.
+  - Añadir un breakpoint `useIsTabletOrMobile` derivado de `window.matchMedia('(max-width: 1023px)')` (mismo patrón que `use-mobile.tsx`) o inline con un `useEffect`.
+
+Archivos nuevos (opcional, recomendado):
+
+- `src/hooks/use-tablet.tsx` con `useIsTabletOrBelow()` siguiendo el patrón de `use-mobile.tsx`.
+
+Sin migraciones de base de datos, sin cambios en otras pantallas.
