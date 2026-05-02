@@ -24,27 +24,17 @@ import {
 } from '@/hooks/useSignosObra';
 
 export default function AdminSenales() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, roles, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const isAdmin = roles?.includes('admin' as any);
 
   useEffect(() => {
     if (authLoading) return;
     if (!user) { navigate('/login'); return; }
-    (async () => {
-      const { data } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('role', 'admin')
-        .maybeSingle();
-      const ok = !!data;
-      setIsAdmin(ok);
-      if (!ok) navigate('/');
-    })();
-  }, [user, authLoading, navigate]);
+    if (!isAdmin) navigate('/');
+  }, [user, authLoading, isAdmin, navigate]);
 
-  if (isAdmin !== true) {
+  if (authLoading || !isAdmin) {
     return (
       <AdminLayout>
         <div className="p-6 text-sm text-muted-foreground">Comprobando permisos…</div>
