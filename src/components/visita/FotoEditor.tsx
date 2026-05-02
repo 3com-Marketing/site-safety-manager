@@ -314,20 +314,48 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
     };
   }, [tool, color, strokeWidth, saveHistory]);
 
-  const addSign = async (signo: SignoObra) => {
+  const addSign = async (signo: SignoObraDB) => {
     const c = fabricRef.current;
     if (!c) return;
     try {
-      const result = await fabric.loadSVGFromString(signo.svg);
-      const group = fabric.util.groupSVGElements(result.objects.filter(Boolean) as fabric.FabricObject[], result.options);
-      group.scaleToWidth(60);
-      group.set({ left: c.getWidth() / 2 - 30, top: c.getHeight() / 2 - 30 });
-      c.add(group);
-      c.setActiveObject(group);
+      const url = signo.imagen_url;
+      const isSvg =
+        url.startsWith('data:image/svg+xml') ||
+        /\.svg(\?|$)/i.test(url);
+
+      if (isSvg) {
+        // Load SVG as text and convert to fabric group
+        let svgText: string;
+        if (url.startsWith('data:image/svg+xml;base64,')) {
+          svgText = atob(url.split(',')[1]);
+        } else if (url.startsWith('data:image/svg+xml')) {
+          svgText = decodeURIComponent(url.split(',')[1]);
+        } else {
+          const resp = await fetch(url);
+          svgText = await resp.text();
+        }
+        const result = await fabric.loadSVGFromString(svgText);
+        const group = fabric.util.groupSVGElements(
+          result.objects.filter(Boolean) as fabric.FabricObject[],
+          result.options,
+        );
+        group.scaleToWidth(60);
+        group.set({ left: c.getWidth() / 2 - 30, top: c.getHeight() / 2 - 30 });
+        c.add(group);
+        c.setActiveObject(group);
+      } else {
+        // Raster image (PNG/JPG/WebP)
+        const img = await fabric.FabricImage.fromURL(url, { crossOrigin: 'anonymous' });
+        img.scaleToWidth(60);
+        img.set({ left: c.getWidth() / 2 - 30, top: c.getHeight() / 2 - 30 });
+        c.add(img);
+        c.setActiveObject(img);
+      }
       c.renderAll();
       saveHistory(c);
     } catch (err) {
-      console.error('Error loading sign SVG:', err);
+      console.error('Error loading sign:', err);
+      toast.error('No se pudo añadir la señal');
     }
   };
 
