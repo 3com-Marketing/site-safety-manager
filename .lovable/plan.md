@@ -1,107 +1,103 @@
-# Repositorio dinámico de señales de obra
+# Importación de repositorio de señales (JSON + imágenes masivas)
 
-Sustituir las señales hardcodeadas (`src/components/visita/editorSignos.ts`) por un sistema gestionable desde el panel de administración, con categorías editables, imágenes subidas por la empresa y filtrado en el panel lateral del editor de fotos.
+Se añade un flujo en dos pasos en **Admin → Repositorio de señales**:
 
-**Lo que NO cambia**: herramientas de dibujo, colores, grosor, deshacer/rehacer, eliminar, guardar, y todo el flujo de edición. Solo se modifica el panel lateral derecho "Señales de obra".
+1. **Importar JSON** → crea categorías y señales (sin imagen aún), guardando el nombre del archivo original como referencia para el emparejamiento posterior.
+2. **Importar imágenes en lote** → el admin selecciona muchas imágenes a la vez; el sistema las empareja automáticamente con las señales por nombre de archivo, sube las emparejadas a Storage y muestra una bandeja "Sin emparejar" con asignación manual.
 
----
-
-## 1. Base de datos (migración)
-
-**Tabla `signo_categorias`**
-- `id` uuid PK · `nombre` text · `orden` int default 0 · `activa` bool default true · `created_at` timestamptz
-
-**Tabla `signos_obra`**
-- `id` uuid PK · `nombre` text · `categoria_id` uuid FK → `signo_categorias(id)` ON DELETE RESTRICT · `imagen_url` text · `activa` bool default true · `orden` int default 0 · `created_at` timestamptz
-
-**RLS**:
-- SELECT: cualquier usuario autenticado (técnicos y admin pueden ver/usar).
-- INSERT/UPDATE/DELETE: solo `has_role(auth.uid(), 'admin')`.
-
-**Storage**: nuevo bucket público `signos-obra` para las imágenes (PNG/SVG/JPG). Política: lectura pública; escritura solo admin.
-
-**Seed inicial**: insertar las 4 categorías actuales (Prohibición, Obligación, Advertencia, Emergencia) y las 16 señales existentes — pero las imágenes seed serán los SVG actuales convertidos a `data:image/svg+xml;base64,...` almacenados en `imagen_url` para no perder el estado actual mientras la empresa sube las suyas. Esto evita una migración de archivos a Storage en el momento del cambio.
+Las funciones existentes (crear, editar, eliminar, toggle, gestión de categorías, editor de fotos) **no cambian**.
 
 ---
 
-## 2. Panel lateral del editor de fotos
+## 1. Cambio de base de datos
 
-Modificar `src/components/visita/FotoEditor.tsx`:
+Añadir una columna a `signos_obra` para conservar el nombre original del archivo del JSON; es la clave para el emparejamiento automático y para reasignar imágenes más tarde.
 
-- Eliminar el import de `SIGNOS_OBRA` y reemplazar por una consulta con React Query a `signo_categorias` + `signos_obra` (solo `activa=true`, ordenadas por `orden`).
-- Encima del grid, añadir un **selector de categorías** (tabs horizontales con `ScrollArea`; en móvil, un `Select` compacto). Construido dinámicamente desde la BD.
-- Por defecto, seleccionar la primera categoría activa.
-- El grid muestra solo señales de la categoría activa.
-- Si la categoría no tiene señales activas: mensaje neutro "No hay señales en esta categoría".
-- La función `addSign` se adapta para aceptar una señal con `imagen_url` en lugar de SVG inline:
-  - Si la URL es SVG (extensión `.svg` o `data:image/svg+xml`): cargarla como texto y usar `fabric.loadSVGFromString` (mantiene el comportamiento actual).
-  - Si es raster (PNG/JPG): usar `fabric.FabricImage.fromURL(url, { crossOrigin: 'anonymous' })`, escalar a ~60px de ancho, centrar y `saveHistory` igual que ahora.
-- Mismo comportamiento en escritorio (panel lateral) y móvil (`Sheet` inferior).
-- **Sin cambios** en el resto del editor.
+```sql
+ALTER TABLE public.signos_obra
+  ADD COLUMN archivo_original text;
 
-Eliminar el archivo `src/components/visita/editorSignos.ts` una vez migrado el seed.
+CREATE INDEX idx_signos_obra_archivo_original
+  ON public.signos_obra (lower(archivo_original));
+```
+
+Sin valor por defecto: las señales existentes (seed inicial) se quedan en `NULL`, lo cual es correcto.
 
 ---
 
-## 3. Sección admin "Repositorio de señales"
+## 2. Nueva pestaña "Importar" en `AdminSenales.tsx`
 
-**Nueva ruta**: `/admin/senales` → `src/pages/AdminSenales.tsx`. Añadir entrada en `AdminLayout.tsx` (icono `TrafficCone` o `Construction`) entre "Documentos" y "Configuración".
+Pestaña adicional junto a "Categorías" y "Señales", con dos bloques:
 
-Página con dos pestañas (`Tabs` de shadcn): **Categorías** y **Señales**.
+### 2.1 Importar JSON
 
-### Pestaña "Categorías"
-Tabla/listado con drag-and-drop de orden (usar `@dnd-kit/core` ya instalado; si no, `@hello-pangea/dnd` — verificar antes; alternativa simple: campos numéricos de orden con botones ↑/↓ para no añadir dependencias).
-- Crear categoría (nombre + orden + activa).
-- Renombrar inline.
-- Toggle activa/inactiva (`Switch`).
-- Eliminar:
-  - Si no tiene señales asociadas → eliminar directo (con confirmación).
-  - Si tiene señales → diálogo: "Esta categoría tiene N señales. ¿Qué deseas hacer?" con opciones: **Reasignar a otra categoría** (Select) o **Eliminar también las señales**. Acción atómica vía SQL.
+- `Textarea` o `<input type="file" accept=".json">` para pegar/cargar el JSON.
+- Validación del esquema: `categorias[]` con `nombre/orden/activa`, `señales[]` con `nombre/categoria_id/archivo_original/activa`. Tolerar el campo `pendientes_de_revision` (se ignora silenciosamente).
+- **Vista previa** antes de importar: tabla con N categorías y M señales, marcando cuáles ya existen (por nombre, case-insensitive) — esas se omiten.
+- Al confirmar:
+  - Insertar categorías nuevas (las existentes por nombre se reutilizan; obtener su `id` real de la BD).
+  - Construir mapa `categoria_id_json → categoria_id_uuid`.
+  - Insertar señales con `imagen_url = ''` (placeholder), `archivo_original`, `activa`, y `categoria_id` mapeado. Las que ya existan por `nombre` (case-insensitive) se omiten.
+  - **Marcadas como inactivas automáticamente** mientras `imagen_url` esté vacío, para que no aparezcan rotas en el editor del técnico hasta tener imagen.
+- Toast con resumen: `X categorías creadas, Y señales creadas, Z omitidas`.
 
-### Pestaña "Señales"
-Filtro por categoría arriba. Grid de tarjetas con miniatura, nombre, categoría, estado.
-- Botón "Subir señal": diálogo con `FileInput` (acepta PNG/SVG/JPG, máx 1MB), nombre y categoría. Sube a bucket `signos-obra` y crea registro.
-- Editar nombre/categoría/orden por señal (diálogo).
-- Toggle activa/inactiva.
-- Eliminar señal (con confirmación; también borra el archivo del bucket).
+### 2.2 Importar imágenes en lote
 
-**Acceso**: la página comprueba `has_role` admin al montar; si no, redirige a `/`. La ruta no aparece en el menú para no-admins.
+- `<input type="file" multiple accept="image/*">` (PNG/JPG/SVG/GIF/WEBP).
+- Al seleccionar archivos, sin subir aún, mostrar un panel con tres listas:
+  - **Emparejadas automáticamente** (verde): coincidencia exacta `archivo_original` ↔ `file.name` (case-insensitive, normalizando espacios/guiones), o coincidencia única tras normalización agresiva (quitar acentos, espacios → `_`, etc.).
+  - **Sin emparejar** (ámbar): mostrar el nombre del archivo + `Select` para asignar manualmente a una señal existente (filtrable). Opción "Omitir".
+  - **Conflicto** (rojo): mismo nombre coincide con varias señales — `Select` para elegir.
+- Botón **"Subir y emparejar (N)"**:
+  - Para cada par (señal → archivo): subir a `signos-obra/{senal_id}/{timestamp}_{nombre}.{ext}`, obtener `publicUrl`, `UPDATE signos_obra SET imagen_url = ..., activa = true WHERE id = ...`.
+  - Barra de progreso simple (`X / N`).
+  - Si la señal ya tenía imagen previa de Storage, se sustituye y el archivo viejo se elimina del bucket (igual que en el flujo individual existente).
+- Toast resumen: `N emparejadas, M sin asignar`.
+
+Tras la importación, la pestaña "Señales" muestra todo automáticamente (React Query invalidate).
+
+### 2.3 Bandeja "Sin emparejar" persistente
+
+En la pestaña **Señales**, añadir un filtro rápido **"Sin imagen"** (`imagen_url = '' OR NULL`) para que el admin pueda subir manualmente las que se quedaron pendientes en cualquier momento desde el botón de edición existente, sin necesidad de relanzar la importación masiva.
 
 ---
 
-## 4. Acceso por rol
+## 3. Lógica de emparejamiento
 
-- **Técnico**: `FotoEditor` lee las señales activas → puede usarlas. No ve la sección admin.
-- **Admin**: mismo editor de fotos + acceso completo a `/admin/senales`.
+```text
+normalize(name) = lowercase
+                  → quitar extensión
+                  → quitar acentos (NFD + remove combining marks)
+                  → reemplazar [espacios, _, -] por '-'
+                  → colapsar guiones repetidos
+```
 
-RLS de la BD garantiza la separación a nivel de servidor.
+Coincidencia: `normalize(file.name) === normalize(senal.archivo_original)`.
+
+Si hay >1 candidato → conflicto. Si 0 → sin emparejar.
+
+---
+
+## 4. Archivos
+
+**Modificar**
+- `src/pages/AdminSenales.tsx` — nueva pestaña "Importar" con dos secciones.
+- `src/hooks/useSignosObra.ts` — añadir `archivo_original` al tipo `SignoObraDB`.
+
+**Crear**
+- `src/components/admin/senales/ImportarRepositorio.tsx` — toda la lógica de importación (JSON + imágenes).
+- `src/lib/signosMatching.ts` — helper `normalize()` y `matchFiles()` (testeable).
+- Migración SQL en `supabase/migrations/` para añadir la columna y el índice.
+
+**No se modifica**
+- `FotoEditor.tsx`, gestión de categorías/señales existente, `App.tsx`, `AdminLayout.tsx`.
 
 ---
 
 ## Detalles técnicos
 
-- **Hook nuevo**: `src/hooks/useSignosObra.ts` — React Query para `categorias` y `signos`, con `staleTime: 5 min`. Reutilizado por editor y admin.
-- **Compatibilidad SVG**: el helper `addSign` detecta tipo por extensión/data-URI y elige rama. Para SVGs subidos al bucket, se hace `fetch(url).then(r => r.text())` y luego `loadSVGFromString` — esto requiere CORS público en el bucket (ya configurado por defecto en buckets públicos).
-- **Migración de datos**: el seed insertará categorías + señales con sus SVG actuales en `imagen_url` como `data:image/svg+xml;base64,...`. La empresa puede después reemplazar cada señal subiendo una imagen propia desde el admin.
-- **Sin tocar**: toolbar, lógica de undo/redo/delete/save, persistencia, layout general del editor.
-
----
-
-## Archivos a crear / modificar
-
-**Crear**
-- Migración SQL (tablas, RLS, bucket, seed).
-- `src/hooks/useSignosObra.ts`
-- `src/pages/AdminSenales.tsx`
-- `src/components/admin/senales/CategoriasManager.tsx`
-- `src/components/admin/senales/SenalesManager.tsx`
-- `src/components/admin/senales/SubirSenalDialog.tsx`
-- `src/components/admin/senales/EliminarCategoriaDialog.tsx`
-
-**Modificar**
-- `src/components/visita/FotoEditor.tsx` (panel lateral dinámico + addSign con URL)
-- `src/components/admin/AdminLayout.tsx` (nueva tab "Señales")
-- `src/App.tsx` (ruta `/admin/senales`)
-
-**Eliminar (al final, tras verificar)**
-- `src/components/visita/editorSignos.ts`
+- El JSON pegado se procesa client-side; los inserts a Supabase van por lotes (`.insert([...])`) en una sola llamada por tabla.
+- Las señales sin imagen se insertan con `activa = false` para evitar tarjetas rotas en el editor del técnico; al subir su imagen pasan a `activa = true` automáticamente (a menos que el admin las desactive manualmente luego).
+- La normalización de nombres se prueba contra los 71 ejemplos del JSON: variantes como `"desvio_provisional-removebg-preview (1).png"` y `"barandilla_tipo_ayto.-removebg-preview (1).png"` quedan emparejables si el archivo subido tiene el mismo nombre exacto. Variaciones (renombrados manualmente) caen a "Sin emparejar" para asignación a mano.
+- El bucket `signos-obra` ya existe y es público (creado en la migración previa). No se requieren cambios de Storage ni RLS.
+- Reimportar el mismo JSON es seguro: se omiten duplicados por nombre.

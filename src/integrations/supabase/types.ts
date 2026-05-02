@@ -788,6 +788,7 @@ export type Database = {
       signos_obra: {
         Row: {
           activa: boolean
+          archivo_original: string | null
           categoria_id: string
           created_at: string
           id: string
@@ -797,6 +798,7 @@ export type Database = {
         }
         Insert: {
           activa?: boolean
+          archivo_original?: string | null
           categoria_id: string
           created_at?: string
           id?: string
@@ -806,6 +808,7 @@ export type Database = {
         }
         Update: {
           activa?: boolean
+          archivo_original?: string | null
           categoria_id?: string
           created_at?: string
           id?: string
