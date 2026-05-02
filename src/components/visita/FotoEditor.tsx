@@ -48,6 +48,20 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const isMobile = useIsMobile();
+  const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
+  const { data: categorias = [] } = useSignoCategorias({ soloActivas: true });
+  const { data: signos = [] } = useSignosObra({ soloActivas: true });
+
+  // Default-select first category when data arrives
+  useEffect(() => {
+    if (!selectedCatId && categorias.length > 0) {
+      setSelectedCatId(categorias[0].id);
+    }
+  }, [categorias, selectedCatId]);
+
+  const signosFiltrados = selectedCatId
+    ? signos.filter(s => s.categoria_id === selectedCatId)
+    : [];
 
   // History via refs to avoid stale closures
   const historyRef = useRef<string[]>([]);
