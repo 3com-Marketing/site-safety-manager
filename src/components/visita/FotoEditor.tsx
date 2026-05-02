@@ -52,20 +52,35 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const isMobile = useIsMobile();
-  const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
+  const isTabletOrBelow = useIsTabletOrBelow();
+  const [selectedCatId, setSelectedCatId] = useState<string | null>(ALL_ID);
+  const [query, setQuery] = useState('');
   const { data: categorias = [] } = useSignoCategorias({ soloActivas: true });
   const { data: signos = [] } = useSignosObra({ soloActivas: true });
 
-  // Default-select first category when data arrives
-  useEffect(() => {
-    if (!selectedCatId && categorias.length > 0) {
-      setSelectedCatId(categorias[0].id);
-    }
-  }, [categorias, selectedCatId]);
+  const normalize = (s: string) =>
+    s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-  const signosFiltrados = selectedCatId
-    ? signos.filter(s => s.categoria_id === selectedCatId)
-    : [];
+  const signosFiltrados = (() => {
+    const q = normalize(query.trim());
+    let base = signos;
+    if (selectedCatId && selectedCatId !== ALL_ID) {
+      base = base.filter(s => s.categoria_id === selectedCatId);
+    }
+    if (q) base = base.filter(s => normalize(s.nombre).includes(q));
+    return base;
+  })();
+
+  // For "Todas": group filtered signs by category preserving categoria order
+  const signosAgrupados = (() => {
+    if (selectedCatId !== ALL_ID) return [];
+    return categorias
+      .map(cat => ({
+        cat,
+        items: signosFiltrados.filter(s => s.categoria_id === cat.id),
+      }))
+      .filter(g => g.items.length > 0);
+  })();
 
   // History via refs to avoid stale closures
   const historyRef = useRef<string[]>([]);
