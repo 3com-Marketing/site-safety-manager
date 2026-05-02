@@ -437,7 +437,9 @@ function SenalesManager() {
 
   const senalesFiltradas = filtroCat === 'todas'
     ? signos
-    : signos.filter(s => s.categoria_id === filtroCat);
+    : filtroCat === '__sin_imagen__'
+      ? signos.filter(s => !s.imagen_url)
+      : signos.filter(s => s.categoria_id === filtroCat);
 
   const sortedSenales = [...senalesFiltradas].sort((a, b) => a.orden - b.orden);
 
@@ -449,6 +451,7 @@ function SenalesManager() {
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todas">Todas las categorías</SelectItem>
+              <SelectItem value="__sin_imagen__">⚠ Sin imagen (pendientes)</SelectItem>
               {categorias.map(c => (
                 <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>
               ))}
