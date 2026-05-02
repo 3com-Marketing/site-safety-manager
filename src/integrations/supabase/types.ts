@@ -761,6 +761,68 @@ export type Database = {
         }
         Relationships: []
       }
+      signo_categorias: {
+        Row: {
+          activa: boolean
+          created_at: string
+          id: string
+          nombre: string
+          orden: number
+        }
+        Insert: {
+          activa?: boolean
+          created_at?: string
+          id?: string
+          nombre: string
+          orden?: number
+        }
+        Update: {
+          activa?: boolean
+          created_at?: string
+          id?: string
+          nombre?: string
+          orden?: number
+        }
+        Relationships: []
+      }
+      signos_obra: {
+        Row: {
+          activa: boolean
+          categoria_id: string
+          created_at: string
+          id: string
+          imagen_url: string
+          nombre: string
+          orden: number
+        }
+        Insert: {
+          activa?: boolean
+          categoria_id: string
+          created_at?: string
+          id?: string
+          imagen_url: string
+          nombre: string
+          orden?: number
+        }
+        Update: {
+          activa?: boolean
+          categoria_id?: string
+          created_at?: string
+          id?: string
+          imagen_url?: string
+          nombre?: string
+          orden?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signos_obra_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "signo_categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tecnicos: {
         Row: {
           apellidos: string
