@@ -509,23 +509,52 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
         </div>
 
         {showSigns && !isMobile && (
-          <div className="w-48 border-l border-border p-2 overflow-y-auto bg-card">
-            <p className="text-xs font-semibold mb-2">Señales de obra</p>
-            <div className="grid grid-cols-3 gap-2">
-              {SIGNOS_OBRA.map(s => (
-                <button
-                  key={s.id}
-                  onClick={() => addSign(s)}
-                  className="flex flex-col items-center gap-1 p-1 rounded-lg hover:bg-muted transition-colors"
-                  title={s.nombre}
-                >
-                  <div
-                    className="w-10 h-10"
-                    dangerouslySetInnerHTML={{ __html: s.svg }}
-                  />
-                  <span className="text-[9px] text-muted-foreground text-center leading-tight">{s.nombre}</span>
-                </button>
-              ))}
+          <div className="w-48 border-l border-border flex flex-col bg-card">
+            <div className="p-2 border-b border-border">
+              <p className="text-xs font-semibold mb-2">Señales de obra</p>
+              <ScrollArea className="w-full whitespace-nowrap">
+                <div className="flex gap-1 pb-2">
+                  {categorias.map(cat => (
+                    <button
+                      key={cat.id}
+                      onClick={() => setSelectedCatId(cat.id)}
+                      className={`px-2 py-1 rounded-md text-[10px] font-medium transition-colors flex-shrink-0 ${
+                        selectedCatId === cat.id
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                      }`}
+                    >
+                      {cat.nombre}
+                    </button>
+                  ))}
+                </div>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2">
+              {signosFiltrados.length === 0 ? (
+                <p className="text-[10px] text-muted-foreground text-center mt-4">
+                  No hay señales en esta categoría
+                </p>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {signosFiltrados.map(s => (
+                    <button
+                      key={s.id}
+                      onClick={() => addSign(s)}
+                      className="flex flex-col items-center gap-1 p-1 rounded-lg hover:bg-muted transition-colors"
+                      title={s.nombre}
+                    >
+                      <img
+                        src={s.imagen_url}
+                        alt={s.nombre}
+                        className="w-10 h-10 object-contain"
+                      />
+                      <span className="text-[9px] text-muted-foreground text-center leading-tight line-clamp-2">{s.nombre}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -534,26 +563,51 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
       {/* Mobile: signs as bottom sheet */}
       {isMobile && (
         <Sheet open={showSigns} onOpenChange={setShowSigns}>
-          <SheetContent side="bottom" className="h-[55vh] p-4 overflow-y-auto z-[60]">
+          <SheetContent side="bottom" className="h-[60vh] p-4 overflow-y-auto z-[60]">
             <SheetHeader className="mb-3">
               <SheetTitle className="text-sm">Señales de obra</SheetTitle>
             </SheetHeader>
-            <div className="grid grid-cols-4 gap-3">
-              {SIGNOS_OBRA.map(s => (
-                <button
-                  key={s.id}
-                  onClick={() => { addSign(s); setShowSigns(false); }}
-                  className="flex flex-col items-center gap-1 p-2 rounded-lg active:bg-muted transition-colors"
-                  title={s.nombre}
-                >
-                  <div
-                    className="w-12 h-12"
-                    dangerouslySetInnerHTML={{ __html: s.svg }}
-                  />
-                  <span className="text-[10px] text-muted-foreground text-center leading-tight">{s.nombre}</span>
-                </button>
-              ))}
-            </div>
+            <ScrollArea className="w-full whitespace-nowrap mb-3">
+              <div className="flex gap-2 pb-2">
+                {categorias.map(cat => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setSelectedCatId(cat.id)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex-shrink-0 ${
+                      selectedCatId === cat.id
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-secondary text-secondary-foreground'
+                    }`}
+                  >
+                    {cat.nombre}
+                  </button>
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+            {signosFiltrados.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center mt-6">
+                No hay señales en esta categoría
+              </p>
+            ) : (
+              <div className="grid grid-cols-4 gap-3">
+                {signosFiltrados.map(s => (
+                  <button
+                    key={s.id}
+                    onClick={() => { addSign(s); setShowSigns(false); }}
+                    className="flex flex-col items-center gap-1 p-2 rounded-lg active:bg-muted transition-colors"
+                    title={s.nombre}
+                  >
+                    <img
+                      src={s.imagen_url}
+                      alt={s.nombre}
+                      className="w-12 h-12 object-contain"
+                    />
+                    <span className="text-[10px] text-muted-foreground text-center leading-tight line-clamp-2">{s.nombre}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </SheetContent>
         </Sheet>
       )}
