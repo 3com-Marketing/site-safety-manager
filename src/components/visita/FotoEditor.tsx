@@ -5,12 +5,16 @@ import { toast } from 'sonner';
 import {
   MousePointer2, MoveHorizontal, Circle, Square, Type, Pencil,
   Undo2, Redo2, Save, X, Minus, ChevronRight, ChevronLeft, Loader2, Trash2,
+  LayoutGrid, Search,
 } from 'lucide-react';
 import * as fabric from 'fabric';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsTabletOrBelow } from '@/hooks/use-tablet';
 import { useSignoCategorias, useSignosObra, type SignoObraDB } from '@/hooks/useSignosObra';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
+
+const ALL_ID = '__all__';
 
 type Tool = 'select' | 'arrow' | 'circle' | 'rect' | 'text' | 'free';
 
@@ -48,20 +52,35 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const isMobile = useIsMobile();
-  const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
+  const isTabletOrBelow = useIsTabletOrBelow();
+  const [selectedCatId, setSelectedCatId] = useState<string | null>(ALL_ID);
+  const [query, setQuery] = useState('');
   const { data: categorias = [] } = useSignoCategorias({ soloActivas: true });
   const { data: signos = [] } = useSignosObra({ soloActivas: true });
 
-  // Default-select first category when data arrives
-  useEffect(() => {
-    if (!selectedCatId && categorias.length > 0) {
-      setSelectedCatId(categorias[0].id);
-    }
-  }, [categorias, selectedCatId]);
+  const normalize = (s: string) =>
+    s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-  const signosFiltrados = selectedCatId
-    ? signos.filter(s => s.categoria_id === selectedCatId)
-    : [];
+  const signosFiltrados = (() => {
+    const q = normalize(query.trim());
+    let base = signos;
+    if (selectedCatId && selectedCatId !== ALL_ID) {
+      base = base.filter(s => s.categoria_id === selectedCatId);
+    }
+    if (q) base = base.filter(s => normalize(s.nombre).includes(q));
+    return base;
+  })();
+
+  // For "Todas": group filtered signs by category preserving categoria order
+  const signosAgrupados = (() => {
+    if (selectedCatId !== ALL_ID) return [];
+    return categorias
+      .map(cat => ({
+        cat,
+        items: signosFiltrados.filter(s => s.categoria_id === cat.id),
+      }))
+      .filter(g => g.items.length > 0);
+  })();
 
   // History via refs to avoid stale closures
   const historyRef = useRef<string[]>([]);
@@ -73,12 +92,12 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
   const tempObjRef = useRef<fabric.FabricObject | null>(null);
 
   const getCanvasSize = useCallback(() => {
-    // On mobile, the signs panel is a bottom sheet overlay — don't shrink the canvas
-    const signsW = !isMobile && showSigns ? 192 : 0;
+    // On tablet/mobile, the signs panel is a bottom sheet overlay — don't shrink the canvas
+    const signsW = !isTabletOrBelow && showSigns ? 360 : 0;
     const w = window.innerWidth - signsW - 16;
     const h = window.innerHeight - TOOLBAR_HEIGHT - 16;
     return { w: Math.max(w, 400), h: Math.max(h, 300) };
-  }, [showSigns, isMobile]);
+  }, [showSigns, isTabletOrBelow]);
 
   const saveHistory = useCallback((c: fabric.Canvas) => {
     // Only serialize objects, not backgroundImage (avoids revoked blob URL issue)
@@ -485,7 +504,7 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
 
         <Button variant="ghost" size="sm" onClick={() => setShowSigns(!showSigns)} className="h-8 text-xs gap-1 px-2">
           🚧 <span className="hidden sm:inline">Señales</span>
-          {!isMobile && (showSigns ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />)}
+          {!isTabletOrBelow && (showSigns ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />)}
         </Button>
 
         <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0 text-white hover:text-white">
@@ -508,109 +527,167 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
           <canvas ref={canvasRef} />
         </div>
 
-        {showSigns && !isMobile && (
-          <div className="w-48 border-l border-border flex flex-col bg-card">
-            <div className="p-2 border-b border-border">
-              <p className="text-xs font-semibold mb-2">Señales de obra</p>
-              <ScrollArea className="w-full whitespace-nowrap">
-                <div className="flex gap-1 pb-2">
-                  {categorias.map(cat => (
-                    <button
-                      key={cat.id}
-                      onClick={() => setSelectedCatId(cat.id)}
-                      className={`px-2 py-1 rounded-md text-[10px] font-medium transition-colors flex-shrink-0 ${
-                        selectedCatId === cat.id
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-                      }`}
-                    >
-                      {cat.nombre}
-                    </button>
-                  ))}
-                </div>
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
-            </div>
-            <div className="flex-1 overflow-y-auto p-2">
-              {signosFiltrados.length === 0 ? (
-                <p className="text-[10px] text-muted-foreground text-center mt-4">
-                  No hay señales en esta categoría
-                </p>
-              ) : (
-                <div className="grid grid-cols-3 gap-2">
-                  {signosFiltrados.map(s => (
-                    <button
-                      key={s.id}
-                      onClick={() => addSign(s)}
-                      className="flex flex-col items-center gap-1 p-1 rounded-lg hover:bg-muted transition-colors"
-                      title={s.nombre}
-                    >
-                      <img
-                        src={s.imagen_url}
-                        alt={s.nombre}
-                        className="w-10 h-10 object-contain"
-                      />
-                      <span className="text-[9px] text-muted-foreground text-center leading-tight line-clamp-2">{s.nombre}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+        {showSigns && !isTabletOrBelow && (
+          <div className="w-[360px] border-l border-border flex bg-card">
+            <SignsPanel
+              categorias={categorias}
+              selectedCatId={selectedCatId}
+              setSelectedCatId={setSelectedCatId}
+              query={query}
+              setQuery={setQuery}
+              signosFiltrados={signosFiltrados}
+              signosAgrupados={signosAgrupados}
+              onPick={(s) => addSign(s)}
+              compactCats={false}
+            />
           </div>
         )}
       </div>
 
-      {/* Mobile: signs as bottom sheet */}
-      {isMobile && (
+      {/* Tablet/Mobile: signs as bottom sheet */}
+      {isTabletOrBelow && (
         <Sheet open={showSigns} onOpenChange={setShowSigns}>
-          <SheetContent side="bottom" className="h-[60vh] p-4 overflow-y-auto z-[60]">
-            <SheetHeader className="mb-3">
+          <SheetContent side="bottom" className="h-[85vh] p-0 z-[60] flex flex-col">
+            <SheetHeader className="px-4 py-3 border-b border-border shrink-0">
               <SheetTitle className="text-sm">Señales de obra</SheetTitle>
             </SheetHeader>
-            <ScrollArea className="w-full whitespace-nowrap mb-3">
-              <div className="flex gap-2 pb-2">
-                {categorias.map(cat => (
-                  <button
-                    key={cat.id}
-                    onClick={() => setSelectedCatId(cat.id)}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex-shrink-0 ${
-                      selectedCatId === cat.id
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-secondary text-secondary-foreground'
-                    }`}
-                  >
-                    {cat.nombre}
-                  </button>
-                ))}
-              </div>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
-            {signosFiltrados.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center mt-6">
-                No hay señales en esta categoría
-              </p>
-            ) : (
-              <div className="grid grid-cols-4 gap-3">
-                {signosFiltrados.map(s => (
-                  <button
-                    key={s.id}
-                    onClick={() => { addSign(s); setShowSigns(false); }}
-                    className="flex flex-col items-center gap-1 p-2 rounded-lg active:bg-muted transition-colors"
-                    title={s.nombre}
-                  >
-                    <img
-                      src={s.imagen_url}
-                      alt={s.nombre}
-                      className="w-12 h-12 object-contain"
-                    />
-                    <span className="text-[10px] text-muted-foreground text-center leading-tight line-clamp-2">{s.nombre}</span>
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="flex-1 min-h-0 flex">
+              <SignsPanel
+                categorias={categorias}
+                selectedCatId={selectedCatId}
+                setSelectedCatId={setSelectedCatId}
+                query={query}
+                setQuery={setQuery}
+                signosFiltrados={signosFiltrados}
+                signosAgrupados={signosAgrupados}
+                onPick={(s) => { addSign(s); setShowSigns(false); }}
+                compactCats={isMobile}
+              />
+            </div>
           </SheetContent>
         </Sheet>
       )}
     </div>
+  );
+}
+
+// ----- Reusable signs panel (vertical categories + grid with vertical scroll) -----
+interface SignsPanelProps {
+  categorias: { id: string; nombre: string }[];
+  selectedCatId: string | null;
+  setSelectedCatId: (id: string) => void;
+  query: string;
+  setQuery: (v: string) => void;
+  signosFiltrados: SignoObraDB[];
+  signosAgrupados: { cat: { id: string; nombre: string }; items: SignoObraDB[] }[];
+  onPick: (s: SignoObraDB) => void;
+  compactCats: boolean; // mobile: collapse cats to icon-only column
+}
+
+function SignsPanel({
+  categorias, selectedCatId, setSelectedCatId,
+  query, setQuery, signosFiltrados, signosAgrupados,
+  onPick, compactCats,
+}: SignsPanelProps) {
+  return (
+    <div className="flex w-full h-full min-h-0">
+      {/* Vertical categories rail */}
+      <div className={`shrink-0 border-r border-border bg-muted/30 overflow-y-auto ${compactCats ? 'w-20' : 'w-[110px]'}`}>
+        <div className="flex flex-col p-1.5 gap-1">
+          <button
+            onClick={() => setSelectedCatId(ALL_ID)}
+            className={`flex flex-col items-center justify-center gap-1 rounded-md px-1 py-2 min-h-11 text-[11px] font-medium transition-colors ${
+              selectedCatId === ALL_ID
+                ? 'bg-primary text-primary-foreground'
+                : 'hover:bg-muted text-foreground'
+            }`}
+          >
+            <LayoutGrid className="h-4 w-4" />
+            <span className="leading-tight text-center">Todas</span>
+          </button>
+          {categorias.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCatId(cat.id)}
+              title={cat.nombre}
+              className={`rounded-md px-2 py-2 min-h-11 text-[11px] font-medium text-center leading-tight transition-colors line-clamp-3 ${
+                selectedCatId === cat.id
+                  ? 'bg-primary text-primary-foreground'
+                  : 'hover:bg-muted text-foreground'
+              }`}
+            >
+              {cat.nombre}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Right column: search + grid */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        <div className="p-2 border-b border-border shrink-0">
+          <div className="relative">
+            <Search className="h-3.5 w-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar señal..."
+              className="h-9 pl-7 text-xs"
+            />
+          </div>
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-y-auto p-2">
+          {selectedCatId === ALL_ID ? (
+            signosAgrupados.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center mt-6">
+                Sin resultados
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {signosAgrupados.map(({ cat, items }) => (
+                  <div key={cat.id}>
+                    <div className="sticky top-0 bg-card z-10 py-1 mb-1.5 border-b border-border/60">
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                        {cat.nombre}
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {items.map(s => (
+                        <SignoButton key={s.id} s={s} onPick={onPick} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          ) : signosFiltrados.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center mt-6">
+              Sin resultados
+            </p>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              {signosFiltrados.map(s => (
+                <SignoButton key={s.id} s={s} onPick={onPick} />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SignoButton({ s, onPick }: { s: SignoObraDB; onPick: (s: SignoObraDB) => void }) {
+  return (
+    <button
+      onClick={() => onPick(s)}
+      title={s.nombre}
+      className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-muted active:bg-muted transition-colors min-h-[80px]"
+    >
+      <img src={s.imagen_url} alt={s.nombre} className="w-12 h-12 object-contain" />
+      <span className="text-[10px] text-muted-foreground text-center leading-tight line-clamp-2">
+        {s.nombre}
+      </span>
+    </button>
   );
 }
