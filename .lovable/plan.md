@@ -1,86 +1,107 @@
-# Autocompletado inteligente en formularios de documentos
+# Repositorio dinámico de señales de obra
 
-Añadir sugerencias en vivo en los campos de nombre (técnico, coordinador, promotor, autores, directores...) dentro de los formularios de informes/actas. Al seleccionar una sugerencia, se rellenan automáticamente todos los datos asociados, dejando los campos editables.
+Sustituir las señales hardcodeadas (`src/components/visita/editorSignos.ts`) por un sistema gestionable desde el panel de administración, con categorías editables, imágenes subidas por la empresa y filtrado en el panel lateral del editor de fotos.
 
-## Comportamiento
+**Lo que NO cambia**: herramientas de dibujo, colores, grosor, deshacer/rehacer, eliminar, guardar, y todo el flujo de edición. Solo se modifica el panel lateral derecho "Señales de obra".
 
-- Sugerencias **desde el primer carácter**, máx. 8 resultados, con debounce 150 ms.
-- Cada sugerencia muestra: **nombre + dato identificativo** (código `TEC-0001`/`COORD-0001` y nº de obras asignadas; para promotores, CIF y ciudad).
-- Al elegir, se **rellenan todos los campos relacionados** del bloque (datos personales, empresa, contacto, titulación, firma...).
-- Los campos rellenados quedan **editables** sin perder la sugerencia.
-- Para campos de "rol por obra" (coordinador vs técnico), se filtra por `tipo` cuando aplica; si no aplica, se muestran ambos.
+---
 
-## Fuentes de datos
+## 1. Base de datos (migración)
 
-- **Personas (técnicos / coordinadores)** → tabla `tecnicos`. Búsqueda por `nombre`, `apellidos`, `codigo_tecnico`, `email` (`ilike`).
-- **Promotor / Razón social** → tabla `clientes` (búsqueda por `nombre`, `cif`).
+**Tabla `signo_categorias`**
+- `id` uuid PK · `nombre` text · `orden` int default 0 · `activa` bool default true · `created_at` timestamptz
 
-Sin migraciones de BD: las RLS actuales ya permiten lectura a usuarios autenticados.
+**Tabla `signos_obra`**
+- `id` uuid PK · `nombre` text · `categoria_id` uuid FK → `signo_categorias(id)` ON DELETE RESTRICT · `imagen_url` text · `activa` bool default true · `orden` int default 0 · `created_at` timestamptz
 
-## Componentes nuevos
+**RLS**:
+- SELECT: cualquier usuario autenticado (técnicos y admin pueden ver/usar).
+- INSERT/UPDATE/DELETE: solo `has_role(auth.uid(), 'admin')`.
 
-`src/components/documentos/AutocompleteNombre.tsx`
-- Wrapper sobre un `Input` con un popover de sugerencias (basado en `Command` de shadcn ya disponible).
-- Props:
-  - `value`, `onChange(text)` — control normal del input.
-  - `source: 'tecnico' | 'coordinador' | 'persona' | 'cliente'` — define tabla y filtro `tipo`.
-  - `onSelect(payload)` — recibe el registro completo seleccionado para que el formulario rellene sus campos.
-  - `placeholder`, `id`, `className`.
-- Lógica: `useEffect` con debounce dispara `supabase.from('tecnicos').select(...).or('nombre.ilike.%x%,apellidos.ilike.%x%,codigo_tecnico.ilike.%x%').limit(8)` (o `clientes` según source). Se omite la búsqueda si el texto coincide exactamente con la última selección (evita reabrir el popover tras autorrelleno).
-- Cada item: línea 1 `Nombre Apellidos` · línea 2 (muted): código + email/obras / o CIF + ciudad.
+**Storage**: nuevo bucket público `signos-obra` para las imágenes (PNG/SVG/JPG). Política: lectura pública; escritura solo admin.
 
-`src/hooks/useAutocompletePersonas.ts` (helper opcional)
-- Encapsula el query con React Query (`['ac-personas', source, q]`, `staleTime: 30s`).
+**Seed inicial**: insertar las 4 categorías actuales (Prohibición, Obligación, Advertencia, Emergencia) y las 16 señales existentes — pero las imágenes seed serán los SVG actuales convertidos a `data:image/svg+xml;base64,...` almacenados en `imagen_url` para no perder el estado actual mientras la empresa sube las suyas. Esto evita una migración de archivos a Storage en el momento del cambio.
 
-## Integración en los formularios
+---
 
-En cada formulario, se sustituye el `Input` por `AutocompleteNombre` en los campos de nombre, y se añade un handler que rellena el resto de campos del bloque con los datos del registro elegido. El usuario podrá modificar después cualquier valor.
+## 2. Panel lateral del editor de fotos
 
-### `FormInforme.tsx`
-- Campo: **Nombre del técnico** → `source='tecnico'`. Al seleccionar:
-  - `nombre_tecnico` ← `nombre + apellidos`
-  - (no hay más campos en este form, pero se guarda el `tecnico_id` en `datos_extra.tecnico_id` para futuras consultas).
+Modificar `src/components/visita/FotoEditor.tsx`:
 
-### `FormActaNombramiento.tsx`
-- **Nombre y apellidos (Coordinador/a)** → `source='coordinador'`. Rellena: `dni`, `titulacion`/`num_colegiado` → `titulacion_colegiado`, `empresa` → `empresa_coordinacion`, `cif_empresa`, `direccion` → `domicilio_empresa`, `movil`, `email`.
-- **Nombre / Razón Social (Promotor)** → `source='cliente'`. Rellena: `cif_promotor`, `domicilio_promotor` ← `ciudad`.
+- Eliminar el import de `SIGNOS_OBRA` y reemplazar por una consulta con React Query a `signo_categorias` + `signos_obra` (solo `activa=true`, ordenadas por `orden`).
+- Encima del grid, añadir un **selector de categorías** (tabs horizontales con `ScrollArea`; en móvil, un `Select` compacto). Construido dinámicamente desde la BD.
+- Por defecto, seleccionar la primera categoría activa.
+- El grid muestra solo señales de la categoría activa.
+- Si la categoría no tiene señales activas: mensaje neutro "No hay señales en esta categoría".
+- La función `addSign` se adapta para aceptar una señal con `imagen_url` en lugar de SVG inline:
+  - Si la URL es SVG (extensión `.svg` o `data:image/svg+xml`): cargarla como texto y usar `fabric.loadSVGFromString` (mantiene el comportamiento actual).
+  - Si es raster (PNG/JPG): usar `fabric.FabricImage.fromURL(url, { crossOrigin: 'anonymous' })`, escalar a ~60px de ancho, centrar y `saveHistory` igual que ahora.
+- Mismo comportamiento en escritorio (panel lateral) y móvil (`Sheet` inferior).
+- **Sin cambios** en el resto del editor.
 
-### `FormActaAprobacion.tsx`
-- **Promotor** → `source='cliente'`.
-- **Autor del Proyecto / Coord. SS Proyecto / Autor Estudio SS / Director de obra / Coord. SS Obra / Coord. actividades empresariales** → `source='persona'` (sin filtro por tipo). Solo rellena el texto del campo (son cadenas libres en `datos_extra`); incluye apellidos cuando existan.
+Eliminar el archivo `src/components/visita/editorSignos.ts` una vez migrado el seed.
 
-### `FormActaReunion.tsx`
-- **Promotor** → `source='cliente'`.
-- En el sub-formulario "Añadir asistente" (`nuevoAsistente.nombre`) → `source='persona'`. Rellena `apellidos`, `cargo` (titulación), `empresa`, `dni_nie` ← `dni`.
+---
+
+## 3. Sección admin "Repositorio de señales"
+
+**Nueva ruta**: `/admin/senales` → `src/pages/AdminSenales.tsx`. Añadir entrada en `AdminLayout.tsx` (icono `TrafficCone` o `Construction`) entre "Documentos" y "Configuración".
+
+Página con dos pestañas (`Tabs` de shadcn): **Categorías** y **Señales**.
+
+### Pestaña "Categorías"
+Tabla/listado con drag-and-drop de orden (usar `@dnd-kit/core` ya instalado; si no, `@hello-pangea/dnd` — verificar antes; alternativa simple: campos numéricos de orden con botones ↑/↓ para no añadir dependencias).
+- Crear categoría (nombre + orden + activa).
+- Renombrar inline.
+- Toggle activa/inactiva (`Switch`).
+- Eliminar:
+  - Si no tiene señales asociadas → eliminar directo (con confirmación).
+  - Si tiene señales → diálogo: "Esta categoría tiene N señales. ¿Qué deseas hacer?" con opciones: **Reasignar a otra categoría** (Select) o **Eliminar también las señales**. Acción atómica vía SQL.
+
+### Pestaña "Señales"
+Filtro por categoría arriba. Grid de tarjetas con miniatura, nombre, categoría, estado.
+- Botón "Subir señal": diálogo con `FileInput` (acepta PNG/SVG/JPG, máx 1MB), nombre y categoría. Sube a bucket `signos-obra` y crea registro.
+- Editar nombre/categoría/orden por señal (diálogo).
+- Toggle activa/inactiva.
+- Eliminar señal (con confirmación; también borra el archivo del bucket).
+
+**Acceso**: la página comprueba `has_role` admin al montar; si no, redirige a `/`. La ruta no aparece en el menú para no-admins.
+
+---
+
+## 4. Acceso por rol
+
+- **Técnico**: `FotoEditor` lee las señales activas → puede usarlas. No ve la sección admin.
+- **Admin**: mismo editor de fotos + acceso completo a `/admin/senales`.
+
+RLS de la BD garantiza la separación a nivel de servidor.
+
+---
 
 ## Detalles técnicos
 
-- Consulta tipo (técnicos):
-  ```ts
-  let q = supabase.from('tecnicos')
-    .select('id, nombre, apellidos, codigo_tecnico, email, dni, titulacion, num_colegiado, empresa, cif_empresa, direccion, movil, telefono, tipo')
-    .limit(8);
-  if (source === 'coordinador') q = q.eq('tipo', 'coordinador');
-  if (source === 'tecnico') q = q.eq('tipo', 'tecnico');
-  q = q.or(`nombre.ilike.%${esc}%,apellidos.ilike.%${esc}%,codigo_tecnico.ilike.%${esc}%,email.ilike.%${esc}%`);
-  ```
-  Escapado básico de `%` y `,` en `esc`.
-- Consulta clientes:
-  ```ts
-  supabase.from('clientes').select('id, nombre, cif, ciudad, email, telefono')
-    .or(`nombre.ilike.%${esc}%,cif.ilike.%${esc}%`).limit(8);
-  ```
-- Para mostrar "obras asignadas" en la sugerencia de un técnico, se hace un segundo lote ligero: `supabase.from('tecnicos_obras').select('tecnico_id').in('tecnico_id', ids)` y se cuenta; cacheado por React Query.
-- El popover se cierra al seleccionar, al perder foco, o con `Esc`. No bloquea la escritura libre (si el usuario escribe un nombre que no existe, simplemente no selecciona ninguna sugerencia y el valor queda como texto).
-- Accesibilidad: navegación con flechas y `Enter`, `aria-autocomplete="list"`.
+- **Hook nuevo**: `src/hooks/useSignosObra.ts` — React Query para `categorias` y `signos`, con `staleTime: 5 min`. Reutilizado por editor y admin.
+- **Compatibilidad SVG**: el helper `addSign` detecta tipo por extensión/data-URI y elige rama. Para SVGs subidos al bucket, se hace `fetch(url).then(r => r.text())` y luego `loadSVGFromString` — esto requiere CORS público en el bucket (ya configurado por defecto en buckets públicos).
+- **Migración de datos**: el seed insertará categorías + señales con sus SVG actuales en `imagen_url` como `data:image/svg+xml;base64,...`. La empresa puede después reemplazar cada señal subiendo una imagen propia desde el admin.
+- **Sin tocar**: toolbar, lógica de undo/redo/delete/save, persistencia, layout general del editor.
 
-## Archivos a modificar / crear
+---
 
-- **Crear**: `src/components/documentos/AutocompleteNombre.tsx`
-- **Crear**: `src/hooks/useAutocompletePersonas.ts`
-- **Editar**: `src/components/documentos/formularios/FormInforme.tsx`
-- **Editar**: `src/components/documentos/formularios/FormActaNombramiento.tsx`
-- **Editar**: `src/components/documentos/formularios/FormActaAprobacion.tsx`
-- **Editar**: `src/components/documentos/formularios/FormActaReunion.tsx`
+## Archivos a crear / modificar
 
-Sin cambios de BD, sin nuevas dependencias.
+**Crear**
+- Migración SQL (tablas, RLS, bucket, seed).
+- `src/hooks/useSignosObra.ts`
+- `src/pages/AdminSenales.tsx`
+- `src/components/admin/senales/CategoriasManager.tsx`
+- `src/components/admin/senales/SenalesManager.tsx`
+- `src/components/admin/senales/SubirSenalDialog.tsx`
+- `src/components/admin/senales/EliminarCategoriaDialog.tsx`
+
+**Modificar**
+- `src/components/visita/FotoEditor.tsx` (panel lateral dinámico + addSign con URL)
+- `src/components/admin/AdminLayout.tsx` (nueva tab "Señales")
+- `src/App.tsx` (ruta `/admin/senales`)
+
+**Eliminar (al final, tras verificar)**
+- `src/components/visita/editorSignos.ts`
