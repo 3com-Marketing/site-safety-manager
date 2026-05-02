@@ -5,12 +5,16 @@ import { toast } from 'sonner';
 import {
   MousePointer2, MoveHorizontal, Circle, Square, Type, Pencil,
   Undo2, Redo2, Save, X, Minus, ChevronRight, ChevronLeft, Loader2, Trash2,
+  LayoutGrid, Search,
 } from 'lucide-react';
 import * as fabric from 'fabric';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsTabletOrBelow } from '@/hooks/use-tablet';
 import { useSignoCategorias, useSignosObra, type SignoObraDB } from '@/hooks/useSignosObra';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
+
+const ALL_ID = '__all__';
 
 type Tool = 'select' | 'arrow' | 'circle' | 'rect' | 'text' | 'free';
 
