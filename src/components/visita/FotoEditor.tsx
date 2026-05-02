@@ -6,10 +6,11 @@ import {
   MousePointer2, MoveHorizontal, Circle, Square, Type, Pencil,
   Undo2, Redo2, Save, X, Minus, ChevronRight, ChevronLeft, Loader2, Trash2,
 } from 'lucide-react';
-import { SIGNOS_OBRA, type SignoObra } from './editorSignos';
 import * as fabric from 'fabric';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useSignoCategorias, useSignosObra, type SignoObraDB } from '@/hooks/useSignosObra';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 type Tool = 'select' | 'arrow' | 'circle' | 'rect' | 'text' | 'free';
 
