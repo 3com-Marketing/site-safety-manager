@@ -92,12 +92,12 @@ export default function FotoEditor({ url, onClose, onSave, visitaId }: Props) {
   const tempObjRef = useRef<fabric.FabricObject | null>(null);
 
   const getCanvasSize = useCallback(() => {
-    // On mobile, the signs panel is a bottom sheet overlay — don't shrink the canvas
-    const signsW = !isMobile && showSigns ? 192 : 0;
+    // On tablet/mobile, the signs panel is a bottom sheet overlay — don't shrink the canvas
+    const signsW = !isTabletOrBelow && showSigns ? 360 : 0;
     const w = window.innerWidth - signsW - 16;
     const h = window.innerHeight - TOOLBAR_HEIGHT - 16;
     return { w: Math.max(w, 400), h: Math.max(h, 300) };
-  }, [showSigns, isMobile]);
+  }, [showSigns, isTabletOrBelow]);
 
   const saveHistory = useCallback((c: fabric.Canvas) => {
     // Only serialize objects, not backgroundImage (avoids revoked blob URL issue)
