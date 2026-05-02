@@ -15,6 +15,7 @@ export interface SignoObraDB {
   imagen_url: string;
   activa: boolean;
   orden: number;
+  archivo_original?: string | null;
 }
 
 export function useSignoCategorias(opts?: { soloActivas?: boolean }) {
