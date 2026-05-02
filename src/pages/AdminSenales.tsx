@@ -473,7 +473,14 @@ function SenalesManager() {
               <Card key={s.id} className={!s.activa ? 'opacity-60' : ''}>
                 <CardContent className="p-3 space-y-2">
                   <div className="aspect-square bg-muted rounded-md flex items-center justify-center overflow-hidden">
-                    <img src={s.imagen_url} alt={s.nombre} className="w-20 h-20 object-contain" />
+                    {s.imagen_url ? (
+                      <img src={s.imagen_url} alt={s.nombre} className="w-20 h-20 object-contain" />
+                    ) : (
+                      <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                        <ImageOff className="h-6 w-6" />
+                        <span className="text-[10px]">Sin imagen</span>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <p className="text-sm font-medium truncate">{s.nombre}</p>
