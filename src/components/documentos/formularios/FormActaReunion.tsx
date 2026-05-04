@@ -435,6 +435,9 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       datosExtra.punto11_texto_no_procede = punto11TextoNoProcede;
       datosExtra.medio_ambiente_aplica = medioAmbienteAplica;
       datosExtra.medio_ambiente_texto = medioAmbienteTexto;
+      datosExtra.punto12_procede = punto12Procede;
+      datosExtra.punto12_texto_procede = punto12TextoProcede;
+      datosExtra.punto12_texto_no_procede = punto12TextoNoProcede;
       datosExtra.texto_punto13 = textoPunto13;
       datosExtra.punto13_procede = punto13Procede;
       datosExtra.punto13_texto_procede = punto13TextoProcede;
