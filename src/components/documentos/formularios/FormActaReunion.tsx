@@ -112,6 +112,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   const [textoPunto13, setTextoPunto13] = useState('');
   const [punto13Procede, setPunto13Procede] = useState<'no_procede' | 'si_procede'>('no_procede');
   const [punto13TextoProcede, setPunto13TextoProcede] = useState('');
+  const [textoConformidadAsistentes, setTextoConformidadAsistentes] = useState('');
 
   // Local arrays for creation mode
   const [localAsistentes, setLocalAsistentes] = useState<Array<{ nombre: string; apellidos: string; cargo: string; empresa: string; dni_nie: string }>>([]);
@@ -131,7 +132,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       const configField = TIPO_TO_CONFIG_FIELD[tipoActual];
       const fieldsToLoad = configField ? [configField] : [];
       if (tipoActual === 'acta_reunion_cae') {
-        fieldsToLoad.push('texto_cae_punto3', 'texto_cae_punto1', 'texto_cae_punto2', 'texto_cae_punto2_bloque2', 'texto_recurso_preventivo', 'texto_acuerdos_generales', 'texto_cae_punto6', 'texto_cae_punto7', 'texto_cae_punto8', 'texto_cae_punto9', 'texto_cae_punto10', 'texto_cae_punto10_procede', 'texto_cae_punto13', 'texto_cae_punto13_procede');
+        fieldsToLoad.push('texto_cae_punto3', 'texto_cae_punto1', 'texto_cae_punto2', 'texto_cae_punto2_bloque2', 'texto_recurso_preventivo', 'texto_acuerdos_generales', 'texto_cae_punto6', 'texto_cae_punto7', 'texto_cae_punto8', 'texto_cae_punto9', 'texto_cae_punto10', 'texto_cae_punto10_procede', 'texto_cae_punto13', 'texto_cae_punto13_procede', 'texto_cae_conformidad_asistentes');
       }
       if (fieldsToLoad.length > 0) {
         supabase.from('configuracion_empresa').select(fieldsToLoad.join(',')).limit(1).single().then(({ data }) => {
@@ -151,6 +152,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
             if ((data as any).texto_cae_punto10_procede) setPunto10TextoProcede((data as any).texto_cae_punto10_procede);
             if ((data as any).texto_cae_punto13) setTextoPunto13((data as any).texto_cae_punto13);
             if ((data as any).texto_cae_punto13_procede) setPunto13TextoProcede((data as any).texto_cae_punto13_procede);
+            if ((data as any).texto_cae_conformidad_asistentes) setTextoConformidadAsistentes((data as any).texto_cae_conformidad_asistentes);
           }
         });
       }
@@ -204,6 +206,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       setTextoPunto13(extra.texto_punto13 || '');
       setPunto13Procede(extra.punto13_procede || 'no_procede');
       setPunto13TextoProcede(extra.punto13_texto_procede || '');
+      setTextoConformidadAsistentes(extra.texto_conformidad_asistentes || '');
       setFirmaActualUrl(extra.firma_url || null);
     } else if (defaultValues) {
       setObraActuacion(defaultValues.nombre_obra || '');
@@ -389,6 +392,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       datosExtra.texto_punto13 = textoPunto13;
       datosExtra.punto13_procede = punto13Procede;
       datosExtra.punto13_texto_procede = punto13TextoProcede;
+      datosExtra.texto_conformidad_asistentes = textoConformidadAsistentes;
     }
     if (isSYS) {
       datosExtra.numero_acta = numeroActa;
@@ -507,6 +511,14 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
         <div className="space-y-2">
           <Label>Excusados / Ausentes</Label>
           <Textarea value={excusados} onChange={e => setExcusados(e.target.value)} rows={2} />
+        </div>
+      )}
+
+      {/* Conformidad asistentes — solo CAE */}
+      {isCAE && (
+        <div className="space-y-2">
+          <Label>Conformidad de asistentes (texto legal tras tabla de asistentes)</Label>
+          <RichTextEditor value={textoConformidadAsistentes} onChange={setTextoConformidadAsistentes} placeholder="Texto legal sobre conformidad y Ley 31/1995..." />
         </div>
       )}
 

@@ -442,8 +442,11 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
     html += `<p style="font-size:9pt;margin-top:8pt;"><strong>Excusados:</strong> ${renderRichText(extra.excusados)}</p>`;
   }
 
-  // Conformidad text
-  html += `<p style="font-size:9pt;margin-top:12pt;text-align:justify;">Los firmantes del presente acta, manifiestan su conformidad con los acuerdos recogidos en la misma, y la firman a los efectos oportunos.</p>`;
+  // Conformidad text — editable desde configuración / documento
+  const textoConformidad = extra.texto_conformidad_asistentes
+    || config?.texto_cae_conformidad_asistentes
+    || "Los firmantes del presente acta, manifiestan su conformidad con los acuerdos recogidos en la misma, y la firman a los efectos oportunos.";
+  html += `<div class="section-text" style="font-size:9pt;text-align:justify;margin-top:12pt;">${renderRichText(textoConformidad)}</div>`;
 
   // PAGE BREAK — PAGE 2: Orden del día
   html += `<div style="page-break-before:always;"></div>`;
