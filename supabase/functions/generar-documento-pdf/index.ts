@@ -365,7 +365,7 @@ function templateActaAprobacion(doc: any, extra: any, obra: any, cliente: any, s
   return html;
 }
 
-function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safeworkLogo: string, asistentes: any[], actividades: any[], empresas: any[]) {
+function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safeworkLogo: string, asistentes: any[], actividades: any[], empresas: any[], config?: any) {
   const isCAE = doc.tipo === "acta_reunion_cae";
   const isSYS = doc.tipo === "acta_reunion_sys";
   const isInicial = doc.tipo === "acta_reunion_inicial";
@@ -394,7 +394,7 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
 
   // For non-CAE types, use the simpler original template
   if (!isCAE) {
-    return templateActaReunionSimple(doc, extra, obra, cliente, safeworkLogo, asistentes, actividades, empresas, titulo, firmaLabel1, firmaLabel2, fechaStr, isSYS, isInicial);
+    return templateActaReunionSimple(doc, extra, obra, cliente, safeworkLogo, asistentes, actividades, empresas, titulo, firmaLabel1, firmaLabel2, fechaStr, isSYS, isInicial, config);
   }
 
   // ===== FULL CAE TEMPLATE (10 pages, 13 sections) =====
@@ -729,7 +729,7 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
 }
 
 /** Simple template for Reunión Inicial and SYS (non-CAE) */
-function templateActaReunionSimple(doc: any, extra: any, obra: any, cliente: any, safeworkLogo: string, asistentes: any[], actividades: any[], empresas: any[], titulo: string, firmaLabel1: string, firmaLabel2: string, fechaStr: string, isSYS: boolean, isInicial: boolean) {
+function templateActaReunionSimple(doc: any, extra: any, obra: any, cliente: any, safeworkLogo: string, asistentes: any[], actividades: any[], empresas: any[], titulo: string, firmaLabel1: string, firmaLabel2: string, fechaStr: string, isSYS: boolean, isInicial: boolean, config?: any) {
   let html = `
     <div style="text-align:center;margin-bottom:20pt;">
       ${safeworkLogo ? `<img src="${safeworkLogo}" alt="Logo" style="max-height:80pt;max-width:240pt;object-fit:contain;margin-bottom:12pt;" />` : ""}
@@ -752,6 +752,15 @@ function templateActaReunionSimple(doc: any, extra: any, obra: any, cliente: any
   }
   html += `</table>`;
 
+  // Párrafo introductorio editable (solo para Acta de Reunión Inicial)
+  if (isInicial && config?.texto_intro_reunion_inicial) {
+    const loc = extra.localidad || "_______________";
+    const introHtml = String(config.texto_intro_reunion_inicial)
+      .split("{localidad}").join(loc)
+      .split("{fecha}").join(fechaStr);
+    html += `<div style="margin-top:16pt;margin-bottom:8pt;font-size:10pt;line-height:1.6;text-align:justify;">${renderRichText(introHtml)}</div>`;
+  }
+
   html += `<h2 style="font-size:11pt;margin-top:16pt;margin-bottom:6pt;border-bottom:2px solid #E63027;padding-bottom:3pt;">ASISTENTES</h2>`;
   if (asistentes.length > 0) {
     if (isSYS) {
@@ -768,10 +777,6 @@ function templateActaReunionSimple(doc: any, extra: any, obra: any, cliente: any
     html += `</table>`;
   }
 
-  if (extra.excusados) {
-    html += `<h2 style="font-size:11pt;margin-top:16pt;margin-bottom:6pt;border-bottom:2px solid #E63027;padding-bottom:3pt;">EXCUSADOS / AUSENTES</h2>`;
-    html += `<p style="font-size:9pt;">${renderRichText(extra.excusados)}</p>`;
-  }
 
   const textoLegal = extra.texto_legal || "";
   if (textoLegal) {
@@ -959,7 +964,7 @@ serve(async (req) => {
         supabase.from("empresas_acceso_obra").select("*").eq("documento_id", documento_id),
       ]);
       bodyHtml = templateActaReunion(doc, extra, obra, cliente, safeworkLogo,
-        asistRes.data || [], actRes.data || [], empRes.data || []);
+        asistRes.data || [], actRes.data || [], empRes.data || [], empresaConfig);
     } else if (tipo.startsWith("informe_")) {
       bodyHtml = templateInforme(doc, extra, obra, cliente, safeworkLogo, empresaConfig);
       useInformeLayout = true;

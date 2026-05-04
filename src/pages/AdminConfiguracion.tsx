@@ -31,6 +31,7 @@ interface ConfigEmpresa {
   texto_cae_punto2_bloque2: string;
   texto_acta_aprobacion_dgpo: string;
   texto_acta_reunion_inicial: string;
+  texto_intro_reunion_inicial: string;
   texto_acta_reunion_cae: string;
   texto_acta_reunion_sys: string;
   texto_acta_nombramiento_cae: string;
@@ -56,7 +57,7 @@ const EMPTY_CONFIG: ConfigEmpresa = {
   cargo_responsable: '', titulacion: '', num_colegiado: '',
   texto_recomendaciones: '', texto_normativa: '', texto_cae_punto2_bloque2: '',
   texto_acta_aprobacion_sys: '', texto_acta_aprobacion_dgpo: '',
-  texto_acta_reunion_inicial: '', texto_acta_reunion_cae: '', texto_acta_reunion_sys: '',
+  texto_acta_reunion_inicial: '', texto_intro_reunion_inicial: '', texto_acta_reunion_cae: '', texto_acta_reunion_sys: '',
   texto_acta_nombramiento_cae: '', texto_acta_nombramiento_proyecto: '',
   texto_cae_punto1: '',
   texto_cae_punto3: '',
@@ -296,9 +297,18 @@ export default function AdminConfiguracion() {
                 <AccordionTrigger>
                   <span className="flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> Acta Reunión Inicial</span>
                 </AccordionTrigger>
-                <AccordionContent className="pt-2">
-                  <Label>Texto legal</Label>
-                  <RichTextEditor value={config.texto_acta_reunion_inicial} onChange={v => update('texto_acta_reunion_inicial', v)} placeholder="Texto legal para actas de reunión inicial..." />
+                <AccordionContent className="space-y-4 pt-2">
+                  <div>
+                    <Label>Párrafo introductorio (antes de asistentes)</Label>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Usa <code className="px-1 py-0.5 rounded bg-muted">{'{localidad}'}</code> y <code className="px-1 py-0.5 rounded bg-muted">{'{fecha}'}</code> para que se sustituyan automáticamente al generar el PDF.
+                    </p>
+                    <RichTextEditor value={config.texto_intro_reunion_inicial} onChange={v => update('texto_intro_reunion_inicial', v)} placeholder="{localidad}, a {fecha}, en el lugar fijado en la convocatoria, se celebra la reunión..." />
+                  </div>
+                  <div>
+                    <Label>Texto legal</Label>
+                    <RichTextEditor value={config.texto_acta_reunion_inicial} onChange={v => update('texto_acta_reunion_inicial', v)} placeholder="Texto legal para actas de reunión inicial..." />
+                  </div>
                 </AccordionContent>
               </AccordionItem>
 
