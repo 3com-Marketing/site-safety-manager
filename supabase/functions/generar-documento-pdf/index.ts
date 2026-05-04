@@ -959,7 +959,7 @@ serve(async (req) => {
         supabase.from("empresas_acceso_obra").select("*").eq("documento_id", documento_id),
       ]);
       bodyHtml = templateActaReunion(doc, extra, obra, cliente, safeworkLogo,
-        asistRes.data || [], actRes.data || [], empRes.data || []);
+        asistRes.data || [], actRes.data || [], empRes.data || [], empresaConfig);
     } else if (tipo.startsWith("informe_")) {
       bodyHtml = templateInforme(doc, extra, obra, cliente, safeworkLogo, empresaConfig);
       useInformeLayout = true;
