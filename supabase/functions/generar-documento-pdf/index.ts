@@ -507,6 +507,19 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
     html += `<div class="section-text" style="font-size:9pt;text-align:justify;margin-top:8pt;">${renderRichText(extra.texto_punto2_bloque2)}</div>`;
   }
 
+  // No procede / Otros (cierre del punto 2)
+  {
+    const otrosText = (extra.punto2_otros || "").trim();
+    const noProcedeMark = extra.punto2_no_procede ? "☑" : "☐";
+    const otrosMark = otrosText ? "☑" : "☐";
+    if (extra.punto2_no_procede || otrosText) {
+      html += `<p style="font-size:9pt;text-align:center;margin-top:10pt;">
+        <span style="margin-right:40pt;">No procede ${noProcedeMark}</span>
+        <span>Otros ${otrosMark}${otrosText ? ` ${otrosText}` : ""}</span>
+      </p>`;
+    }
+  }
+
   // Plataforma CAE
   if (extra.plataforma_cae) {
     html += `<p style="font-size:9pt;margin-top:6pt;"><strong>Plataforma CAE utilizada:</strong> ${extra.plataforma_cae}</p>`;

@@ -1,20 +1,33 @@
 ## Objetivo
 
-Eliminar del PDF del Acta Reunión CAE el bloque "Documentación a entregar por cada empresa" (la tabla con los checkboxes de Documentación preventiva, TC2/RNT, Seguro RC, EPIs, Recurso Preventivo, etc.).
+En el Acta Reunión CAE, el formulario guarda los campos `punto2_no_procede` (checkbox) y `punto2_otros` (texto libre) al final del Punto 2, pero el PDF no los pinta. Hay que renderizarlos en el PDF al final del Punto 2, con el mismo estilo que aparece en el documento de referencia: dos casillas en línea — `No procede ☐` y `Otros ☐` — donde la casilla aparece marcada (☑) si está activa, y "Otros" muestra el texto especificado a continuación.
 
 ## Cambio a realizar
 
-**Archivo:** `supabase/functions/generar-documento-pdf/index.ts` (líneas 505–554)
+**Archivo:** `supabase/functions/generar-documento-pdf/index.ts`
 
-Eliminar por completo el bloque que:
-1. Pinta el título `Documentación a entregar por cada empresa:`
-2. Define el array `docCheckboxKeys`
-3. Renderiza la tabla dinámica (rama `hasDynamicChecks`)
-4. Renderiza la tabla fija de fallback con los 10 documentos
+Dentro de `templateActaReunionSimple`, justo después del bloque `texto_punto2_bloque2` (línea 508) y antes del bloque "Plataforma CAE" (línea 510), añadir un nuevo bloque que renderice "No procede" y "Otros" en una sola línea centrada, replicando el formato del documento original.
 
-El resto del Punto 2 (texto introductorio, tabla de empresas, y `texto_punto2_bloque2`) se mantiene intacto.
+### Lógica
+
+```typescript
+// No procede / Otros (cierre del punto 2)
+const noProcede = extra.punto2_no_procede ? "☑" : "☐";
+const otrosText = (extra.punto2_otros || "").trim();
+const otrosCheck = otrosText ? "☑" : "☐";
+const otrosLabel = otrosText ? `Otros ${otrosCheck} ${otrosText}` : `Otros ${otrosCheck}`;
+
+if (extra.punto2_no_procede || otrosText) {
+  html += `<p style="font-size:9pt;text-align:center;margin-top:10pt;">
+    <span style="margin-right:40pt;">No procede ${noProcede}</span>
+    <span>${otrosLabel}</span>
+  </p>`;
+}
+```
+
+Esto reproduce la línea `No procede ☐    Otros ☐` del PDF original, mostrando el contenido de "Otros" cuando se haya rellenado.
 
 ## Notas
 
-- No hay campos en el formulario `FormActaReunion.tsx` para estos checkboxes (siempre se mostraba el fallback fijo), así que no hay que tocar el formulario ni la configuración.
-- No se modifica la base de datos.
+- No hay cambios en formulario, base de datos ni configuración. Los datos ya se guardan correctamente en `extra.punto2_no_procede` y `extra.punto2_otros`.
+- Solo se pinta la línea si al menos uno de los dos está marcado / con texto, para no añadir ruido visual cuando no proceda.
