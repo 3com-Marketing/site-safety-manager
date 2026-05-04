@@ -365,7 +365,7 @@ function templateActaAprobacion(doc: any, extra: any, obra: any, cliente: any, s
   return html;
 }
 
-function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safeworkLogo: string, asistentes: any[], actividades: any[], empresas: any[]) {
+function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safeworkLogo: string, asistentes: any[], actividades: any[], empresas: any[], config?: any) {
   const isCAE = doc.tipo === "acta_reunion_cae";
   const isSYS = doc.tipo === "acta_reunion_sys";
   const isInicial = doc.tipo === "acta_reunion_inicial";
