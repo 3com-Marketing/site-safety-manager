@@ -73,6 +73,7 @@ const EMPTY_CONFIG: ConfigEmpresa = {
   texto_cae_punto10_procede: '',
   texto_cae_punto13: '',
   texto_cae_punto13_procede: '',
+  texto_cae_conformidad_asistentes: '',
 };
 
 export default function AdminConfiguracion() {
