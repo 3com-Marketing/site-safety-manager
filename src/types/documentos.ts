@@ -146,8 +146,11 @@ export interface DatosActaReunionCAE {
   interferencias_empresas_aplica?: boolean;
   interferencias_empresas_texto?: string;
   // 11. Interferencias con terceros
-  interferencias_terceros_aplica?: boolean;
-  interferencias_terceros_texto?: string;
+  interferencias_terceros_aplica?: boolean; // legacy
+  interferencias_terceros_texto?: string;   // legacy
+  punto11_procede?: 'no_procede' | 'si_procede';
+  punto11_texto_procede?: string;
+  punto11_texto_no_procede?: string;
   // 12. Medio ambiente
   medio_ambiente_aplica?: boolean;
   medio_ambiente_texto?: string;
