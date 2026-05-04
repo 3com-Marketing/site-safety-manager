@@ -248,7 +248,7 @@ function templateActaNombramiento(doc: any, extra: any, obra: any, cliente: any,
 
 function templateActaAprobacion(doc: any, extra: any, obra: any, cliente: any, safeworkLogo: string) {
   const isDGPO = doc.tipo === "acta_aprobacion_dgpo";
-  const titulo = isDGPO ? "ACTA DE APROBACIÓN" : "ACTA DE APROBACIÓN";
+  const titulo = "ACTA DE APROBACIÓN";
   const subtitulo = isDGPO
     ? "DISPOSICIONES GENERALES DE PREVENCIÓN Y ORGANIZACIÓN"
     : "PLAN DE SEGURIDAD Y SALUD";
@@ -257,6 +257,65 @@ function templateActaAprobacion(doc: any, extra: any, obra: any, cliente: any, s
     ? new Date(doc.fecha_documento).toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" })
     : "_______________";
 
+  // Aliases con fallback para compatibilidad entre nombres de campo del formulario y plantilla
+  const localidad = extra.localidad_situacion || extra.localidad || "";
+  const coordProyecto = extra.coordinador_proyecto || extra.coord_ss_proyecto || "";
+  const autorEstudio = extra.autor_estudio_syss || extra.autor_estudio_ss || "";
+  const coordActividades = extra.coordinadora_actividades || extra.coord_actividades_empresariales || "";
+  const empresaContratistaDGPO = extra.empresa_contratista || extra.empresa_contratista_dgpo || "";
+  const coordObra = extra.coordinador_obra || extra.coord_ss_obra || "";
+  const empresaContratistaPlan = extra.empresa_contratista_titular || extra.empresa_contratista_plan || "";
+  const promotor = extra.promotor || doc.nombre_promotor || "";
+
+  // Para DGPO usamos layout compacto de 1 sola página (igual que Acta de Nombramiento)
+  if (isDGPO) {
+    let html = `<style>@page { margin: 1.2cm 1.5cm !important; size: A4; }</style>
+      <div style="text-align:center;margin:0 0 8pt 0;">
+        ${safeworkLogo ? `<img src="${safeworkLogo}" alt="Logo" style="max-height:46pt;max-width:160pt;object-fit:contain;margin-bottom:4pt;" />` : ""}
+        <h1 style="font-size:13pt;color:#1a1a1a;font-weight:bold;margin:0;">${titulo}</h1>
+        <p style="font-size:8.5pt;color:#666;margin:2pt 0 0 0;">${subtitulo}</p>
+      </div>
+    `;
+
+    const datosObra: [string, string][] = [
+      ["Actuación:", extra.actuacion || ""],
+      ["Localidad y situación:", localidad],
+      ["Promotor:", promotor],
+    ];
+    html += `<h2 style="font-size:9.5pt;font-weight:bold;border-bottom:1.5px solid #E63027;padding-bottom:2pt;margin:8pt 0 3pt 0;">DATOS DE LA OBRA</h2>`;
+    html += `<table style="width:100%;border-collapse:collapse;margin:2pt 0;">`;
+    for (const [label, value] of datosObra) {
+      html += `<tr><td style="border:1px solid #999;padding:2.5pt 6pt;font-size:8.5pt;font-weight:bold;width:35%;background:#f5f5f5;">${label}</td><td style="border:1px solid #999;padding:2.5pt 6pt;font-size:8.5pt;">${value}</td></tr>`;
+    }
+    html += `</table>`;
+
+    const agentes: [string, string][] = [
+      ["Autor del proyecto:", extra.autor_proyecto || ""],
+      ["Coordinador SS del proyecto:", coordProyecto],
+      ["Autor del estudio de SyS:", autorEstudio],
+      ["Director de obra:", extra.director_obra || ""],
+      ["Coordinadora actividades empresariales:", coordActividades],
+      ["Empresa contratista titular:", empresaContratistaDGPO],
+    ];
+    html += `<h2 style="font-size:9.5pt;font-weight:bold;border-bottom:1.5px solid #E63027;padding-bottom:2pt;margin:8pt 0 3pt 0;">AGENTES DEL PROYECTO</h2>`;
+    html += `<table style="width:100%;border-collapse:collapse;margin:2pt 0;">`;
+    for (const [label, value] of agentes) {
+      html += `<tr><td style="border:1px solid #999;padding:2.5pt 6pt;font-size:8.5pt;font-weight:bold;width:35%;background:#f5f5f5;">${label}</td><td style="border:1px solid #999;padding:2.5pt 6pt;font-size:8.5pt;">${value}</td></tr>`;
+    }
+    html += `</table>`;
+
+    const textoLegal = extra.texto_legal || "";
+    if (textoLegal) {
+      html += `<div style="margin-top:6pt;font-size:8.5pt;line-height:1.35;text-align:justify;">${renderRichText(textoLegal)}</div>`;
+    }
+
+    html += `<p style="margin-top:8pt;font-size:9pt;">En ${extra.lugar_firma || "_______________"}, a ${fechaStr}.</p>`;
+    html += firmaRecuadros(extra.firma_url);
+
+    return html;
+  }
+
+  // Plan SyS — layout original sin cambios
   let html = `
     <div style="text-align:center;margin-bottom:20pt;">
       ${safeworkLogo ? `<img src="${safeworkLogo}" alt="Logo" style="max-height:80pt;max-width:240pt;object-fit:contain;margin-bottom:16pt;" />` : ""}
@@ -265,29 +324,17 @@ function templateActaAprobacion(doc: any, extra: any, obra: any, cliente: any, s
     </div>
   `;
 
-  const campos = isDGPO
-    ? [
-        ["Actuación:", extra.actuacion || ""],
-        ["Localidad y situación:", extra.localidad_situacion || ""],
-        ["Promotor:", extra.promotor || ""],
-        ["Autor del proyecto:", extra.autor_proyecto || ""],
-        ["Coordinador del proyecto:", extra.coordinador_proyecto || ""],
-        ["Autor del estudio de SYS:", extra.autor_estudio_syss || ""],
-        ["Director de obra:", extra.director_obra || ""],
-        ["Coordinadora actividades:", extra.coordinadora_actividades || ""],
-        ["Empresa contratista:", extra.empresa_contratista || ""],
-      ]
-    : [
-        ["Obra / Instalación:", extra.obra_instalacion || ""],
-        ["Localidad y situación:", extra.localidad_situacion || ""],
-        ["Promotor:", extra.promotor || ""],
-        ["Autor del proyecto:", extra.autor_proyecto || ""],
-        ["Coordinador del proyecto:", extra.coordinador_proyecto || ""],
-        ["Autor del estudio de SYS:", extra.autor_estudio_syss || ""],
-        ["Director de obra:", extra.director_obra || ""],
-        ["Coordinador de obra:", extra.coordinador_obra || ""],
-        ["Empresa contratista / titular:", extra.empresa_contratista_titular || ""],
-      ];
+  const campos: [string, string][] = [
+    ["Obra / Instalación:", extra.obra_instalacion || ""],
+    ["Localidad y situación:", localidad],
+    ["Promotor:", promotor],
+    ["Autor del proyecto:", extra.autor_proyecto || ""],
+    ["Coordinador del proyecto:", coordProyecto],
+    ["Autor del estudio de SYS:", autorEstudio],
+    ["Director de obra:", extra.director_obra || ""],
+    ["Coordinador de obra:", coordObra],
+    ["Empresa contratista / titular:", empresaContratistaPlan],
+  ];
 
   html += `<table style="width:100%;border-collapse:collapse;margin:16pt 0;">`;
   for (const [label, value] of campos) {
