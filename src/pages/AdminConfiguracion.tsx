@@ -57,7 +57,7 @@ const EMPTY_CONFIG: ConfigEmpresa = {
   cargo_responsable: '', titulacion: '', num_colegiado: '',
   texto_recomendaciones: '', texto_normativa: '', texto_cae_punto2_bloque2: '',
   texto_acta_aprobacion_sys: '', texto_acta_aprobacion_dgpo: '',
-  texto_acta_reunion_inicial: '', texto_acta_reunion_cae: '', texto_acta_reunion_sys: '',
+  texto_acta_reunion_inicial: '', texto_intro_reunion_inicial: '', texto_acta_reunion_cae: '', texto_acta_reunion_sys: '',
   texto_acta_nombramiento_cae: '', texto_acta_nombramiento_proyecto: '',
   texto_cae_punto1: '',
   texto_cae_punto3: '',
