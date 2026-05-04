@@ -31,6 +31,7 @@ interface ConfigEmpresa {
   texto_cae_punto2_bloque2: string;
   texto_acta_aprobacion_dgpo: string;
   texto_acta_reunion_inicial: string;
+  texto_intro_reunion_inicial: string;
   texto_acta_reunion_cae: string;
   texto_acta_reunion_sys: string;
   texto_acta_nombramiento_cae: string;
