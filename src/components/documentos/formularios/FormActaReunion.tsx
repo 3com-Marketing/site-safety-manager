@@ -954,12 +954,46 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
 
           {/* 12. Medio ambiente */}
           <SectionCollapsible title="12 — Medio ambiente">
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox checked={medioAmbienteAplica} onCheckedChange={(v) => setMedioAmbienteAplica(!!v)} />
-              ¿Aplica consideración medioambiental?
-            </label>
-            {medioAmbienteAplica && (
-              <Textarea value={medioAmbienteTexto} onChange={e => setMedioAmbienteTexto(e.target.value)} rows={3} placeholder="Descripción de las consideraciones medioambientales..." />
+            <p className="text-sm text-muted-foreground">Las actuaciones descritas a continuación:</p>
+            <div className="space-y-2 pt-2">
+              <Label className="text-sm font-medium">¿Procede?</Label>
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant={punto12Procede === 'no_procede' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setPunto12Procede('no_procede')}
+                >
+                  NO
+                </Button>
+                <Button
+                  type="button"
+                  variant={punto12Procede === 'si_procede' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setPunto12Procede('si_procede')}
+                >
+                  SÍ
+                </Button>
+              </div>
+            </div>
+            {punto12Procede === 'si_procede' ? (
+              <div className="rounded-lg border-2 border-green-300 bg-green-50 p-3 space-y-2">
+                <Label className="text-sm font-medium text-green-800">Medidas a aplicar para eliminar los riesgos medioambientales</Label>
+                <RichTextEditor
+                  value={punto12TextoProcede}
+                  onChange={setPunto12TextoProcede}
+                  placeholder="Describir los aspectos medioambientales y medidas a aplicar..."
+                />
+              </div>
+            ) : (
+              <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-2">
+                <Label className="text-sm font-medium">Justificación de NO afección medioambiental</Label>
+                <RichTextEditor
+                  value={punto12TextoNoProcede}
+                  onChange={setPunto12TextoNoProcede}
+                  placeholder="Motivo por el que no se detectan aspectos medioambientales relevantes..."
+                />
+              </div>
             )}
           </SectionCollapsible>
 
