@@ -343,8 +343,10 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   // --- Duración trabajos (local only, stored in datos_extra) ---
   const handleAddDuracion = () => {
     if (!nuevaDuracion.titulo.trim()) return;
-    setDuracionTrabajos(prev => [...prev, { ...nuevaDuracion }]);
-    setNuevaDuracion({ titulo: '', inicio: '', fin: '', observaciones: '' });
+    const inicio = combinarFechaHora(nuevaDuracion.inicio_fecha, nuevaDuracion.inicio_hora);
+    const fin = combinarFechaHora(nuevaDuracion.fin_fecha, nuevaDuracion.fin_hora);
+    setDuracionTrabajos(prev => [...prev, { titulo: nuevaDuracion.titulo, inicio, fin, observaciones: nuevaDuracion.observaciones }]);
+    setNuevaDuracion({ titulo: '', inicio_fecha: '', inicio_hora: '', fin_fecha: '', fin_hora: '', observaciones: '' });
   };
 
   const toggleRiesgo = (r: string) => {
