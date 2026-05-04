@@ -530,13 +530,26 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
     html += `<div class="section-text" style="font-size:9pt;text-align:justify;">${renderRichText(extra.texto_punto3)}</div>`;
   }
 
-  // Riesgos previstos
-  if (extra.riesgos?.length > 0) {
-    html += `<p style="font-size:9pt;font-weight:bold;margin-top:8pt;">Riesgos previstos:</p>`;
-    html += `<ul style="font-size:9pt;">`;
-    for (const r of extra.riesgos) html += `<li>${r}</li>`;
-    if (extra.otros_riesgos) html += `<li>Otros: ${extra.otros_riesgos}</li>`;
-    html += `</ul>`;
+  // Riesgos previstos (siempre se muestran las 6 opciones como checklist)
+  {
+    const riesgosSel: string[] = Array.isArray(extra.riesgos) ? extra.riesgos : [];
+    const otrosTxt: string = extra.otros_riesgos || "";
+    const mark = (label: string) => (riesgosSel.includes(label) ? "☒" : "☐");
+    const otrosMark = otrosTxt ? "☒" : "☐";
+
+    html += `<p style="font-size:9pt;font-weight:bold;margin-top:8pt;">Riesgos previstos para los trabajos especificados en el alcance:</p>`;
+    html += `<table style="width:100%;font-size:9pt;border-collapse:collapse;margin-top:4pt;">
+      <tr>
+        <td style="border:1pt solid #333;padding:4pt 6pt;width:33%;">${mark("Atrapamiento")} Atrapamiento</td>
+        <td style="border:1pt solid #333;padding:4pt 6pt;width:33%;">${mark("Arrollamiento")} Arrollamiento</td>
+        <td style="border:1pt solid #333;padding:4pt 6pt;width:34%;">${mark("Caída de altura")} Caída de altura</td>
+      </tr>
+      <tr>
+        <td style="border:1pt solid #333;padding:4pt 6pt;">${mark("Espacios confinados")} Espacios confinados</td>
+        <td style="border:1pt solid #333;padding:4pt 6pt;">${mark("Riesgo eléctrico")} Riesgo eléctrico</td>
+        <td style="border:1pt solid #333;padding:4pt 6pt;">${otrosMark} Otros:${otrosTxt ? ` ${otrosTxt}` : ""}</td>
+      </tr>
+    </table>`;
   }
 
   // 3.1 Empresas que intervienen
