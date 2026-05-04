@@ -752,6 +752,15 @@ function templateActaReunionSimple(doc: any, extra: any, obra: any, cliente: any
   }
   html += `</table>`;
 
+  // Párrafo introductorio editable (solo para Acta de Reunión Inicial)
+  if (isInicial && config?.texto_intro_reunion_inicial) {
+    const loc = extra.localidad || "_______________";
+    const introHtml = String(config.texto_intro_reunion_inicial)
+      .split("{localidad}").join(loc)
+      .split("{fecha}").join(fechaStr);
+    html += `<div style="margin-top:16pt;margin-bottom:8pt;font-size:10pt;line-height:1.6;text-align:justify;">${renderRichText(introHtml)}</div>`;
+  }
+
   html += `<h2 style="font-size:11pt;margin-top:16pt;margin-bottom:6pt;border-bottom:2px solid #E63027;padding-bottom:3pt;">ASISTENTES</h2>`;
   if (asistentes.length > 0) {
     if (isSYS) {
@@ -768,10 +777,6 @@ function templateActaReunionSimple(doc: any, extra: any, obra: any, cliente: any
     html += `</table>`;
   }
 
-  if (extra.excusados) {
-    html += `<h2 style="font-size:11pt;margin-top:16pt;margin-bottom:6pt;border-bottom:2px solid #E63027;padding-bottom:3pt;">EXCUSADOS / AUSENTES</h2>`;
-    html += `<p style="font-size:9pt;">${renderRichText(extra.excusados)}</p>`;
-  }
 
   const textoLegal = extra.texto_legal || "";
   if (textoLegal) {
