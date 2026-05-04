@@ -729,7 +729,7 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
 }
 
 /** Simple template for Reunión Inicial and SYS (non-CAE) */
-function templateActaReunionSimple(doc: any, extra: any, obra: any, cliente: any, safeworkLogo: string, asistentes: any[], actividades: any[], empresas: any[], titulo: string, firmaLabel1: string, firmaLabel2: string, fechaStr: string, isSYS: boolean, isInicial: boolean) {
+function templateActaReunionSimple(doc: any, extra: any, obra: any, cliente: any, safeworkLogo: string, asistentes: any[], actividades: any[], empresas: any[], titulo: string, firmaLabel1: string, firmaLabel2: string, fechaStr: string, isSYS: boolean, isInicial: boolean, config?: any) {
   let html = `
     <div style="text-align:center;margin-bottom:20pt;">
       ${safeworkLogo ? `<img src="${safeworkLogo}" alt="Logo" style="max-height:80pt;max-width:240pt;object-fit:contain;margin-bottom:12pt;" />` : ""}
