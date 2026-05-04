@@ -19,7 +19,7 @@ function formatFechaHora(value?: string): string {
   if (!value) return '—';
   // datetime-local format: YYYY-MM-DDTHH:mm
   const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value);
-  if (m) return `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}`;
+  if (m) return `${m[3]}/${m[2]}/${m[1]} a las ${m[4]}:${m[5]}`;
   return value;
 }
 
