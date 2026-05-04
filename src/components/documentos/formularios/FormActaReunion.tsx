@@ -502,11 +502,13 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
         </div>
       </div>
 
-      {/* Excusados */}
-      <div className="space-y-2">
-        <Label>Excusados / Ausentes</Label>
-        <Textarea value={excusados} onChange={e => setExcusados(e.target.value)} rows={2} />
-      </div>
+      {/* Excusados — oculto en Acta Reunión Inicial (no se imprime en su PDF) */}
+      {tipo !== 'acta_reunion_inicial' && (
+        <div className="space-y-2">
+          <Label>Excusados / Ausentes</Label>
+          <Textarea value={excusados} onChange={e => setExcusados(e.target.value)} rows={2} />
+        </div>
+      )}
 
       {/* Lugar y fecha del documento */}
       <p className="text-sm font-semibold text-muted-foreground pt-2">Lugar y fecha del documento</p>
