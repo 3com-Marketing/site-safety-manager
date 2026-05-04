@@ -146,7 +146,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   const [nuevaActividad, setNuevaActividad] = useState({ actividad: '', numero_pedido: '' });
   const [nuevaEmpresa, setNuevaEmpresa] = useState({ empresa: '', persona_contacto: '', email_referencia: '' });
   const [nuevaEmpresaInterviene, setNuevaEmpresaInterviene] = useState({ razon_social: '', acronimo: '', responsable: '' });
-  const [nuevaDuracion, setNuevaDuracion] = useState({ titulo: '', inicio: '', fin: '', observaciones: '' });
+  const [nuevaDuracion, setNuevaDuracion] = useState({ titulo: '', inicio_fecha: '', inicio_hora: '', fin_fecha: '', fin_hora: '', observaciones: '' });
 
   // Load default legal text from configuracion_empresa for new documents
   useEffect(() => {
