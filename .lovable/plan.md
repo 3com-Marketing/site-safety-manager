@@ -1,71 +1,76 @@
 ## Objetivo
 
-Mejorar la usabilidad del panel lateral "Señales de obra" del editor de fotos sin tocar nada de las herramientas de dibujo, deshacer/rehacer, eliminar ni guardar. Solo se modifica el panel de señales y su layout.
+Hacer que el PDF de **Acta Aprobación DGPO** salga en una **sola página A4**, con la misma estética compacta que ya usa el **Acta de Nombramiento (Obra con Proyecto)**, manteniendo todos los datos propios de la DGPO (actuación, agentes, coordinadora actividades empresariales, empresa contratista titular, texto legal y firmas).
 
-## Cambios
+De paso se corrige un bug detectado durante la revisión: el formulario guarda los campos con un nombre y la plantilla del PDF los lee con otro distinto, por lo que muchos valores aparecen vacíos en el PDF actual.
 
-### 1. Panel desktop más ancho y mejor distribuido (`FotoEditor.tsx`)
+## Diagnóstico
 
-- Ampliar el panel lateral de `w-48` (192px) a `w-72` (288px) en desktop, y a `w-80` (320px) en pantallas grandes (`lg:w-80`).
-- Ajustar `getCanvasSize()` para usar el nuevo ancho cuando el panel está abierto (288/320 en lugar de 192).
-- Cambiar la cuadrícula de señales de `grid-cols-3` a `grid-cols-3` con celdas más grandes (imagen 14×14 en vez de 10×10, texto a `text-[11px]`) para que se lean bien.
-- Sustituir los chips de categoría horizontales por una **lista vertical de categorías estilo "pestañas verticales"** en una columna estrecha a la izquierda del panel (≈ 90px), y la cuadrícula de señales ocupa el resto. Cada categoría es un botón apilado con scroll vertical si hay muchas. Esto da más espacio útil que los chips horizontales actuales.
-- Añadir al principio de la lista de categorías una opción **"Todas"** (icono `LayoutGrid`) que cuando está seleccionada agrupa las señales por categoría con un encabezado sticky por grupo y permite scroll vertical continuo por todo el repositorio.
-- El contenedor de la cuadrícula usa `overflow-y-auto` con `max-h` calculado por flex para garantizar scroll vertical fluido.
-- Añadir un buscador opcional arriba (input pequeño) que filtra por `nombre` dentro de la categoría seleccionada o en "Todas". Mejora drásticamente el descubrimiento cuando hay decenas de señales.
+El **Acta de Nombramiento** ya cabe en una página gracias a:
 
-Estructura desktop resultante:
+- `@page { margin: 1.2cm 1.5cm }` (márgenes reducidos solo para ese tipo)
+- Cabecera compacta (logo 46pt, título 13pt, subtítulo 8.5pt)
+- Secciones con `h2` de 9.5pt y tablas con padding `2.5pt 6pt`, fuente 8.5pt
+- Texto legal a 8.5pt, line-height 1.35
+- Firma compacta justo debajo
 
-```text
-+--------+-----------------------------+
-| Cat A  |  [buscar...]                |
-| Cat B  |  ┌──┐ ┌──┐ ┌──┐             |
-| Cat C  |  │  │ │  │ │  │   scroll ↕  |
-| Todas  |  └──┘ └──┘ └──┘             |
-| ...    |  ...                        |
-+--------+-----------------------------+
+El **Acta Aprobación DGPO** actualmente usa:
+
+- Márgenes globales de 2cm
+- Logo de 80pt + título 16pt + subtítulo 10pt
+- Tabla con padding 6pt/10pt y fuente 9pt, márgenes verticales 16pt
+- Texto legal a 10pt con line-height 1.6
+- Bloques de firmas con margen-top 24pt
+
+Resultado: ocupa entre 2 y 3 páginas dependiendo del texto legal.
+
+Además, `FormActaAprobacion.tsx` guarda en `datos_extra` claves como `localidad`, `coord_ss_proyecto`, `autor_estudio_ss`, `coord_actividades_empresariales`, `empresa_contratista_dgpo`, mientras que la plantilla del PDF lee `localidad_situacion`, `coordinador_proyecto`, `autor_estudio_syss`, `coordinadora_actividades`, `empresa_contratista`. Por eso varias filas del PDF salen en blanco.
+
+## Cambios propuestos
+
+### 1. `supabase/functions/generar-documento-pdf/index.ts` — `templateActaAprobacion`
+
+Solo cuando `isDGPO === true`:
+
+- Inyectar un `<style>@page { margin: 1.2cm 1.5cm !important; size: A4; }</style>` al inicio (igual que el Acta de Nombramiento).
+- Cabecera compacta: logo `max-height:46pt`, `h1` 13pt, subtítulo 8.5pt, márgenes mínimos.
+- Tabla de datos: `h2` 9.5pt con borde rojo inferior, celdas con `padding:2.5pt 6pt`, fuente 8.5pt, columna etiqueta 35% con fondo gris claro. Reagrupar visualmente en dos bloques cortos:
+  - "DATOS DE LA OBRA" (Actuación, Localidad, Promotor)
+  - "AGENTES DEL PROYECTO" (Autor proyecto, Coord. SS proyecto, Autor estudio SS, Director obra, Coordinadora actividades empresariales, Empresa contratista titular)
+- Texto legal a 8.5pt, line-height 1.35, margen superior 6-8pt.
+- Línea de "En {lugar}, a {fecha}." compactada (margen-top 8pt, fuente 9pt).
+- `firmaRecuadros` queda igual (ya es compacto y cabe).
+
+Plan SyS (`!isDGPO`) sigue intacto, sin tocar.
+
+### 2. Corrección de mapeo de campos
+
+Para que el PDF muestre todos los datos que el técnico/admin rellena, alinear nombres entre formulario y plantilla. La forma más segura y sin migraciones es **leer ambos nombres en la plantilla** con fallback:
+
+```ts
+extra.localidad_situacion || extra.localidad
+extra.coordinador_proyecto || extra.coord_ss_proyecto
+extra.autor_estudio_syss   || extra.autor_estudio_ss
+extra.coordinadora_actividades || extra.coord_actividades_empresariales
+extra.empresa_contratista  || extra.empresa_contratista_dgpo
 ```
 
-### 2. Modo "Todas" (vista agrupada con scroll vertical)
+Así los documentos antiguos siguen funcionando y los nuevos también.
 
-- Cuando `selectedCatId === '__all__'`, en lugar de filtrar por categoría se renderiza una lista vertical de secciones, una por categoría activa, cada una con su título sticky (`sticky top-0 bg-card z-10`) y debajo la cuadrícula de señales de esa categoría.
-- Funciona igual en desktop, tablet y móvil.
+### 3. Lo que NO cambia
 
-### 3. Responsive tablet (nuevo breakpoint)
+- `templateActaNombramiento` y el resto de plantillas.
+- El formulario `FormActaAprobacion.tsx` (campos, validaciones, firma).
+- Plan SyS, Reuniones, Informes.
+- Estilos base (`baseStyles`, `informeStyles`).
 
-Actualmente `useIsMobile` solo distingue <768px (móvil) vs resto (desktop). En tablet (768–1024px) el panel lateral de 288px deja muy poco canvas.
+## Archivos a modificar
 
-- Añadir un hook ligero `useIsTabletOrMobile` (o reutilizar `useIsMobile` con un segundo breakpoint local en `FotoEditor`) que detecte `< 1024px`.
-- En ese rango, el panel de señales se abre como **bottom sheet a pantalla casi completa** (`h-[85vh]`), no como panel lateral. Así el canvas queda íntegro detrás y el panel es totalmente usable a pulgar.
-- En el bottom sheet se aplica el mismo layout nuevo: columna izquierda de categorías (más estrecha, `w-20`), cuadrícula a la derecha con scroll vertical, opción "Todas" y buscador. En móviles muy estrechos (<480px) las categorías se colapsan a un `Select` desplegable arriba para no robar espacio.
+- `supabase/functions/generar-documento-pdf/index.ts` (función `templateActaAprobacion`, ~líneas 249-307).
 
-### 4. Botones táctiles más grandes
+## Verificación tras implementar
 
-- Botones de categoría: `min-h-11` (44px) en móvil/tablet siguiendo la guía de UX táctil del proyecto.
-- Botones de señal: padding `p-2`, área táctil ≥ 56×56.
-- Al pulsar una señal en móvil/tablet el sheet se cierra (ya existe ese comportamiento, se mantiene); en desktop el panel permanece abierto.
-
-### 5. Lo que NO se toca
-
-- Toolbar de herramientas (`TOOLS`, `COLORS`, `STROKE_WIDTHS`).
-- Lógica de dibujo (`onMouseDown/Move/Up`, `path:created`).
-- `undo`, `redo`, `deleteSelected`, listener de teclado.
-- `addSign` (carga de SVG/raster).
-- `handleSave` y subida a `incidencia-fotos`.
-- Hooks `useSignoCategorias`, `useSignosObra` y la BD.
-
-## Detalle técnico
-
-Archivos a modificar:
-
-- `src/components/visita/FotoEditor.tsx`
-  - Reemplazar el bloque del panel desktop (líneas ~511–560) y del bottom sheet móvil (líneas ~563–613) por el nuevo layout descrito.
-  - Actualizar `getCanvasSize()` para el nuevo ancho.
-  - Añadir estado local `query` (string) para el buscador y constante `ALL_ID = '__all__'`.
-  - Añadir un breakpoint `useIsTabletOrMobile` derivado de `window.matchMedia('(max-width: 1023px)')` (mismo patrón que `use-mobile.tsx`) o inline con un `useEffect`.
-
-Archivos nuevos (opcional, recomendado):
-
-- `src/hooks/use-tablet.tsx` con `useIsTabletOrBelow()` siguiendo el patrón de `use-mobile.tsx`.
-
-Sin migraciones de base de datos, sin cambios en otras pantallas.
+1. Abrir un Acta Aprobación DGPO existente desde `/admin/documentos`, generar PDF y comprobar que sale en **1 página**.
+2. Comprobar que todos los campos del formulario aparecen rellenos en el PDF.
+3. Generar un Acta Aprobación Plan SyS y verificar que **no ha cambiado** su layout.
+4. Generar un Acta de Nombramiento (Obra con Proyecto) y verificar que sigue en una página, sin cambios.
