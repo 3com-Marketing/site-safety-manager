@@ -392,6 +392,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       datosExtra.texto_punto13 = textoPunto13;
       datosExtra.punto13_procede = punto13Procede;
       datosExtra.punto13_texto_procede = punto13TextoProcede;
+      datosExtra.texto_conformidad_asistentes = textoConformidadAsistentes;
     }
     if (isSYS) {
       datosExtra.numero_acta = numeroActa;
