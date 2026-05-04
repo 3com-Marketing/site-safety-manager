@@ -514,6 +514,14 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
         </div>
       )}
 
+      {/* Conformidad asistentes — solo CAE */}
+      {isCAE && (
+        <div className="space-y-2">
+          <Label>Conformidad de asistentes (texto legal tras tabla de asistentes)</Label>
+          <RichTextEditor value={textoConformidadAsistentes} onChange={setTextoConformidadAsistentes} placeholder="Texto legal sobre conformidad y Ley 31/1995..." />
+        </div>
+      )}
+
       {/* Lugar y fecha del documento */}
       <p className="text-sm font-semibold text-muted-foreground pt-2">Lugar y fecha del documento</p>
       <div className="grid grid-cols-2 gap-4">
