@@ -1,48 +1,37 @@
 ## Objetivo
 
-En el **Punto 3 del Acta Reunión CAE** (PDF), cambiar la sección "Riesgos previstos":
+En el formulario del **Acta Reunión CAE**, punto **3.2 — Duración y ubicación de los trabajos**, los campos **Inicio** y **Fin** son actualmente inputs de texto libre. Hay que sustituirlos por un selector que permita elegir **fecha y hora** (calendario + reloj) tanto para el inicio como para el fin de cada trabajo, dejándolos opcionales ("si procediera").
 
-1. Cambiar el título por: **"Riesgos previstos para los trabajos especificados en el alcance"**.
-2. Eliminar la lista con viñetas (`<ul>`) que solo mostraba los riesgos marcados.
-3. Mostrar **siempre** los 6 campos en una rejilla tipo checklist (3 columnas), con casilla marcada ☒ si está seleccionado o ☐ si no, replicando el formato del documento de referencia subido.
+## Cambios
 
-Campos fijos a mostrar siempre:
-- Atrapamiento
-- Arrollamiento
-- Caída de altura
-- Espacios confinados
-- Riesgo eléctrico
-- Otros: (con el texto introducido en `otros_riesgos` si existe)
+### 1. Formulario — `src/components/documentos/formularios/FormActaReunion.tsx`
 
-## Cambio técnico
+En el bloque de la línea ~724 (el grid de "nueva fila") y en la lista renderizada (líneas ~712‑723):
 
-**Archivo:** `supabase/functions/generar-documento-pdf/index.ts` (líneas 533–540)
+- Sustituir los dos `<Input placeholder="Inicio">` y `<Input placeholder="Fin">` por inputs nativos `type="datetime-local"`. Esto activa en navegadores de escritorio y tablet el **selector de fecha (calendario)** y el **selector de hora (reloj)** de forma nativa, sin dependencias añadidas y compatible con tablet (prioridad UX del proyecto).
+- Mantener el resto de campos (Título, Observaciones) y el botón Añadir igual.
+- Como los campos son opcionales, no se valida que estén rellenos para poder añadir la fila (basta con que `titulo` esté presente, igual que ahora).
+- Al renderizar cada fila ya guardada, formatear `inicio` / `fin` a un formato legible en español (`dd/MM/yyyy HH:mm`) usando `date-fns` (ya disponible en el proyecto). Si el campo está vacío se muestra un guion `—`.
 
-Reemplazar el bloque actual:
-
-```typescript
-if (extra.riesgos?.length > 0) {
-  html += `<p style="font-size:9pt;font-weight:bold;margin-top:8pt;">Riesgos previstos:</p>`;
-  html += `<ul style="font-size:9pt;">`;
-  for (const r of extra.riesgos) html += `<li>${r}</li>`;
-  if (extra.otros_riesgos) html += `<li>Otros: ${extra.otros_riesgos}</li>`;
-  html += `</ul>`;
-}
-```
-
-Por un bloque que:
-- Siempre renderiza el título nuevo.
-- Construye una tabla de 3 columnas con las 6 opciones fijas.
-- Cada celda muestra `☒` o `☐` según `extra.riesgos.includes(...)`.
-- En la celda "Otros" añade el texto de `extra.otros_riesgos` si existe.
+Estructura aproximada:
 
 ```text
-[☒] Atrapamiento      [☒] Arrollamiento     [☒] Caída de altura
-[☐] Espacios confinados [☒] Riesgo eléctrico [☐] Otros: ______
+[ Título ] [ 📅🕒 Inicio ] [ 📅🕒 Fin ] [ Observaciones ] [ + Añadir ]
 ```
 
-## Notas
+El estado `nuevaDuracion` y el array `duracionTrabajos` siguen guardando `inicio` y `fin` como strings (formato ISO `YYYY-MM-DDTHH:mm` que devuelve `datetime-local`). No hay cambios de tipos ni de base de datos.
 
-- No se cambia el formulario (`FormActaReunion.tsx`): los checkboxes y campo "Otros" siguen igual.
-- No hay cambios en base de datos.
-- Solo afecta a la plantilla del PDF del Acta Reunión CAE.
+### 2. Generador de PDF — `supabase/functions/generar-documento-pdf/index.ts`
+
+En la sección que renderiza `extra.duracion_trabajos` (punto 3.2 del Acta Reunión CAE), formatear los valores `inicio` y `fin` para que en el PDF aparezcan como `dd/MM/yyyy HH:mm` en lugar de la cadena ISO cruda. Si alguno viene vacío, mostrar `—`.
+
+### 3. Lo que NO cambia
+
+- No se modifica la base de datos (sigue siendo `datos_extra` JSON).
+- No se modifica el tipo `DatosActaReunionCAE` en `src/types/documentos.ts` (los campos siguen siendo `string`).
+- Filas ya guardadas con texto libre antiguo seguirán mostrándose tal cual (fallback: si el string no es una fecha ISO válida, se muestra el texto original).
+
+## Notas técnicas
+
+- `<input type="datetime-local">` es la solución más sencilla, accesible y táctil; evita añadir un componente compuesto Popover+Calendar+TimePicker (shadcn no incluye time picker nativo).
+- Se añadirá un pequeño helper `formatFechaHora(value: string)` reutilizable dentro del propio componente.

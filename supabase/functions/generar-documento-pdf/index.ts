@@ -568,10 +568,15 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
   // 3.2 Duración y ubicación
   const durTrab = extra.duracion_trabajos || [];
   html += `<h3 style="font-size:11pt;color:#333;margin-top:12pt;">3.2 Duración y ubicación de los trabajos</h3>`;
+  const fmtFechaHora = (v: string | undefined): string => {
+    if (!v) return "—";
+    const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(v);
+    return m ? `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}` : v;
+  };
   if (durTrab.length > 0) {
     html += `<table><tr><th>Título</th><th>Inicio</th><th>Fin</th><th>Observaciones</th></tr>`;
     for (const d of durTrab) {
-      html += `<tr><td>${d.titulo || ""}</td><td>${d.inicio || ""}</td><td>${d.fin || ""}</td><td>${d.observaciones || ""}</td></tr>`;
+      html += `<tr><td>${d.titulo || ""}</td><td>${fmtFechaHora(d.inicio)}</td><td>${fmtFechaHora(d.fin)}</td><td>${d.observaciones || ""}</td></tr>`;
     }
     html += `</table>`;
   } else {

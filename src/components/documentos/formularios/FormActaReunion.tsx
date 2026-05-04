@@ -15,6 +15,14 @@ import FirmaSelector from '@/components/documentos/FirmaSelector';
 import { useFirmaPerfilUrl, uploadFirmaDocumento } from '@/components/documentos/useFirmaPerfil';
 import AutocompleteNombre from '@/components/documentos/AutocompleteNombre';
 
+function formatFechaHora(value?: string): string {
+  if (!value) return '—';
+  // datetime-local format: YYYY-MM-DDTHH:mm
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value);
+  if (m) return `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}`;
+  return value;
+}
+
 interface Props {
   documento?: DocumentoConRelaciones | null;
   obraId?: string;
@@ -713,7 +721,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
                   <div key={i} className="flex items-center justify-between rounded-lg border border-border p-3">
                     <div className="text-sm">
                       <span className="font-medium">{d.titulo}</span>
-                      <span className="text-muted-foreground"> · {d.inicio} — {d.fin}</span>
+                      <span className="text-muted-foreground"> · {formatFechaHora(d.inicio)} — {formatFechaHora(d.fin)}</span>
                       {d.observaciones && <span className="text-muted-foreground"> · {d.observaciones}</span>}
                     </div>
                     <Button variant="ghost" size="icon" onClick={() => setDuracionTrabajos(prev => prev.filter((_, idx) => idx !== i))}>
@@ -722,11 +730,25 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
                   </div>
                 ))}
                 <div className="grid grid-cols-5 gap-2">
-                  <Input placeholder="Título trabajo" value={nuevaDuracion.titulo} onChange={e => setNuevaDuracion(p => ({ ...p, titulo: e.target.value }))} />
-                  <Input placeholder="Inicio" value={nuevaDuracion.inicio} onChange={e => setNuevaDuracion(p => ({ ...p, inicio: e.target.value }))} />
-                  <Input placeholder="Fin" value={nuevaDuracion.fin} onChange={e => setNuevaDuracion(p => ({ ...p, fin: e.target.value }))} />
-                  <Input placeholder="Observaciones" value={nuevaDuracion.observaciones} onChange={e => setNuevaDuracion(p => ({ ...p, observaciones: e.target.value }))} />
-                  <Button size="sm" onClick={handleAddDuracion} disabled={!nuevaDuracion.titulo.trim()} className="gap-1"><Plus className="h-4 w-4" /> Añadir</Button>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Título trabajo</Label>
+                    <Input placeholder="Título trabajo" value={nuevaDuracion.titulo} onChange={e => setNuevaDuracion(p => ({ ...p, titulo: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Inicio (fecha y hora)</Label>
+                    <Input type="datetime-local" value={nuevaDuracion.inicio} onChange={e => setNuevaDuracion(p => ({ ...p, inicio: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Fin (fecha y hora)</Label>
+                    <Input type="datetime-local" value={nuevaDuracion.fin} onChange={e => setNuevaDuracion(p => ({ ...p, fin: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Observaciones</Label>
+                    <Input placeholder="Observaciones" value={nuevaDuracion.observaciones} onChange={e => setNuevaDuracion(p => ({ ...p, observaciones: e.target.value }))} />
+                  </div>
+                  <div className="flex items-end">
+                    <Button size="sm" onClick={handleAddDuracion} disabled={!nuevaDuracion.titulo.trim()} className="gap-1 w-full"><Plus className="h-4 w-4" /> Añadir</Button>
+                  </div>
                 </div>
               </div>
 
