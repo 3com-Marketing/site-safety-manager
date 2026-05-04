@@ -502,57 +502,6 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
     html += `</table>`;
   }
 
-  // Checklist documentación — dynamic from datos_extra or fixed fallback
-  html += `<p style="font-size:9pt;font-weight:bold;margin-top:10pt;">Documentación a entregar por cada empresa:</p>`;
-  const docCheckboxKeys = [
-    { key: 'punto2_doc_preventiva', label: 'Documentación preventiva' },
-    { key: 'punto2_doc_tc2', label: 'Alta en la Seguridad Social (TC2 / RNT) — último mes' },
-    { key: 'punto2_doc_ss', label: 'Certificado de estar al corriente con la Seguridad Social' },
-    { key: 'punto2_doc_seguro', label: 'Seguro de responsabilidad civil' },
-    { key: 'punto2_doc_evaluacion', label: 'Evaluación de riesgos del puesto de trabajo' },
-    { key: 'punto2_doc_planificacion', label: 'Planificación de la actividad preventiva' },
-    { key: 'punto2_doc_formacion', label: 'Formación e información en PRL de los trabajadores' },
-    { key: 'punto2_doc_aptitud', label: 'Aptitud médica de los trabajadores' },
-    { key: 'punto2_doc_epis', label: 'Entrega de EPIs a los trabajadores' },
-    { key: 'punto2_doc_maquinaria', label: 'Autorización de uso de maquinaria y equipos de trabajo' },
-    { key: 'punto2_doc_recurso', label: 'Nombramiento de Recurso Preventivo' },
-  ];
-  // Check if any dynamic checkbox exists in extra
-  const hasDynamicChecks = docCheckboxKeys.some(d => extra[d.key] !== undefined);
-  if (hasDynamicChecks) {
-    html += `<table><tr><th style="width:85%">Documento</th><th style="text-align:center;">✓</th></tr>`;
-    for (const d of docCheckboxKeys) {
-      const checked = extra[d.key] === true;
-      html += `<tr><td style="font-size:8pt;">${d.label}</td><td style="text-align:center;">${checked ? '☑' : '☐'}</td></tr>`;
-    }
-    if (extra.punto2_otros) {
-      html += `<tr><td style="font-size:8pt;">Otros: ${extra.punto2_otros}</td><td style="text-align:center;">☑</td></tr>`;
-    }
-    html += `</table>`;
-    if (extra.punto2_no_procede) {
-      html += `<p style="font-size:9pt;font-weight:bold;color:#666;margin-top:6pt;">No procede la entrega de documentación adicional.</p>`;
-    }
-  } else {
-    // Fallback: fixed checklist
-    const checkDocs = [
-      "Alta en la Seguridad Social (TC2 / RNT) — último mes",
-      "Certificado de estar al corriente con la Seguridad Social",
-      "Seguro de responsabilidad civil",
-      "Evaluación de riesgos del puesto de trabajo",
-      "Planificación de la actividad preventiva",
-      "Formación e información en PRL de los trabajadores",
-      "Aptitud médica de los trabajadores",
-      "Entrega de EPIs a los trabajadores",
-      "Autorización de uso de maquinaria y equipos de trabajo",
-      "Nombramiento de Recurso Preventivo",
-    ];
-    html += `<table><tr><th style="width:85%">Documento</th><th style="text-align:center;">✓</th></tr>`;
-    for (const d of checkDocs) {
-      html += `<tr><td style="font-size:8pt;">${d}</td><td style="text-align:center;">☐</td></tr>`;
-    }
-    html += `</table>`;
-  }
-
   // Bloque 2 text (segundo bloque)
   if (extra.texto_punto2_bloque2) {
     html += `<div class="section-text" style="font-size:9pt;text-align:justify;margin-top:8pt;">${renderRichText(extra.texto_punto2_bloque2)}</div>`;
