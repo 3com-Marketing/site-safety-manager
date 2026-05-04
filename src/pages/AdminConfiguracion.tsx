@@ -376,6 +376,10 @@ export default function AdminConfiguracion() {
                     <Label>Punto 13 — Texto cuando SÍ procede</Label>
                     <RichTextEditor value={config.texto_cae_punto13_procede} onChange={v => update('texto_cae_punto13_procede', v)} placeholder="Se les recuerda en cada visita semanal al centro de trabajo..." />
                   </div>
+                  <div>
+                    <Label>Conformidad de asistentes (texto tras tabla de asistentes)</Label>
+                    <RichTextEditor value={config.texto_cae_conformidad_asistentes} onChange={v => update('texto_cae_conformidad_asistentes', v)} placeholder="Los asistentes firman con lo tratado en prueba de conformidad..." />
+                  </div>
                 </AccordionContent>
               </AccordionItem>
 
