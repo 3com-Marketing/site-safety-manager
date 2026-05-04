@@ -17,10 +17,24 @@ import AutocompleteNombre from '@/components/documentos/AutocompleteNombre';
 
 function formatFechaHora(value?: string): string {
   if (!value) return '—';
-  // datetime-local format: YYYY-MM-DDTHH:mm
+  // YYYY-MM-DDTHH:mm
   const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value);
   if (m) return `${m[3]}/${m[2]}/${m[1]} a las ${m[4]}:${m[5]}`;
+  // YYYY-MM-DD
+  const md = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (md) return `${md[3]}/${md[2]}/${md[1]}`;
+  // HH:mm
+  const mh = /^(\d{2}):(\d{2})$/.exec(value);
+  if (mh) return `a las ${mh[1]}:${mh[2]}`;
   return value;
+}
+
+// Combina fecha (YYYY-MM-DD) y hora (HH:mm) en un único string compatible con el PDF
+function combinarFechaHora(fecha: string, hora: string): string {
+  if (fecha && hora) return `${fecha}T${hora}`;
+  if (fecha) return fecha;
+  if (hora) return hora;
+  return '';
 }
 
 interface Props {
@@ -132,7 +146,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   const [nuevaActividad, setNuevaActividad] = useState({ actividad: '', numero_pedido: '' });
   const [nuevaEmpresa, setNuevaEmpresa] = useState({ empresa: '', persona_contacto: '', email_referencia: '' });
   const [nuevaEmpresaInterviene, setNuevaEmpresaInterviene] = useState({ razon_social: '', acronimo: '', responsable: '' });
-  const [nuevaDuracion, setNuevaDuracion] = useState({ titulo: '', inicio: '', fin: '', observaciones: '' });
+  const [nuevaDuracion, setNuevaDuracion] = useState({ titulo: '', inicio_fecha: '', inicio_hora: '', fin_fecha: '', fin_hora: '', observaciones: '' });
 
   // Load default legal text from configuracion_empresa for new documents
   useEffect(() => {
@@ -329,8 +343,10 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   // --- Duración trabajos (local only, stored in datos_extra) ---
   const handleAddDuracion = () => {
     if (!nuevaDuracion.titulo.trim()) return;
-    setDuracionTrabajos(prev => [...prev, { ...nuevaDuracion }]);
-    setNuevaDuracion({ titulo: '', inicio: '', fin: '', observaciones: '' });
+    const inicio = combinarFechaHora(nuevaDuracion.inicio_fecha, nuevaDuracion.inicio_hora);
+    const fin = combinarFechaHora(nuevaDuracion.fin_fecha, nuevaDuracion.fin_hora);
+    setDuracionTrabajos(prev => [...prev, { titulo: nuevaDuracion.titulo, inicio, fin, observaciones: nuevaDuracion.observaciones }]);
+    setNuevaDuracion({ titulo: '', inicio_fecha: '', inicio_hora: '', fin_fecha: '', fin_hora: '', observaciones: '' });
   };
 
   const toggleRiesgo = (r: string) => {
@@ -729,25 +745,33 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
                     </Button>
                   </div>
                 ))}
-                <div className="grid grid-cols-5 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Título trabajo</Label>
                     <Input placeholder="Título trabajo" value={nuevaDuracion.titulo} onChange={e => setNuevaDuracion(p => ({ ...p, titulo: e.target.value }))} />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Inicio (fecha y hora)</Label>
-                    <Input type="datetime-local" value={nuevaDuracion.inicio} onChange={e => setNuevaDuracion(p => ({ ...p, inicio: e.target.value }))} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Fin (fecha y hora)</Label>
-                    <Input type="datetime-local" value={nuevaDuracion.fin} onChange={e => setNuevaDuracion(p => ({ ...p, fin: e.target.value }))} />
-                  </div>
-                  <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Observaciones</Label>
                     <Input placeholder="Observaciones" value={nuevaDuracion.observaciones} onChange={e => setNuevaDuracion(p => ({ ...p, observaciones: e.target.value }))} />
                   </div>
-                  <div className="flex items-end">
-                    <Button size="sm" onClick={handleAddDuracion} disabled={!nuevaDuracion.titulo.trim()} className="gap-1 w-full"><Plus className="h-4 w-4" /> Añadir</Button>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Inicio — fecha (opcional)</Label>
+                    <Input type="date" value={nuevaDuracion.inicio_fecha} onChange={e => setNuevaDuracion(p => ({ ...p, inicio_fecha: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Inicio — hora (opcional)</Label>
+                    <Input type="time" value={nuevaDuracion.inicio_hora} onChange={e => setNuevaDuracion(p => ({ ...p, inicio_hora: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Fin — fecha (opcional)</Label>
+                    <Input type="date" value={nuevaDuracion.fin_fecha} onChange={e => setNuevaDuracion(p => ({ ...p, fin_fecha: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Fin — hora (opcional)</Label>
+                    <Input type="time" value={nuevaDuracion.fin_hora} onChange={e => setNuevaDuracion(p => ({ ...p, fin_hora: e.target.value }))} />
+                  </div>
+                  <div className="md:col-span-2 flex justify-end">
+                    <Button size="sm" onClick={handleAddDuracion} disabled={!nuevaDuracion.titulo.trim()} className="gap-1"><Plus className="h-4 w-4" /> Añadir</Button>
                   </div>
                 </div>
               </div>

@@ -1,39 +1,40 @@
 ## Problema
 
-En el PDF del Acta Reunión CAE, punto **3.2 Duración y ubicación de los trabajos**, cuando se introduce una fecha+hora en los campos Inicio / Fin, en el documento generado **no aparece la hora con el texto "a las"** como espera el usuario.
+En el punto **3.2 del Acta Reunión CAE**, los campos "Inicio" y "Fin" usan `<input type="datetime-local">`, que **obliga a introducir fecha + hora**. Si el usuario quiere poner solo la hora (sin fecha), el navegador deja el campo inválido o vacío y en el PDF aparece "—".
 
-Causa: el formateador actual produce `dd/MM/yyyy HH:mm` pero el usuario quiere el literal **"a las HH:mm"** acompañando a la fecha. Además, si el campo solo contiene fecha o solo hora (parcial), el regex actual no lo captura y el contenido se imprime crudo o vacío.
+El helper `fmtFechaHora` del PDF ya contempla el caso `HH:mm` → "a las HH:mm", pero nunca llega ese formato al backend porque el input no lo permite.
 
-## Cambio
+## Solución
 
-**Archivo único:** `supabase/functions/generar-documento-pdf/index.ts` (líneas 571–575)
+Separar cada campo (Inicio y Fin) en **dos inputs independientes**: uno de fecha (`type="date"`) y uno de hora (`type="time"`), ambos opcionales. Combinarlos al guardar siguiendo este criterio:
 
-Sustituir el helper `fmtFechaHora` por uno que cubra los tres casos posibles:
+- fecha + hora → `YYYY-MM-DDTHH:mm` → PDF: `dd/mm/yyyy a las HH:mm`
+- solo fecha → `YYYY-MM-DD` → PDF: `dd/mm/yyyy`
+- solo hora → `HH:mm` → PDF: `a las HH:mm` ✅ (este es el caso que pide el usuario)
+- vacío → "—"
 
-- `YYYY-MM-DDTHH:mm` → `dd/MM/yyyy a las HH:mm`
-- `YYYY-MM-DD` → `dd/MM/yyyy`
-- `HH:mm` → `a las HH:mm`
-- vacío → `—`
-- otro → se imprime tal cual
+El helper del PDF ya soporta los tres formatos, así que **no hay que tocar la edge function**.
 
-```typescript
-const fmtFechaHora = (v: string | undefined): string => {
-  if (!v) return "—";
-  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(v);
-  if (m) return `${m[3]}/${m[2]}/${m[1]} a las ${m[4]}:${m[5]}`;
-  const md = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
-  if (md) return `${md[3]}/${md[2]}/${md[1]}`;
-  const mh = /^(\d{2}):(\d{2})$/.exec(v);
-  if (mh) return `a las ${mh[1]}:${mh[2]}`;
-  return v;
-};
-```
+### Cambios
 
-Con esto, una entrada como `2026-05-04T09:30` se renderizará en el PDF como **"04/05/2026 a las 09:30"**.
+**1. `src/components/documentos/formularios/FormActaReunion.tsx`**
 
-## No se cambia
+- En el estado `nuevaDuracion`, separar `inicio` y `fin` en cuatro campos visuales: `inicio_fecha`, `inicio_hora`, `fin_fecha`, `fin_hora` (manteniendo `inicio` y `fin` como strings combinados al guardar para no romper la estructura existente).
+- Reemplazar los dos `<Input type="datetime-local">` por cuatro inputs:
+  - Inicio: `<Input type="date">` + `<Input type="time">` (con icono calendario/reloj visibles que ya trae el navegador).
+  - Fin: igual.
+- En `handleAddDuracion`, combinar:
+  ```ts
+  const combinar = (f: string, h: string) =>
+    f && h ? `${f}T${h}` : f || h || '';
+  ```
+- Para entradas existentes (al editar), parsear el string guardado de vuelta en fecha/hora si viene en formato `YYYY-MM-DDTHH:mm`.
+- Actualizar el helper local `formatFechaHora` para alinearse con el del PDF (añadir casos solo-fecha y solo-hora), de modo que la lista previa muestre lo mismo que el PDF.
 
-- El formulario (`FormActaReunion.tsx`) ya usa `<input type="datetime-local">` y guarda en formato ISO; no necesita cambios.
-- En la previsualización dentro de la app también se aplicará el mismo formato actualizando el helper `formatFechaHora` del formulario para que use **"a las"** y sea consistente con el PDF.
+**2. PDF (`supabase/functions/generar-documento-pdf/index.ts`)**
 
-**Segundo retoque** en `src/components/documentos/formularios/FormActaReunion.tsx` (helper `formatFechaHora` en la cabecera del archivo): cambiar `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}` por `${m[3]}/${m[2]}/${m[1]} a las ${m[4]}:${m[5]}` para mantener coherencia visual entre vista previa y PDF.
+Sin cambios — el helper ya soporta los tres formatos.
+
+## Resultado
+
+El usuario puede dejar la fecha en blanco y poner solo la hora; en el PDF aparecerá, por ejemplo, **"a las 09:30"** en la celda correspondiente. Si rellena ambos, sale **"04/05/2026 a las 09:30"**.
