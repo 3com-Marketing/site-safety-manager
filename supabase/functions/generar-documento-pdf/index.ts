@@ -571,7 +571,12 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
   const fmtFechaHora = (v: string | undefined): string => {
     if (!v) return "—";
     const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(v);
-    return m ? `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}` : v;
+    if (m) return `${m[3]}/${m[2]}/${m[1]} a las ${m[4]}:${m[5]}`;
+    const md = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+    if (md) return `${md[3]}/${md[2]}/${md[1]}`;
+    const mh = /^(\d{2}):(\d{2})$/.exec(v);
+    if (mh) return `a las ${mh[1]}:${mh[2]}`;
+    return v;
   };
   if (durTrab.length > 0) {
     html += `<table><tr><th>Título</th><th>Inicio</th><th>Fin</th><th>Observaciones</th></tr>`;
