@@ -1,37 +1,39 @@
-## Objetivo
+## Problema
 
-En el formulario del **Acta Reunión CAE**, punto **3.2 — Duración y ubicación de los trabajos**, los campos **Inicio** y **Fin** son actualmente inputs de texto libre. Hay que sustituirlos por un selector que permita elegir **fecha y hora** (calendario + reloj) tanto para el inicio como para el fin de cada trabajo, dejándolos opcionales ("si procediera").
+En el PDF del Acta Reunión CAE, punto **3.2 Duración y ubicación de los trabajos**, cuando se introduce una fecha+hora en los campos Inicio / Fin, en el documento generado **no aparece la hora con el texto "a las"** como espera el usuario.
 
-## Cambios
+Causa: el formateador actual produce `dd/MM/yyyy HH:mm` pero el usuario quiere el literal **"a las HH:mm"** acompañando a la fecha. Además, si el campo solo contiene fecha o solo hora (parcial), el regex actual no lo captura y el contenido se imprime crudo o vacío.
 
-### 1. Formulario — `src/components/documentos/formularios/FormActaReunion.tsx`
+## Cambio
 
-En el bloque de la línea ~724 (el grid de "nueva fila") y en la lista renderizada (líneas ~712‑723):
+**Archivo único:** `supabase/functions/generar-documento-pdf/index.ts` (líneas 571–575)
 
-- Sustituir los dos `<Input placeholder="Inicio">` y `<Input placeholder="Fin">` por inputs nativos `type="datetime-local"`. Esto activa en navegadores de escritorio y tablet el **selector de fecha (calendario)** y el **selector de hora (reloj)** de forma nativa, sin dependencias añadidas y compatible con tablet (prioridad UX del proyecto).
-- Mantener el resto de campos (Título, Observaciones) y el botón Añadir igual.
-- Como los campos son opcionales, no se valida que estén rellenos para poder añadir la fila (basta con que `titulo` esté presente, igual que ahora).
-- Al renderizar cada fila ya guardada, formatear `inicio` / `fin` a un formato legible en español (`dd/MM/yyyy HH:mm`) usando `date-fns` (ya disponible en el proyecto). Si el campo está vacío se muestra un guion `—`.
+Sustituir el helper `fmtFechaHora` por uno que cubra los tres casos posibles:
 
-Estructura aproximada:
+- `YYYY-MM-DDTHH:mm` → `dd/MM/yyyy a las HH:mm`
+- `YYYY-MM-DD` → `dd/MM/yyyy`
+- `HH:mm` → `a las HH:mm`
+- vacío → `—`
+- otro → se imprime tal cual
 
-```text
-[ Título ] [ 📅🕒 Inicio ] [ 📅🕒 Fin ] [ Observaciones ] [ + Añadir ]
+```typescript
+const fmtFechaHora = (v: string | undefined): string => {
+  if (!v) return "—";
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(v);
+  if (m) return `${m[3]}/${m[2]}/${m[1]} a las ${m[4]}:${m[5]}`;
+  const md = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+  if (md) return `${md[3]}/${md[2]}/${md[1]}`;
+  const mh = /^(\d{2}):(\d{2})$/.exec(v);
+  if (mh) return `a las ${mh[1]}:${mh[2]}`;
+  return v;
+};
 ```
 
-El estado `nuevaDuracion` y el array `duracionTrabajos` siguen guardando `inicio` y `fin` como strings (formato ISO `YYYY-MM-DDTHH:mm` que devuelve `datetime-local`). No hay cambios de tipos ni de base de datos.
+Con esto, una entrada como `2026-05-04T09:30` se renderizará en el PDF como **"04/05/2026 a las 09:30"**.
 
-### 2. Generador de PDF — `supabase/functions/generar-documento-pdf/index.ts`
+## No se cambia
 
-En la sección que renderiza `extra.duracion_trabajos` (punto 3.2 del Acta Reunión CAE), formatear los valores `inicio` y `fin` para que en el PDF aparezcan como `dd/MM/yyyy HH:mm` en lugar de la cadena ISO cruda. Si alguno viene vacío, mostrar `—`.
+- El formulario (`FormActaReunion.tsx`) ya usa `<input type="datetime-local">` y guarda en formato ISO; no necesita cambios.
+- En la previsualización dentro de la app también se aplicará el mismo formato actualizando el helper `formatFechaHora` del formulario para que use **"a las"** y sea consistente con el PDF.
 
-### 3. Lo que NO cambia
-
-- No se modifica la base de datos (sigue siendo `datos_extra` JSON).
-- No se modifica el tipo `DatosActaReunionCAE` en `src/types/documentos.ts` (los campos siguen siendo `string`).
-- Filas ya guardadas con texto libre antiguo seguirán mostrándose tal cual (fallback: si el string no es una fecha ISO válida, se muestra el texto original).
-
-## Notas técnicas
-
-- `<input type="datetime-local">` es la solución más sencilla, accesible y táctil; evita añadir un componente compuesto Popover+Calendar+TimePicker (shadcn no incluye time picker nativo).
-- Se añadirá un pequeño helper `formatFechaHora(value: string)` reutilizable dentro del propio componente.
+**Segundo retoque** en `src/components/documentos/formularios/FormActaReunion.tsx` (helper `formatFechaHora` en la cabecera del archivo): cambiar `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}` por `${m[3]}/${m[2]}/${m[1]} a las ${m[4]}:${m[5]}` para mantener coherencia visual entre vista previa y PDF.
