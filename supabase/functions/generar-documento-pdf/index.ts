@@ -520,10 +520,7 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
     }
   }
 
-  // Plataforma CAE
-  if (extra.plataforma_cae) {
-    html += `<p style="font-size:9pt;margin-top:6pt;"><strong>Plataforma CAE utilizada:</strong> ${extra.plataforma_cae}</p>`;
-  }
+  // (Plataforma CAE ya se incluye en el texto del Punto 2)
 
   // 3. Trabajos realizados y previstos + Riesgos
   html += `<h2 style="font-size:12pt;color:#E63027;border-bottom:2px solid #E63027;padding-bottom:3pt;"><span style="font-weight:bold;">3.</span> TRABAJOS REALIZADOS Y PREVISTOS. ANÁLISIS DE RIESGOS Y MEDIDAS PREVENTIVAS</h2>`;
