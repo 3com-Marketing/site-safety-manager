@@ -235,8 +235,17 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       } else if (legacyP11Aplica === false && legacyP11Texto) {
         setPunto11TextoNoProcede(legacyP11Texto);
       }
-      setMedioAmbienteAplica(extra.medio_ambiente_aplica || false);
-      setMedioAmbienteTexto(extra.medio_ambiente_texto || '');
+      const legacyP12Aplica = extra.medio_ambiente_aplica;
+      const legacyP12Texto = extra.medio_ambiente_texto || '';
+      setMedioAmbienteAplica(legacyP12Aplica || false);
+      setMedioAmbienteTexto(legacyP12Texto);
+      setPunto12Procede(extra.punto12_procede || (legacyP12Aplica ? 'si_procede' : 'no_procede'));
+      setPunto12TextoProcede(extra.punto12_texto_procede || (legacyP12Aplica ? legacyP12Texto : ''));
+      if (extra.punto12_texto_no_procede !== undefined) {
+        setPunto12TextoNoProcede(extra.punto12_texto_no_procede);
+      } else if (legacyP12Aplica === false && legacyP12Texto) {
+        setPunto12TextoNoProcede(legacyP12Texto);
+      }
       setTextoPunto13(extra.texto_punto13 || '');
       setPunto13Procede(extra.punto13_procede || 'no_procede');
       setPunto13TextoProcede(extra.punto13_texto_procede || '');
