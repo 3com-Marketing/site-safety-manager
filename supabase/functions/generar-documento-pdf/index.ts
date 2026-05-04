@@ -673,7 +673,7 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
     const noMark11 = p11Procede === 'si_procede' ? '☐' : '☑';
 
     html += `<p style="font-size:9pt;margin-top:4pt;">Las actuaciones descritas a continuación</p>`;
-    html += `<p style="font-size:9pt;font-weight:bold;margin-top:6pt;"><span style="margin-right:40pt;color:#666;">${siMark11} SÍ</span><span style="color:#16a34a;">${noMark11} NO</span></p>`;
+    html += `<p style="font-size:9pt;font-weight:bold;margin-top:6pt;"><span style="margin-right:40pt;color:#666;">${noMark11} NO</span><span style="color:#16a34a;">${siMark11} SÍ</span></p>`;
 
     if (p11Procede === 'si_procede') {
       html += `<div style="border:2px solid #16a34a;border-radius:6pt;padding:8pt;margin-top:6pt;background:#f0fdf4;"><div class="section-text" style="font-size:9pt;">${renderRichText(textoSi || '')}</div></div>`;
