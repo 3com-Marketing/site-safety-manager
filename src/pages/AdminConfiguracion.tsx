@@ -49,6 +49,7 @@ interface ConfigEmpresa {
   texto_cae_punto10_procede: string;
   texto_cae_punto13: string;
   texto_cae_punto13_procede: string;
+  texto_cae_conformidad_asistentes: string;
 }
 
 const EMPTY_CONFIG: ConfigEmpresa = {
