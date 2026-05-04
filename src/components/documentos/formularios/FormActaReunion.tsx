@@ -132,6 +132,9 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   const [punto11TextoNoProcede, setPunto11TextoNoProcede] = useState('Las actuaciones descritas a continuación NO generan interferencias con TERCEROS debido a que se realizarán señalización, control y vigilancia para NO interferir.');
   const [medioAmbienteAplica, setMedioAmbienteAplica] = useState(false);
   const [medioAmbienteTexto, setMedioAmbienteTexto] = useState('');
+  const [punto12Procede, setPunto12Procede] = useState<'no_procede' | 'si_procede'>('no_procede');
+  const [punto12TextoProcede, setPunto12TextoProcede] = useState('');
+  const [punto12TextoNoProcede, setPunto12TextoNoProcede] = useState('No se detectan aspectos medioambientales relevantes en las actuaciones objeto de esta reunión.');
   const [textoPunto13, setTextoPunto13] = useState('');
   const [punto13Procede, setPunto13Procede] = useState<'no_procede' | 'si_procede'>('no_procede');
   const [punto13TextoProcede, setPunto13TextoProcede] = useState('');
@@ -232,8 +235,17 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       } else if (legacyP11Aplica === false && legacyP11Texto) {
         setPunto11TextoNoProcede(legacyP11Texto);
       }
-      setMedioAmbienteAplica(extra.medio_ambiente_aplica || false);
-      setMedioAmbienteTexto(extra.medio_ambiente_texto || '');
+      const legacyP12Aplica = extra.medio_ambiente_aplica;
+      const legacyP12Texto = extra.medio_ambiente_texto || '';
+      setMedioAmbienteAplica(legacyP12Aplica || false);
+      setMedioAmbienteTexto(legacyP12Texto);
+      setPunto12Procede(extra.punto12_procede || (legacyP12Aplica ? 'si_procede' : 'no_procede'));
+      setPunto12TextoProcede(extra.punto12_texto_procede || (legacyP12Aplica ? legacyP12Texto : ''));
+      if (extra.punto12_texto_no_procede !== undefined) {
+        setPunto12TextoNoProcede(extra.punto12_texto_no_procede);
+      } else if (legacyP12Aplica === false && legacyP12Texto) {
+        setPunto12TextoNoProcede(legacyP12Texto);
+      }
       setTextoPunto13(extra.texto_punto13 || '');
       setPunto13Procede(extra.punto13_procede || 'no_procede');
       setPunto13TextoProcede(extra.punto13_texto_procede || '');
@@ -423,6 +435,9 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       datosExtra.punto11_texto_no_procede = punto11TextoNoProcede;
       datosExtra.medio_ambiente_aplica = medioAmbienteAplica;
       datosExtra.medio_ambiente_texto = medioAmbienteTexto;
+      datosExtra.punto12_procede = punto12Procede;
+      datosExtra.punto12_texto_procede = punto12TextoProcede;
+      datosExtra.punto12_texto_no_procede = punto12TextoNoProcede;
       datosExtra.texto_punto13 = textoPunto13;
       datosExtra.punto13_procede = punto13Procede;
       datosExtra.punto13_texto_procede = punto13TextoProcede;
@@ -939,12 +954,46 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
 
           {/* 12. Medio ambiente */}
           <SectionCollapsible title="12 — Medio ambiente">
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox checked={medioAmbienteAplica} onCheckedChange={(v) => setMedioAmbienteAplica(!!v)} />
-              ¿Aplica consideración medioambiental?
-            </label>
-            {medioAmbienteAplica && (
-              <Textarea value={medioAmbienteTexto} onChange={e => setMedioAmbienteTexto(e.target.value)} rows={3} placeholder="Descripción de las consideraciones medioambientales..." />
+            <p className="text-sm text-muted-foreground">Las actuaciones descritas a continuación:</p>
+            <div className="space-y-2 pt-2">
+              <Label className="text-sm font-medium">¿Procede?</Label>
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant={punto12Procede === 'no_procede' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setPunto12Procede('no_procede')}
+                >
+                  NO
+                </Button>
+                <Button
+                  type="button"
+                  variant={punto12Procede === 'si_procede' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setPunto12Procede('si_procede')}
+                >
+                  SÍ
+                </Button>
+              </div>
+            </div>
+            {punto12Procede === 'si_procede' ? (
+              <div className="rounded-lg border-2 border-green-300 bg-green-50 p-3 space-y-2">
+                <Label className="text-sm font-medium text-green-800">Medidas a aplicar para eliminar los riesgos medioambientales</Label>
+                <RichTextEditor
+                  value={punto12TextoProcede}
+                  onChange={setPunto12TextoProcede}
+                  placeholder="Describir los aspectos medioambientales y medidas a aplicar..."
+                />
+              </div>
+            ) : (
+              <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-2">
+                <Label className="text-sm font-medium">Justificación de NO afección medioambiental</Label>
+                <RichTextEditor
+                  value={punto12TextoNoProcede}
+                  onChange={setPunto12TextoNoProcede}
+                  placeholder="Motivo por el que no se detectan aspectos medioambientales relevantes..."
+                />
+              </div>
             )}
           </SectionCollapsible>
 

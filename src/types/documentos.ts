@@ -152,8 +152,11 @@ export interface DatosActaReunionCAE {
   punto11_texto_procede?: string;
   punto11_texto_no_procede?: string;
   // 12. Medio ambiente
-  medio_ambiente_aplica?: boolean;
-  medio_ambiente_texto?: string;
+  medio_ambiente_aplica?: boolean; // legacy
+  medio_ambiente_texto?: string;   // legacy
+  punto12_procede?: 'no_procede' | 'si_procede';
+  punto12_texto_procede?: string;
+  punto12_texto_no_procede?: string;
   // 13. Ruegos y sugerencias
   ruegos_aplica?: boolean;
   ruegos_texto?: string;

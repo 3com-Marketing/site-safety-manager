@@ -684,13 +684,25 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
 
   // 12. Medio ambiente
   html += `<h2 style="font-size:12pt;color:#E63027;border-bottom:2px solid #E63027;padding-bottom:3pt;"><span style="font-weight:bold;">12.</span> MEDIO AMBIENTE</h2>`;
-  if (extra.medio_ambiente_aplica) {
-    html += `<p style="font-size:9pt;"><strong>Sí aplica.</strong></p>`;
-    if (extra.medio_ambiente_texto) {
-      html += `<div class="section-text" style="font-size:9pt;">${renderRichText(extra.medio_ambiente_texto)}</div>`;
+  {
+    const p12Procede =
+      extra.punto12_procede
+        ?? (extra.medio_ambiente_aplica ? 'si_procede' : 'no_procede');
+    const legacyTexto12 = extra.medio_ambiente_texto || '';
+    const textoSi12 = extra.punto12_texto_procede || (extra.medio_ambiente_aplica ? legacyTexto12 : '');
+    const textoNo12 = extra.punto12_texto_no_procede
+      || (extra.medio_ambiente_aplica === false && legacyTexto12 ? legacyTexto12 : '')
+      || 'No se detectan aspectos medioambientales relevantes en las actuaciones objeto de esta reunión.';
+    const siMark12 = p12Procede === 'si_procede' ? '☑' : '☐';
+    const noMark12 = p12Procede === 'si_procede' ? '☐' : '☑';
+    html += `<p style="font-size:9pt;font-weight:bold;margin-top:6pt;"><span style="margin-right:40pt;color:#666;">${noMark12} NO PROCEDE</span><span style="color:#16a34a;">${siMark12} SÍ PROCEDE</span></p>`;
+    if (p12Procede === 'si_procede') {
+      if (textoSi12) {
+        html += `<div style="border:2px solid #16a34a;border-radius:6pt;padding:8pt;margin-top:6pt;background:#f0fdf4;"><div class="section-text" style="font-size:9pt;">${renderRichText(textoSi12)}</div></div>`;
+      }
+    } else {
+      html += `<div class="section-text" style="font-size:9pt;margin-top:4pt;">${renderRichText(textoNo12)}</div>`;
     }
-  } else {
-    html += `<p style="font-size:9pt;">No se detectan aspectos medioambientales relevantes.</p>`;
   }
 
   // 13. Ruegos y sugerencias
