@@ -132,6 +132,9 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   const [punto11TextoNoProcede, setPunto11TextoNoProcede] = useState('Las actuaciones descritas a continuación NO generan interferencias con TERCEROS debido a que se realizarán señalización, control y vigilancia para NO interferir.');
   const [medioAmbienteAplica, setMedioAmbienteAplica] = useState(false);
   const [medioAmbienteTexto, setMedioAmbienteTexto] = useState('');
+  const [punto12Procede, setPunto12Procede] = useState<'no_procede' | 'si_procede'>('no_procede');
+  const [punto12TextoProcede, setPunto12TextoProcede] = useState('');
+  const [punto12TextoNoProcede, setPunto12TextoNoProcede] = useState('No se detectan aspectos medioambientales relevantes en las actuaciones objeto de esta reunión.');
   const [textoPunto13, setTextoPunto13] = useState('');
   const [punto13Procede, setPunto13Procede] = useState<'no_procede' | 'si_procede'>('no_procede');
   const [punto13TextoProcede, setPunto13TextoProcede] = useState('');
