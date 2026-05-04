@@ -206,6 +206,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       setTextoPunto13(extra.texto_punto13 || '');
       setPunto13Procede(extra.punto13_procede || 'no_procede');
       setPunto13TextoProcede(extra.punto13_texto_procede || '');
+      setTextoConformidadAsistentes(extra.texto_conformidad_asistentes || '');
       setFirmaActualUrl(extra.firma_url || null);
     } else if (defaultValues) {
       setObraActuacion(defaultValues.nombre_obra || '');
