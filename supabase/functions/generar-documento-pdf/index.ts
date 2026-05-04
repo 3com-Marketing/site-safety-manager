@@ -394,7 +394,7 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
 
   // For non-CAE types, use the simpler original template
   if (!isCAE) {
-    return templateActaReunionSimple(doc, extra, obra, cliente, safeworkLogo, asistentes, actividades, empresas, titulo, firmaLabel1, firmaLabel2, fechaStr, isSYS, isInicial);
+    return templateActaReunionSimple(doc, extra, obra, cliente, safeworkLogo, asistentes, actividades, empresas, titulo, firmaLabel1, firmaLabel2, fechaStr, isSYS, isInicial, config);
   }
 
   // ===== FULL CAE TEMPLATE (10 pages, 13 sections) =====
