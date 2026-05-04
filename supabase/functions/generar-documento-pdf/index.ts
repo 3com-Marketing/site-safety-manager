@@ -38,8 +38,11 @@ function baseStyles() {
     th { background: #f0f0f0; font-weight: bold; }
     .section-text { margin: 6pt 0; line-height: 1.5; }
     .section-text p, .legal-text p { margin: 4pt 0; }
-    .section-text ul, .section-text ol, .legal-text ul, .legal-text ol { margin: 4pt 0 4pt 16pt; padding: 0; }
-    .section-text li, .legal-text li { margin-bottom: 3pt; }
+    /* Listas: sin numeración/bullets nativos para respetar exactamente
+       lo que el usuario haya escrito en el editor (ej. "1.", "a)", "h)" repetido…). */
+    .section-text ul, .section-text ol, .legal-text ul, .legal-text ol { list-style: none; margin: 4pt 0; padding-left: 16pt; }
+    .section-text li, .legal-text li { margin-bottom: 3pt; padding-left: 0; }
+    .section-text li > p, .legal-text li > p { margin: 0; }
     .section-text strong, .legal-text strong { font-weight: bold; }
     .section-text em, .legal-text em { font-style: italic; }
     .section-text u, .legal-text u { text-decoration: underline; }
@@ -772,7 +775,7 @@ function templateActaReunionSimple(doc: any, extra: any, obra: any, cliente: any
 
   const textoLegal = extra.texto_legal || "";
   if (textoLegal) {
-    html += `<div style="margin-top:20pt;font-size:10pt;line-height:1.6;text-align:justify;">${renderRichText(textoLegal)}</div>`;
+    html += `<div class="legal-text" style="margin-top:20pt;font-size:10pt;line-height:1.6;text-align:justify;">${renderRichText(textoLegal)}</div>`;
   }
 
   html += `<p style="margin-top:24pt;font-size:10pt;">En ${extra.lugar_firma || extra.localidad || "_______________"}, a ${fechaStr}.</p>`;
