@@ -152,6 +152,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
             if ((data as any).texto_cae_punto10_procede) setPunto10TextoProcede((data as any).texto_cae_punto10_procede);
             if ((data as any).texto_cae_punto13) setTextoPunto13((data as any).texto_cae_punto13);
             if ((data as any).texto_cae_punto13_procede) setPunto13TextoProcede((data as any).texto_cae_punto13_procede);
+            if ((data as any).texto_cae_conformidad_asistentes) setTextoConformidadAsistentes((data as any).texto_cae_conformidad_asistentes);
           }
         });
       }
