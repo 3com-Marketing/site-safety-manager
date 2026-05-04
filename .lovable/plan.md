@@ -1,39 +1,26 @@
-## Objetivo
-Corregir el PDF del Acta Reunión CAE para que en los puntos 10 y 13 se vean siempre las dos opciones del checklist (`NO PROCEDE` y `SÍ PROCEDE`), marcando la elegida, en lugar de mostrar solo una.
+1. Actualizar el formulario del punto 11
+- Cambiar el control actual de “¿Se detectan interferencias con terceros?” (checkbox único) por una selección explícita “NO” / “SÍ”, siguiendo el patrón visual ya usado en los puntos 10 y 13.
+- Mostrar el cuadro de texto de explicación para la opción seleccionada, de modo que siempre se pueda guardar el motivo de lo que proceda.
 
-## Qué voy a cambiar
-1. Revisar y ajustar el render del generador de PDF en `supabase/functions/generar-documento-pdf/index.ts` para los puntos 10 y 13.
-2. Forzar un bloque visual de checklist estable en ambos puntos, con este comportamiento:
-   - si está seleccionado `si_procede`: mostrar `☐ NO PROCEDE` y `☑ SÍ PROCEDE`
-   - si está seleccionado `no_procede`: mostrar `☑ NO PROCEDE` y `☐ SÍ PROCEDE`
-3. Mantener el cuadro verde de texto solo cuando el valor sea `si_procede`.
-4. Verificar que la previsualización `/admin/documento/:id/preview` y la impresión usen exactamente ese HTML actualizado.
+2. Ajustar el modelo de datos con compatibilidad retroactiva
+- Añadir al tipado del documento campos específicos para el punto 11 con un valor tipo `no_procede | si_procede` y su texto asociado.
+- Mantener compatibilidad con documentos antiguos que aún tengan el formato booleano (`interferencias_terceros_aplica`) para no romper actas ya guardadas.
+- Al cargar un documento antiguo, traducir el booleano al nuevo formato para que el formulario siga funcionando correctamente.
 
-## Hallazgo clave
-He comprobado que el código fuente del generador ya contiene una versión de esta lógica, pero la previsualización real sigue mostrando solo una opción:
+3. Corregir la generación del PDF del punto 11
+- Modificar la plantilla PDF para que el punto 11 siempre pinte ambos checklist visibles:
+  - `☑ NO` / `☐ SÍ` cuando no procede
+  - `☐ NO` / `☑ SÍ` cuando sí procede
+- Debajo, mostrar el texto justificativo correspondiente a la opción elegida, igual que en el ejemplo que has adjuntado.
+- Mantener compatibilidad con el formato antiguo para que si se abre un documento previo también salga correctamente en el PDF.
 
-```text
-Punto 10: aparece solo “✔ SÍ PROCEDE”
-Punto 13: aparece solo “✘ NO PROCEDE”
-```
+4. Validación final
+- Verificar que el punto 11 se ve en el PDF con ambos checks visibles y con el motivo correcto tanto para “sí” como para “no”.
+- Confirmar que los puntos 10 y 13 no se ven afectados por este ajuste.
 
-Eso indica que el cambio visible no está llegando correctamente al HTML final que devuelve la función en ejecución, así que la corrección debe centrarse en alinear el código desplegado con el render esperado y dejar el marcado explícito para ambos casos.
-
-## Detalles técnicos
-- Archivo principal: `supabase/functions/generar-documento-pdf/index.ts`
-- Revisaré específicamente los bloques de:
-  - `extra.punto10_procede`
-  - `extra.punto13_procede`
-- El render final quedará con un marcado explícito de ambas casillas en el HTML devuelto por la función.
-- No hace falta tocar base de datos.
-- No debería hacer falta cambiar el formulario salvo que detecte que el valor guardado no coincide con lo que consume el PDF.
-
-## Validación
-Después de aplicar el cambio, comprobaré en la previsualización del documento actual que:
-1. En el punto 10 se vean las dos opciones.
-2. En el punto 13 se vean las dos opciones.
-3. El check correcto quede marcado según la selección.
-4. El cuadro verde siga saliendo solo cuando corresponde.
-
-## Resultado esperado
-El PDF final del Acta Reunión CAE mostrará en los puntos 10 y 13 un checklist completo y consistente, igual que en un formulario en papel, sin ocultar ninguna de las dos opciones.
+Detalles técnicos
+- Archivos previsibles a tocar:
+  - `src/components/documentos/formularios/FormActaReunion.tsx`
+  - `src/types/documentos.ts`
+  - `supabase/functions/generar-documento-pdf/index.ts`
+- No hace falta cambiar tablas de base de datos porque estos valores viven en los datos extra del documento.

@@ -127,8 +127,9 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   const [textoPunto10, setTextoPunto10] = useState('');
   const [punto10Procede, setPunto10Procede] = useState<'no_procede' | 'si_procede'>('no_procede');
   const [punto10TextoProcede, setPunto10TextoProcede] = useState('');
-  const [interferenciasTercerosAplica, setInterferenciasTercerosAplica] = useState(false);
-  const [interferenciasTercerosTexto, setInterferenciasTercerosTexto] = useState('');
+  const [punto11Procede, setPunto11Procede] = useState<'no_procede' | 'si_procede'>('no_procede');
+  const [punto11TextoProcede, setPunto11TextoProcede] = useState('');
+  const [punto11TextoNoProcede, setPunto11TextoNoProcede] = useState('Las actuaciones descritas a continuación NO generan interferencias con TERCEROS debido a que se realizarán señalización, control y vigilancia para NO interferir.');
   const [medioAmbienteAplica, setMedioAmbienteAplica] = useState(false);
   const [medioAmbienteTexto, setMedioAmbienteTexto] = useState('');
   const [textoPunto13, setTextoPunto13] = useState('');
@@ -221,8 +222,16 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       setTextoPunto10(extra.texto_punto10 || '');
       setPunto10Procede(extra.punto10_procede || 'no_procede');
       setPunto10TextoProcede(extra.punto10_texto_procede || '');
-      setInterferenciasTercerosAplica(extra.interferencias_terceros_aplica || false);
-      setInterferenciasTercerosTexto(extra.interferencias_terceros_texto || '');
+      // Punto 11 — nuevo formato con compatibilidad retroactiva
+      const legacyP11Aplica = extra.interferencias_terceros_aplica;
+      const legacyP11Texto = extra.interferencias_terceros_texto || '';
+      setPunto11Procede(extra.punto11_procede || (legacyP11Aplica ? 'si_procede' : 'no_procede'));
+      setPunto11TextoProcede(extra.punto11_texto_procede || (legacyP11Aplica ? legacyP11Texto : ''));
+      if (extra.punto11_texto_no_procede !== undefined) {
+        setPunto11TextoNoProcede(extra.punto11_texto_no_procede);
+      } else if (legacyP11Aplica === false && legacyP11Texto) {
+        setPunto11TextoNoProcede(legacyP11Texto);
+      }
       setMedioAmbienteAplica(extra.medio_ambiente_aplica || false);
       setMedioAmbienteTexto(extra.medio_ambiente_texto || '');
       setTextoPunto13(extra.texto_punto13 || '');
@@ -409,8 +418,9 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
       datosExtra.texto_punto10 = textoPunto10;
       datosExtra.punto10_procede = punto10Procede;
       datosExtra.punto10_texto_procede = punto10TextoProcede;
-      datosExtra.interferencias_terceros_aplica = interferenciasTercerosAplica;
-      datosExtra.interferencias_terceros_texto = interferenciasTercerosTexto;
+      datosExtra.punto11_procede = punto11Procede;
+      datosExtra.punto11_texto_procede = punto11TextoProcede;
+      datosExtra.punto11_texto_no_procede = punto11TextoNoProcede;
       datosExtra.medio_ambiente_aplica = medioAmbienteAplica;
       datosExtra.medio_ambiente_texto = medioAmbienteTexto;
       datosExtra.texto_punto13 = textoPunto13;
@@ -883,13 +893,47 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
           </SectionCollapsible>
 
           {/* 11. Interferencias con terceros */}
-          <SectionCollapsible title="11 — Interferencias con terceros">
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox checked={interferenciasTercerosAplica} onCheckedChange={(v) => setInterferenciasTercerosAplica(!!v)} />
-              ¿Se detectan interferencias con terceros?
-            </label>
-            {interferenciasTercerosAplica && (
-              <Textarea value={interferenciasTercerosTexto} onChange={e => setInterferenciasTercerosTexto(e.target.value)} rows={3} placeholder="Describir las interferencias con terceros..." />
+          <SectionCollapsible title="11 — Interferencias con TERCEROS">
+            <p className="text-sm text-muted-foreground">Las actuaciones descritas a continuación:</p>
+            <div className="space-y-2 pt-2">
+              <Label className="text-sm font-medium">¿Procede?</Label>
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant={punto11Procede === 'no_procede' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setPunto11Procede('no_procede')}
+                >
+                  NO
+                </Button>
+                <Button
+                  type="button"
+                  variant={punto11Procede === 'si_procede' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setPunto11Procede('si_procede')}
+                >
+                  SÍ
+                </Button>
+              </div>
+            </div>
+            {punto11Procede === 'si_procede' ? (
+              <div className="rounded-lg border-2 border-green-300 bg-green-50 p-3 space-y-2">
+                <Label className="text-sm font-medium text-green-800">Interferencias detectadas y medidas a aplicar</Label>
+                <RichTextEditor
+                  value={punto11TextoProcede}
+                  onChange={setPunto11TextoProcede}
+                  placeholder="Describir las interferencias con TERCEROS y medidas a aplicar..."
+                />
+              </div>
+            ) : (
+              <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-2">
+                <Label className="text-sm font-medium">Justificación de NO interferencia</Label>
+                <RichTextEditor
+                  value={punto11TextoNoProcede}
+                  onChange={setPunto11TextoNoProcede}
+                  placeholder="Motivo por el que no se generan interferencias con terceros..."
+                />
+              </div>
             )}
           </SectionCollapsible>
 

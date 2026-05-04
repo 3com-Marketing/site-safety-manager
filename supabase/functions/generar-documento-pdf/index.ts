@@ -658,13 +658,28 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
 
   // 11. Interferencias con terceros
   html += `<h2 style="font-size:12pt;color:#E63027;border-bottom:2px solid #E63027;padding-bottom:3pt;"><span style="font-weight:bold;">11.</span> INTERFERENCIAS CON TERCEROS</h2>`;
-  if (extra.interferencias_terceros_aplica) {
-    html += `<p style="font-size:9pt;"><strong>Sí se detectan interferencias con terceros.</strong></p>`;
-    if (extra.interferencias_terceros_texto) {
-      html += `<div class="section-text" style="font-size:9pt;">${renderRichText(extra.interferencias_terceros_texto)}</div>`;
+  {
+    // Determinar el estado del punto 11 (con compatibilidad retroactiva)
+    const p11Procede: 'si_procede' | 'no_procede' =
+      extra.punto11_procede
+        ?? (extra.interferencias_terceros_aplica ? 'si_procede' : 'no_procede');
+    const legacyTexto = extra.interferencias_terceros_texto || '';
+    const textoSi = extra.punto11_texto_procede || (extra.interferencias_terceros_aplica ? legacyTexto : '');
+    const textoNo = extra.punto11_texto_no_procede
+      || (extra.interferencias_terceros_aplica === false && legacyTexto ? legacyTexto : '')
+      || 'Las actuaciones descritas a continuación NO generan interferencias con TERCEROS debido a que se realizarán señalización, control y vigilancia para NO interferir.';
+
+    const siMark11 = p11Procede === 'si_procede' ? '☑' : '☐';
+    const noMark11 = p11Procede === 'si_procede' ? '☐' : '☑';
+
+    html += `<p style="font-size:9pt;margin-top:4pt;">Las actuaciones descritas a continuación</p>`;
+    html += `<p style="font-size:9pt;font-weight:bold;margin-top:6pt;"><span style="margin-right:40pt;color:#666;">${siMark11} SÍ</span><span style="color:#16a34a;">${noMark11} NO</span></p>`;
+
+    if (p11Procede === 'si_procede') {
+      html += `<div style="border:2px solid #16a34a;border-radius:6pt;padding:8pt;margin-top:6pt;background:#f0fdf4;"><div class="section-text" style="font-size:9pt;">${renderRichText(textoSi || '')}</div></div>`;
+    } else {
+      html += `<div class="section-text" style="font-size:9pt;margin-top:4pt;">${renderRichText(textoNo)}</div>`;
     }
-  } else {
-    html += `<p style="font-size:9pt;">No se detectan interferencias con terceros durante el periodo analizado.</p>`;
   }
 
   // 12. Medio ambiente
