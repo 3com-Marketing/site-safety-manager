@@ -745,25 +745,33 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
                     </Button>
                   </div>
                 ))}
-                <div className="grid grid-cols-5 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Título trabajo</Label>
                     <Input placeholder="Título trabajo" value={nuevaDuracion.titulo} onChange={e => setNuevaDuracion(p => ({ ...p, titulo: e.target.value }))} />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Inicio (fecha y hora)</Label>
-                    <Input type="datetime-local" value={nuevaDuracion.inicio} onChange={e => setNuevaDuracion(p => ({ ...p, inicio: e.target.value }))} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Fin (fecha y hora)</Label>
-                    <Input type="datetime-local" value={nuevaDuracion.fin} onChange={e => setNuevaDuracion(p => ({ ...p, fin: e.target.value }))} />
-                  </div>
-                  <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Observaciones</Label>
                     <Input placeholder="Observaciones" value={nuevaDuracion.observaciones} onChange={e => setNuevaDuracion(p => ({ ...p, observaciones: e.target.value }))} />
                   </div>
-                  <div className="flex items-end">
-                    <Button size="sm" onClick={handleAddDuracion} disabled={!nuevaDuracion.titulo.trim()} className="gap-1 w-full"><Plus className="h-4 w-4" /> Añadir</Button>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Inicio — fecha (opcional)</Label>
+                    <Input type="date" value={nuevaDuracion.inicio_fecha} onChange={e => setNuevaDuracion(p => ({ ...p, inicio_fecha: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Inicio — hora (opcional)</Label>
+                    <Input type="time" value={nuevaDuracion.inicio_hora} onChange={e => setNuevaDuracion(p => ({ ...p, inicio_hora: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Fin — fecha (opcional)</Label>
+                    <Input type="date" value={nuevaDuracion.fin_fecha} onChange={e => setNuevaDuracion(p => ({ ...p, fin_fecha: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Fin — hora (opcional)</Label>
+                    <Input type="time" value={nuevaDuracion.fin_hora} onChange={e => setNuevaDuracion(p => ({ ...p, fin_hora: e.target.value }))} />
+                  </div>
+                  <div className="md:col-span-2 flex justify-end">
+                    <Button size="sm" onClick={handleAddDuracion} disabled={!nuevaDuracion.titulo.trim()} className="gap-1"><Plus className="h-4 w-4" /> Añadir</Button>
                   </div>
                 </div>
               </div>
