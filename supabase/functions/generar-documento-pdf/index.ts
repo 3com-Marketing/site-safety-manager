@@ -636,13 +636,13 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
     if (extra.texto_punto10) {
       html += `<div class="section-text" style="font-size:9pt;text-align:justify;">${renderRichText(extra.texto_punto10)}</div>`;
     }
-    if (extra.punto10_procede === 'si_procede') {
-      html += `<p style="font-size:9pt;font-weight:bold;color:#16a34a;margin-top:8pt;">✔ SÍ PROCEDE</p>`;
-      if (extra.punto10_texto_procede) {
+    {
+      const siMark10 = extra.punto10_procede === 'si_procede' ? '☑' : '☐';
+      const noMark10 = extra.punto10_procede === 'si_procede' ? '☐' : '☑';
+      html += `<p style="font-size:9pt;font-weight:bold;margin-top:8pt;"><span style="margin-right:40pt;color:#666;">${noMark10} NO PROCEDE</span><span style="color:#16a34a;">${siMark10} SÍ PROCEDE</span></p>`;
+      if (extra.punto10_procede === 'si_procede' && extra.punto10_texto_procede) {
         html += `<div style="border:2px solid #16a34a;border-radius:6pt;padding:8pt;margin-top:6pt;background:#f0fdf4;"><div class="section-text" style="font-size:9pt;">${renderRichText(extra.punto10_texto_procede)}</div></div>`;
       }
-    } else {
-      html += `<p style="font-size:9pt;font-weight:bold;color:#666;margin-top:8pt;">✘ NO PROCEDE</p>`;
     }
   } else {
     // Retrocompatibility: old boolean format
@@ -685,13 +685,13 @@ function templateActaReunion(doc: any, extra: any, obra: any, cliente: any, safe
     if (extra.texto_punto13) {
       html += `<div class="section-text" style="font-size:9pt;text-align:justify;">${renderRichText(extra.texto_punto13)}</div>`;
     }
-    if (extra.punto13_procede === 'si_procede') {
-      html += `<p style="font-size:9pt;font-weight:bold;color:#16a34a;margin-top:8pt;">✔ SÍ PROCEDE</p>`;
-      if (extra.punto13_texto_procede) {
+    {
+      const siMark13 = extra.punto13_procede === 'si_procede' ? '☑' : '☐';
+      const noMark13 = extra.punto13_procede === 'si_procede' ? '☐' : '☑';
+      html += `<p style="font-size:9pt;font-weight:bold;margin-top:8pt;"><span style="margin-right:40pt;color:#666;">${noMark13} NO PROCEDE</span><span style="color:#16a34a;">${siMark13} SÍ PROCEDE</span></p>`;
+      if (extra.punto13_procede === 'si_procede' && extra.punto13_texto_procede) {
         html += `<div style="border:2px solid #16a34a;border-radius:6pt;padding:8pt;margin-top:6pt;background:#f0fdf4;"><div class="section-text" style="font-size:9pt;">${renderRichText(extra.punto13_texto_procede)}</div></div>`;
       }
-    } else {
-      html += `<p style="font-size:9pt;font-weight:bold;color:#666;margin-top:8pt;">✘ NO PROCEDE</p>`;
     }
   } else {
     // Retrocompatibility: old boolean format
