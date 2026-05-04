@@ -775,7 +775,7 @@ function templateActaReunionSimple(doc: any, extra: any, obra: any, cliente: any
 
   const textoLegal = extra.texto_legal || "";
   if (textoLegal) {
-    html += `<div style="margin-top:20pt;font-size:10pt;line-height:1.6;text-align:justify;">${renderRichText(textoLegal)}</div>`;
+    html += `<div class="legal-text" style="margin-top:20pt;font-size:10pt;line-height:1.6;text-align:justify;">${renderRichText(textoLegal)}</div>`;
   }
 
   html += `<p style="margin-top:24pt;font-size:10pt;">En ${extra.lugar_firma || extra.localidad || "_______________"}, a ${fechaStr}.</p>`;
