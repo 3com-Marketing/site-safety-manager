@@ -112,6 +112,7 @@ export default function FormActaReunion({ documento, obraId, tipo, onSave, savin
   const [textoPunto13, setTextoPunto13] = useState('');
   const [punto13Procede, setPunto13Procede] = useState<'no_procede' | 'si_procede'>('no_procede');
   const [punto13TextoProcede, setPunto13TextoProcede] = useState('');
+  const [textoConformidadAsistentes, setTextoConformidadAsistentes] = useState('');
 
   // Local arrays for creation mode
   const [localAsistentes, setLocalAsistentes] = useState<Array<{ nombre: string; apellidos: string; cargo: string; empresa: string; dni_nie: string }>>([]);
