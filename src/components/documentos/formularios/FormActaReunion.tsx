@@ -17,10 +17,24 @@ import AutocompleteNombre from '@/components/documentos/AutocompleteNombre';
 
 function formatFechaHora(value?: string): string {
   if (!value) return '—';
-  // datetime-local format: YYYY-MM-DDTHH:mm
+  // YYYY-MM-DDTHH:mm
   const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value);
   if (m) return `${m[3]}/${m[2]}/${m[1]} a las ${m[4]}:${m[5]}`;
+  // YYYY-MM-DD
+  const md = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (md) return `${md[3]}/${md[2]}/${md[1]}`;
+  // HH:mm
+  const mh = /^(\d{2}):(\d{2})$/.exec(value);
+  if (mh) return `a las ${mh[1]}:${mh[2]}`;
   return value;
+}
+
+// Combina fecha (YYYY-MM-DD) y hora (HH:mm) en un único string compatible con el PDF
+function combinarFechaHora(fecha: string, hora: string): string {
+  if (fecha && hora) return `${fecha}T${hora}`;
+  if (fecha) return fecha;
+  if (hora) return hora;
+  return '';
 }
 
 interface Props {
