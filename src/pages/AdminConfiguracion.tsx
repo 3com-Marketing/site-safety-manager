@@ -335,10 +335,6 @@ export default function AdminConfiguracion() {
                     <RichTextEditor value={config.texto_cae_punto2_bloque2} onChange={v => update('texto_cae_punto2_bloque2', v)} placeholder="Plazos de entrega de documentación, planificación semanal, comunicación entre empresas..." />
                   </div>
                   <div>
-                    <Label>Texto legal general</Label>
-                    <RichTextEditor value={config.texto_acta_reunion_cae} onChange={v => update('texto_acta_reunion_cae', v)} placeholder="Texto legal para actas de reunión CAE..." />
-                  </div>
-                  <div>
                     <Label>Punto 4 — Recurso preventivo</Label>
                     <RichTextEditor value={config.texto_recurso_preventivo} onChange={v => update('texto_recurso_preventivo', v)} placeholder="Texto legal sobre designación de recurso preventivo..." />
                   </div>
