@@ -315,39 +315,48 @@ function templateActaAprobacion(doc: any, extra: any, obra: any, cliente: any, s
     return html;
   }
 
-  // Plan SyS — layout original sin cambios
-  let html = `
-    <div style="text-align:center;margin-bottom:20pt;">
-      ${safeworkLogo ? `<img src="${safeworkLogo}" alt="Logo" style="max-height:80pt;max-width:240pt;object-fit:contain;margin-bottom:16pt;" />` : ""}
-      <h1 style="font-size:16pt;color:#1a1a1a;font-weight:bold;margin:0;">${titulo}</h1>
-      <p style="font-size:10pt;color:#666;margin-top:6pt;">${subtitulo}</p>
+  // Plan SyS — layout compacto de 1 sola página (mismo estilo que DGPO / Acta de Nombramiento)
+  let html = `<style>@page { margin: 1.2cm 1.5cm !important; size: A4; }</style>
+    <div style="text-align:center;margin:0 0 8pt 0;">
+      ${safeworkLogo ? `<img src="${safeworkLogo}" alt="Logo" style="max-height:46pt;max-width:160pt;object-fit:contain;margin-bottom:4pt;" />` : ""}
+      <h1 style="font-size:13pt;color:#1a1a1a;font-weight:bold;margin:0;">${titulo}</h1>
+      <p style="font-size:8.5pt;color:#666;margin:2pt 0 0 0;">${subtitulo}</p>
     </div>
   `;
 
-  const campos: [string, string][] = [
+  const datosObra: [string, string][] = [
     ["Obra / Instalación:", extra.obra_instalacion || ""],
     ["Localidad y situación:", localidad],
     ["Promotor:", promotor],
-    ["Autor del proyecto:", extra.autor_proyecto || ""],
-    ["Coordinador del proyecto:", coordProyecto],
-    ["Autor del estudio de SYS:", autorEstudio],
-    ["Director de obra:", extra.director_obra || ""],
-    ["Coordinador de obra:", coordObra],
-    ["Empresa contratista / titular:", empresaContratistaPlan],
   ];
+  html += `<h2 style="font-size:9.5pt;font-weight:bold;border-bottom:1.5px solid #E63027;padding-bottom:2pt;margin:8pt 0 3pt 0;">DATOS DE LA OBRA</h2>`;
+  html += `<table style="width:100%;border-collapse:collapse;margin:2pt 0;">`;
+  for (const [label, value] of datosObra) {
+    html += `<tr><td style="border:1px solid #999;padding:2.5pt 6pt;font-size:8.5pt;font-weight:bold;width:35%;background:#f5f5f5;">${label}</td><td style="border:1px solid #999;padding:2.5pt 6pt;font-size:8.5pt;">${value}</td></tr>`;
+  }
+  html += `</table>`;
 
-  html += `<table style="width:100%;border-collapse:collapse;margin:16pt 0;">`;
-  for (const [label, value] of campos) {
-    html += `<tr><td style="border:1px solid #999;padding:6pt 10pt;font-size:9pt;font-weight:bold;width:40%;background:#f5f5f5;">${label}</td><td style="border:1px solid #999;padding:6pt 10pt;font-size:9pt;">${value}</td></tr>`;
+  const agentes: [string, string][] = [
+    ["Autor del proyecto:", extra.autor_proyecto || ""],
+    ["Coordinador SS del proyecto:", coordProyecto],
+    ["Autor del estudio de SyS:", autorEstudio],
+    ["Director de obra:", extra.director_obra || ""],
+    ["Coordinador SS de la obra:", coordObra],
+    ["Empresa contratista / titular del Plan:", empresaContratistaPlan],
+  ];
+  html += `<h2 style="font-size:9.5pt;font-weight:bold;border-bottom:1.5px solid #E63027;padding-bottom:2pt;margin:8pt 0 3pt 0;">AGENTES DEL PROYECTO</h2>`;
+  html += `<table style="width:100%;border-collapse:collapse;margin:2pt 0;">`;
+  for (const [label, value] of agentes) {
+    html += `<tr><td style="border:1px solid #999;padding:2.5pt 6pt;font-size:8.5pt;font-weight:bold;width:35%;background:#f5f5f5;">${label}</td><td style="border:1px solid #999;padding:2.5pt 6pt;font-size:8.5pt;">${value}</td></tr>`;
   }
   html += `</table>`;
 
   const textoLegal = extra.texto_legal || "";
   if (textoLegal) {
-    html += `<div style="margin-top:20pt;font-size:10pt;line-height:1.6;text-align:justify;">${renderRichText(textoLegal)}</div>`;
+    html += `<div style="margin-top:6pt;font-size:8.5pt;line-height:1.35;text-align:justify;">${renderRichText(textoLegal)}</div>`;
   }
 
-  html += `<p style="margin-top:24pt;font-size:10pt;">En ${extra.lugar_firma || "_______________"}, a ${fechaStr}.</p>`;
+  html += `<p style="margin-top:8pt;font-size:9pt;">En ${extra.lugar_firma || "_______________"}, a ${fechaStr}.</p>`;
   html += firmaRecuadros(extra.firma_url);
 
   return html;
